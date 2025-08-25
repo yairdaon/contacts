@@ -36,6 +36,8 @@ def one_step(t,
              eps,
              psi,
              omega,
+             contact_matrix,
+             population,
              log_betas):
     """Takes arrays logS, logE, logI and C (cases) at time
     t_init and modifies them inplace to have values of logS, logE,
@@ -54,10 +56,16 @@ def one_step(t,
     # Birth and death terms for S
     dlogS[:] += (exp(log(mu) - logS) - mu) * h  
 
-    # S -> E transition (infection)
-    infection_rate = exp(log_betas + logI)
-    dlogS[:] -= infection_rate * h
-    dlogE[:] += exp(log_betas + logS) * h
+    # S -> E transition (infection) with contact matrix
+    # d(logS_i)/dt = -β_i * Σ_j (C_ij * I_j / N_j)
+    
+    # Vectorized computation: C @ (I / N) where I = exp(logI), N = population
+    I_over_N = exp(logI) / population  # Element-wise: I_j / N_j
+    force_of_infection = contact_matrix @ I_over_N  # Matrix multiplication: Σ_j (C_ij * I_j / N_j)
+    
+    # Apply to each strain
+    dlogS[:] -= exp(log_betas) * force_of_infection * h
+    dlogE[:] += exp(log_betas + logS) * force_of_infection * h
     
     # E -> I transition (becoming infectious)
     transition_rate = sigma_rate * exp(logE)
@@ -94,6 +102,8 @@ def multistrain_seir(
         omega,
         eps,
         sigma_rate,
+        contact_matrix,
+        population,
         dlogS,
         dlogE,
         dlogI,
@@ -142,6 +152,8 @@ def multistrain_seir(
                      eps,
                      psi,
                      omega,
+                     contact_matrix,
+                     population,
                      log_betas)
 
                      
@@ -166,7 +178,9 @@ def run(S_init=None,
         psi=365,
         omega=1,
         eps=0.1,
-        n_regions=2):
+        n_regions=2,
+        contact_matrix=None,
+        population=None):
     """Native python code to allocate arrays for and appropriately pack
     the results of the numba code above
    
@@ -217,22 +231,6 @@ def run(S_init=None,
     F = np.full((n_weeks, n_regions), np.nan)
     T = np.full(n_weeks, np.nan)
 
-    if S_init is None or E_init is None or I_init is None:
-        # Implement random initial condition with small fraction infected/exposed
-        total_pop = 1.0  # Normalized population
-        
-        # Small random fractions for initial conditions
-        I_frac1 = np.random.uniform(1e-6, 1e-4)  # 0.0001% to 0.01% infected strain 1
-        I_frac2 = np.random.uniform(1e-6, 1e-4)  # 0.0001% to 0.01% infected strain 2
-        E_frac1 = np.random.uniform(1e-5, 1e-3)  # 0.001% to 0.1% exposed strain 1
-        E_frac2 = np.random.uniform(1e-5, 1e-3)  # 0.001% to 0.1% exposed strain 2
-        
-        I_init = np.array([I_frac1 * total_pop, I_frac2 * total_pop])
-        E_init = np.array([E_frac1 * total_pop, E_frac2 * total_pop])
-        
-        # Susceptible = remaining population
-        S_init = np.array([total_pop - I_init[0] - E_init[0], 
-                          total_pop - I_init[1] - E_init[1]])
     logS[0, :] = log(S_init)
     logE[0, :] = log(E_init)
     logI[0, :] = log(I_init)
@@ -242,6 +240,20 @@ def run(S_init=None,
     nu = np.full(n_regions, nu)
     omega = np.full(n_regions, omega)
     eps = np.full(n_regions, eps)
+    
+    # Default contact matrix: identity (no cross-strain transmission)
+    if contact_matrix is None:
+        contact_matrix = np.eye(n_regions, dtype=np.float64)
+    else:
+        contact_matrix = np.array(contact_matrix, dtype=np.float64)
+        assert contact_matrix.shape == (n_regions, n_regions), f"Contact matrix must be {n_regions}x{n_regions}"
+    
+    # Default population: all regions have population = 1.0
+    if population is None:
+        population = np.ones(n_regions, dtype=np.float64)
+    else:
+        population = np.array(population, dtype=np.float64)
+        assert len(population) == n_regions, f"Population array must have {n_regions} elements"
   
     start = time.time()
     multistrain_seir(
@@ -261,6 +273,8 @@ def run(S_init=None,
         omega=omega,
         eps=eps,
         sigma_rate=sigma_rate,
+        contact_matrix=contact_matrix,
+        population=population,
         dlogS=np.zeros(n_regions),
         dlogE=np.zeros(n_regions),
         dlogI=np.zeros(n_regions),
@@ -270,25 +284,47 @@ def run(S_init=None,
     
     # print("Simulation run time", (end - start) / 60, "minutes", flush=True)
     # logI += np.random.randn(*logI.shape) * ona
-    cols = ['logS1', 'logS2', 'logE1', 'logE2', 'logI1', 'logI2', 'C1', 'C2', 'F1', 'F2']
-    data = np.hstack([logS, logE, logI, Cs, F])
+    # cols = ['logS1', 'logS2', 'logE1', 'logE2', 'logI1', 'logI2', 'C1', 'C2', 'F1', 'F2']
+    # data = np.hstack([logS, logE, logI, Cs, F])
+
+    data = np.hstack([F, Cs])
+    cols = [f'F{i}' for i in range(n_regions)]
+    cols += [f'C{i}' for i in range(n_regions)]
     df = pd.DataFrame(index=T, data=data, columns=cols)
     
-    df['S1'] = np.exp(df.logS1) 
-    df['S2'] = np.exp(df.logS2)
-    df['E1'] = np.exp(df.logE1) 
-    df['E2'] = np.exp(df.logE2) 
-    df['I1'] = np.exp(df.logI1) 
-    df['I2'] = np.exp(df.logI2) 
-    return df
+    # df['S1'] = np.exp(df.logS1) 
+    # df['S2'] = np.exp(df.logS2)
+    # df['E1'] = np.exp(df.logE1) 
+    # df['E2'] = np.exp(df.logE2) 
+    # df['I1'] = np.exp(df.logI1) 
+    # df['I2'] = np.exp(df.logI2)
 
+    df.index = pd.date_range(start='1900-01-01', periods=len(df), freq='7D')
+    df.index.name = 'time'
+    return df[cols]
 
 
 def simulate():
-    """Run simulation with default parameters"""
-    df = run(n_weeks=100)
-    df.index = pd.date_range(start='1900-01-01', periods=len(df), freq='7D')
-    df.index.name = 'time'
+    # Implement random initial condition with small fraction infected/exposed
+    total_pop = 1.0  # Normalized population
+    
+    # Small random fractions for initial conditions
+    I_frac1 = np.random.uniform(1e-6, 1e-4)  # 0.0001% to 0.01% infected strain 1
+    I_frac2 = np.random.uniform(1e-6, 1e-4)  # 0.0001% to 0.01% infected strain 2
+    E_frac1 = np.random.uniform(1e-5, 1e-3)  # 0.001% to 0.1% exposed strain 1
+    E_frac2 = np.random.uniform(1e-5, 1e-3)  # 0.001% to 0.1% exposed strain 2
+        
+    I_init = np.array([I_frac1 * total_pop, I_frac2 * total_pop])
+    E_init = np.array([E_frac1 * total_pop, E_frac2 * total_pop])
+    
+    # Susceptible = remaining population
+    S_init = np.array([total_pop - I_init[0] - E_init[0], 
+                          total_pop - I_init[1] - E_init[1]])
+    
+    df = run(n_weeks=100,
+             S_init=S_init,
+             I_init=I_init,
+             E_init=E_init)
     return df
 
 
@@ -302,40 +338,31 @@ if __name__ == "__main__":
     np.random.seed(42)
     
     # Run simulation for 5 years with random initial conditions
-    print("Running SEIR simulation with random initial conditions...")
     df = simulate()
+    print("\\nSimulation completed successfully!")
+    
     
     # Create visualization
-    fig, axes = plt.subplots(1, 3, figsize=(18, 8))
+    fig, axes = plt.subplots(1, 3, figsize=(17, 7))
     fig.patch.set_facecolor('black')
     fig.suptitle('Two-Strain SEIR Model Simulation', fontsize=14, color='white')
     col1 ='#00FF7F'
     col2 = '#DA70D6'
     
     
-    # Plot strain 1
-    ax = axes[0]
-    ax.plot(df.index, df.I1, col1, label='I1', alpha=0.8, linewidth=2)  # Tomato red
-    ax.plot(df.index, df.I2, col2, label='I2', alpha=0.8, linewidth=2)  # Tomato red
-    ax.set_title('Infecteds', color='white')
-    ax.set_ylabel('Population Fraction', color='white')
-    ax.legend()
-    ax.grid(True, alpha=0.3, color='gray')
-    ax.set_facecolor('black')
-    
     # Plot cases (incidence)
-    ax = axes[1]
-    ax.plot(df.index, df.C1, col1, label='Incidence 1', alpha=0.8, linewidth=2)  # Deep pink
-    ax.plot(df.index, df.C2, col2, label='Incidence 2', alpha=0.8, linewidth=2)  # Dark orange
+    ax = axes[0]
+    ax.plot(df.index, df.C0, col1, label='Incidence 1', alpha=0.8, linewidth=2)  # Deep pink
+    ax.plot(df.index, df.C1, col2, label='Incidence 2', alpha=0.8, linewidth=2)  # Dark orange
     ax.set_title('Weekly Incidence (New Cases)', color='white')
     ax.set_ylabel('Cases per Week', color='white')
     ax.legend()
     ax.grid(True, alpha=0.3, color='gray')
     ax.set_facecolor('black')
     # Plot transmission rates (seasonal forcing)
-    ax = axes[2]
-    ax.plot(df.index, df.F1, col1, label='β1(t)', alpha=0.8, linewidth=2)  # Spring green
-    ax.plot(df.index, df.F2, col2, label='β2(t)', alpha=0.8, linewidth=2)  # Orchid
+    ax = axes[1]
+    ax.plot(df.index, df.F0, col1, label='β1(t)', alpha=0.8, linewidth=2)  # Spring green
+    ax.plot(df.index, df.F1, col2, label='β2(t)', alpha=0.8, linewidth=2)  # Orchid
     ax.set_title('Transmission Rates (Seasonal)', color='white')
     ax.set_ylabel('β(t)', color='white')
     ax.set_xlabel('Time', color='white')
