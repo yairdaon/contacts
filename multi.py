@@ -25,6 +25,10 @@ def one_step(t,
              logE,
              logI,
              C, ## Cases
+             dlogS,
+             dlogE,
+             dlogI,
+             dC,
              mu,
              sigma_rate,
              nu,
@@ -39,32 +43,44 @@ def one_step(t,
 
     """
 
+    # Zero out derivatives
+    dlogS[:] = 0
+    dlogE[:] = 0  
+    dlogI[:] = 0
+    dC[:] = 0
     
     calc_log_betas(t, beta0, eps, psi, omega, log_betas)        
 
     # Birth and death terms for S
-    logS += (exp(log(mu) - logS) - mu) * h  
+    dlogS[:] += (exp(log(mu) - logS) - mu) * h  
 
     # S -> E transition (infection)
-    logS -= exp(log_betas + logI) * h
-    logE += exp(log_betas + logS) * h
+    infection_rate = exp(log_betas + logI)
+    dlogS[:] -= infection_rate * h
+    dlogE[:] += exp(log_betas + logS) * h
     
     # E -> I transition (becoming infectious)
-    logE -= sigma_rate * exp(logE) * h
-    logI += sigma_rate * exp(logE) * h
+    transition_rate = sigma_rate * exp(logE)
+    dlogE[:] -= transition_rate * h
+    dlogI[:] += transition_rate * h
         
     # I -> R transition (recovery)
-    logI -= (nu + mu) * h
+    dlogI[:] -= (nu + mu) * h
         
     # New cases (E -> I transition)
-    C += sigma_rate * exp(logE) * h
+    dC[:] += transition_rate * h
 
-
+    # Apply derivatives
+    logS[:] += dlogS
+    logE[:] += dlogE
+    logI[:] += dlogI
+    C[:] += dC
+    
 @jit(nopython=True)
 def multistrain_seir(
         dt_euler,
         dt_output, 
-        n_pathogens, 
+        n_regions, 
         logSs,
         logEs,
         logIs,
@@ -78,6 +94,10 @@ def multistrain_seir(
         omega,
         eps,
         sigma_rate,
+        dlogS,
+        dlogE,
+        dlogI,
+        dC,
         log_betas):
     """Numba code to run the two-strain SEIR model. First line in all
     arrays is junk so truncate it."""
@@ -111,6 +131,10 @@ def multistrain_seir(
                      logE,
                      logI,
                      C,
+                     dlogS,
+                     dlogE,
+                     dlogI,
+                     dC,
                      mu,
                      sigma_rate,
                      nu,
@@ -129,33 +153,26 @@ def multistrain_seir(
 
      
 
-def run(run_years=4,
-        beta1=0.3, 
-        beta2=0.25,
+def run(S_init=None,
+        E_init=None,
+        I_init=None,
+        n_weeks=20, ## 20 weeks per epidemic season,
+        beta0=0.3,
         sigma_rate=0.5,  # Rate E->I (1/incubation period)
         dt_output=7,
         dt_euler=5e-2,
-        mu=1/30/360,
+        mu=0,#1/30/365, ## birth death rate. assume const pop throughout season.
         nu=0.2,
-        psi=360,
+        psi=365,
         omega=1,
-        eps1=0.1,
-        eps2=0.1,
-        n_pathogens=2,
-        S_init=None,
-        E_init=None,
-        I_init=None,
-        **kwargs):
+        eps=0.1,
+        n_regions=2):
     """Native python code to allocate arrays for and appropriately pack
     the results of the numba code above
    
     Parameters:
-    - run_years: int
-        Simulation time user needs in years.
-    - beta1: float
-        Transmission force for the first pathogen.
-    - beta2: float
-        Transmission force for the second pathogen.
+    - beta: float
+        Transmission force
     - sigma_rate: float
         Rate of progression from Exposed to Infected (1/incubation_period).
     - dt_output: float
@@ -163,7 +180,7 @@ def run(run_years=4,
     - dt_euler: float
         Time step for numerical integration using Eulers method.
     - mu: float, optional
-        Natural mortality rate. Default is 1/(30*360), so if a year is 360 days then the average life span is 30 years.
+        Natural mortality rate. Default is 1/30/365, so then the average life span is 30 years.
     - nu: float, optional
         Recovery rate. Default is 0.2, so average time of illness and infectivity is 5 time units.
     - psi: float, optional
@@ -173,12 +190,10 @@ def run(run_years=4,
         is a year.
     - omega: float, optional
         Rate of change of betas. Ignore in current simulation, but you can dig in and play with it.
-    - eps1: float
-        Force of environmental driver effect on transmission for pathogen 1.
-    - eps2: float
-        Force of environmental driver effect on transmission for pathogen 2.
-    - n_pathogens: int
-        Number of pathogens in the simulation.
+    - eps: float
+        Force of environmental driver effect on transmission
+    - n_regions: int
+        Number of regions in the simulation.
     - test_noise: np.array
         A noise array used for testing. User should ignore this.
     - S_init: array
@@ -195,14 +210,12 @@ def run(run_years=4,
     User should utilize C1 and C2 columns, which represent number of cases in the time before the sampling time. F1 and F2 the environmental drivers.
     """
     
-    t_end = run_years * psi
-    n_output = int(ceil(t_end / dt_output))
-    logS = np.full((n_output, 2), np.nan)
-    logE = np.full((n_output, 2), np.nan)
-    logI = np.full((n_output, 2), np.nan)
-    Cs = np.full((n_output, 2), np.nan)
-    F = np.full((n_output, 2), np.nan)
-    T = np.full(n_output, np.nan)
+    logS = np.full((n_weeks, n_regions), np.nan)
+    logE = np.full((n_weeks, n_regions), np.nan)
+    logI = np.full((n_weeks, n_regions), np.nan)
+    Cs = np.full((n_weeks, n_regions), np.nan)
+    F = np.full((n_weeks, n_regions), np.nan)
+    T = np.full(n_weeks, np.nan)
 
     if S_init is None or E_init is None or I_init is None:
         # Implement random initial condition with small fraction infected/exposed
@@ -224,17 +237,17 @@ def run(run_years=4,
     logE[0, :] = log(E_init)
     logI[0, :] = log(I_init)
     Cs[0, :] = np.nan ## Initial count of new cases is C
-    beta0 = np.array([beta1, beta2], dtype=np.float64)
 
-    nu = np.full(n_pathogens, nu)
-    omega = np.full(n_pathogens, omega)
-    eps = np.array([eps1, eps2])
-
+    beta0 = np.full(n_regions, beta0)
+    nu = np.full(n_regions, nu)
+    omega = np.full(n_regions, omega)
+    eps = np.full(n_regions, eps)
+  
     start = time.time()
     multistrain_seir(
         dt_euler=dt_euler,
         dt_output=dt_output,
-        n_pathogens=n_pathogens,
+        n_regions=n_regions,
         logSs=logS,
         logEs=logE,
         logIs=logI,
@@ -248,7 +261,11 @@ def run(run_years=4,
         omega=omega,
         eps=eps,
         sigma_rate=sigma_rate,
-        log_betas=np.empty(n_pathogens))
+        dlogS=np.zeros(n_regions),
+        dlogE=np.zeros(n_regions),
+        dlogI=np.zeros(n_regions),
+        dC=np.zeros(n_regions),
+        log_betas=np.empty(n_regions))
     end = time.time()
     
     # print("Simulation run time", (end - start) / 60, "minutes", flush=True)
@@ -267,12 +284,10 @@ def run(run_years=4,
 
 
 
-def simulate(run_years=5, **kwargs):
+def simulate():
     """Run simulation with default parameters"""
-    df = run(run_years=run_years, **kwargs)
-    # Convert time units to days and create date index
-    time_in_days = df.index * (30/360)  # Convert from time units to days (dt_output=30)
-    df.index = pd.date_range(start='1900-01-01', periods=len(df), freq='30D')
+    df = run(n_weeks=100)
+    df.index = pd.date_range(start='1900-01-01', periods=len(df), freq='7D')
     df.index.name = 'time'
     return df
 
@@ -288,10 +303,10 @@ if __name__ == "__main__":
     
     # Run simulation for 5 years with random initial conditions
     print("Running SEIR simulation with random initial conditions...")
-    df = simulate(run_years=5, dt_output=7)  # Weekly sampling
+    df = simulate()
     
     # Create visualization
-    fig, axes = plt.subplots(1, 3, figsize=(15, 10))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 8))
     fig.patch.set_facecolor('black')
     fig.suptitle('Two-Strain SEIR Model Simulation', fontsize=14, color='white')
     col1 ='#00FF7F'
