@@ -5,6 +5,7 @@ from numpy import sin, cos, pi, log, exp, sqrt, ceil
 from matplotlib import pyplot as plt
 
 from multi import *
+
 def main():
     # Set dark mode style
     plt.style.use('dark_background')

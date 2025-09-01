@@ -164,7 +164,8 @@ def run(S_init,
         eps=0.3,
         n_regions=2,
         contact_matrix=None,
-        population=None):
+        population=None,
+        season="1900-01-01"):
     """Native python code to allocate arrays for and appropriately
     pack the results of the numba code above
    
@@ -172,6 +173,8 @@ def run(S_init,
     cases in the time before the sampling time. F1 and F2 the
     environmental drivers.
 
+    season should be a date!!
+    
     """
     
     logS = np.full((n_weeks, n_regions), np.nan)
@@ -238,7 +241,7 @@ def run(S_init,
     I = pd.DataFrame(index=T, data=exp(logI), columns=[f'I{i}' for i in range(n_regions)])
     df = pd.concat([C, F, S, E, I], axis=1)
 
-    df.index = pd.date_range(start='1900-01-01', periods=len(df), freq='7D')
+    df.index = pd.date_range(start=season, periods=len(df), freq='7D')
     df.index.name = 'time'
     return df
 
