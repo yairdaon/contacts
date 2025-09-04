@@ -158,14 +158,14 @@ def run(S_init,
         sigma=0.5,  # Rate E->I (1/incubation period)
         dt_output=7,
         dt_euler=5e-2,
-        mu= 0/30/365, ## birth death rate.
+        mu=0/30/365, ## birth death rate.
         nu=0.2,
         omega=1,
         eps=0.3,
         n_regions=2,
         contact_matrix=None,
         population=None,
-        season="1900-01-01"):
+        start_date="1900-01-01"):
     """Native python code to allocate arrays for and appropriately
     pack the results of the numba code above
    
@@ -240,8 +240,9 @@ def run(S_init,
     E = pd.DataFrame(index=T, data=exp(logE), columns=[f'E{i}' for i in range(n_regions)])
     I = pd.DataFrame(index=T, data=exp(logI), columns=[f'I{i}' for i in range(n_regions)])
     df = pd.concat([C, F, S, E, I], axis=1)
+    assert not pd.isnull(df.iloc[1:,:].drop(C.columns, axis=1)).any().any()
 
-    df.index = pd.date_range(start=season, periods=len(df), freq='7D')
+    df.index = pd.date_range(start=start_date, periods=len(df), freq='7D')
     df.index.name = 'time'
     return df
 
