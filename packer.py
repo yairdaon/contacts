@@ -139,10 +139,9 @@ class Packer:
             eps=np.random.uniform(0,1)
         )
 
-        for key in ["S_init", "I_init", "E_init"]:
-            arr = np.random.randn(self.n_regions * self.n_seasons).reshape(self.n_seasons, self.n_regions)
-            out[key] = arr
-        out = self.real2pop(out)
+        out["E_init"] = np.random.uniform(0,1e-4, size=self.n_seasons * self.n_regions).reshape(self.n_seasons, self.n_regions)
+        out["I_init"] = np.random.uniform(0,1e-4, size=self.n_seasons * self.n_regions).reshape(self.n_seasons, self.n_regions)
+        out["S_init"] = np.ones((self.n_seasons, self.n_regions)) - out['E_init'] - out['I_init'] - 0.01
         return out
 
 

@@ -98,7 +98,6 @@ def multi_seir(
 
     """
 
-
     ## Start at 1 cuz we have the first value as initial condition
     for iteration in range(1, logSs.shape[0]):
         t = (iteration-1) * dt_output
@@ -193,7 +192,14 @@ def run(S_init,
     nu = np.full(n_regions, nu)
     omega = np.full(n_regions, omega)
     eps = np.full(n_regions, eps)
-    
+    log_betas = np.empty(n_regions)
+    calc_log_betas(0,
+                   beta0=beta0,
+                   eps=eps,
+                   omega=omega,
+                   log_betas=log_betas)
+    F[0, :] = exp(log_betas)
+
     # Default contact matrix: identity (no cross-region transmission)
     if contact_matrix is None:
         contact_matrix = np.eye(n_regions, dtype=np.float64)
@@ -208,7 +214,6 @@ def run(S_init,
         population = np.array(population, dtype=np.float64)
         assert len(population) == n_regions, f"Population array must have {n_regions} elements"
   
-    start = time.time()
     multi_seir(
         dt_euler=dt_euler,
         dt_output=dt_output,
@@ -231,8 +236,7 @@ def run(S_init,
         dlogE=np.zeros(n_regions),
         dlogI=np.zeros(n_regions),
         dC=np.zeros(n_regions),
-        log_betas=np.empty(n_regions))
-    end = time.time()
+        log_betas=log_betas)
 
     C = pd.DataFrame(index=T, data=Cs, columns=[f'C{i}' for i in range(n_regions)])
     F = pd.DataFrame(index=T, data=F, columns=[f'F{i}' for i in range(n_regions)])
