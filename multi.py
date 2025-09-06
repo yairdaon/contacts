@@ -7,16 +7,41 @@ from numba import jit, njit
 from numba.core import types
 from numpy import sin, cos, pi, log, exp, sqrt, ceil
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use("MacOSX")
 
+# Days per year for seasonal forcing
+PSI = 365
 
-PSI=365
 @jit(nopython=True)
 def calc_log_betas(t,
                    beta0,
                    eps,
                    omega,
                    log_betas):
-    log_betas[:] = log(beta0 * (1.0 + eps * sin(2.0 * pi / PSI * (t - omega * PSI))))
+    """
+    Calculate time-varying transmission rates with seasonal forcing.
+    
+    Parameters:
+    -----------
+    t : float
+        Current time in days
+    beta0 : array
+        Baseline transmission rate per region (1/day)
+    eps : array  
+        Seasonal amplitude (0-1) per region
+    omega : array
+        Phase shift per region (fraction of year, 0=peak at t=0)
+    log_betas : array
+        Output array for log(beta(t)) values
+    
+    Notes:
+    ------
+    Seasonal pattern: β(t) = β₀ * (1 + ε * sin(2π(t/365 - ω)))
+    where ω is phase as fraction of year (0.25 = peak in spring)
+    """
+    # Convert omega from fraction of year to phase in days
+    log_betas[:] = log(beta0 * (1.0 + eps * sin(2.0 * pi * (t / PSI - omega))))
     
 
 @jit(nopython=True)
@@ -47,9 +72,8 @@ def one_step(t,
 
     calc_log_betas(t, beta0, eps, omega, log_betas)        
 
-
     # Vectorized computation: C @ (I / N) where I = exp(logI), N = population
-    force_of_infection = contact_matrix @ exp(logI) / population  # Matrix multiplication: Σ_j (C_ij * I_j / N_j)
+    force_of_infection = contact_matrix @ (exp(logI) / population)  # Matrix multiplication: Σ_j (C_ij * I_j / N_j)
     
     # S -> E transition (infection) with contact matrix d(logS_i)/dt = -β_i * Σ_j (C_ij * I_j / N_j)
     dlogS[:] = mu * (population * exp(-logS) - 1) - exp(log_betas) * force_of_infection 
@@ -73,7 +97,6 @@ def one_step(t,
 def multi_seir(
         dt_euler,
         dt_output, 
-        n_regions, 
         logSs,
         logEs,
         logIs,
@@ -152,28 +175,54 @@ def multi_seir(
 def run(S_init,
         E_init,
         I_init,
-        n_weeks=20, ## 20 weeks per epidemic season,
-        beta0=0.45,
-        sigma=0.5,  # Rate E->I (1/incubation period)
-        dt_output=7,
-        dt_euler=5e-2,
-        mu=0/30/365, ## birth death rate.
-        nu=0.2,
-        omega=1,
-        eps=0.3,
+        n_weeks=20,
+        beta0=0.28,     # Flu: R₀≈1.4, recovery period ~5 days → β₀≈1.4/5=0.28/day
+        sigma=1.0/3.0,  # Flu: incubation period ~3 days → σ=1/3/day  
+        dt_output=7,    # Output every 7 days (weekly)
+        dt_euler=5e-2,  # Euler step size (days)
+        mu=1/(70*365),  # Birth/death rate: 70-year lifespan
+        nu=1.0/5.0,     # Flu: infectious period ~5 days → ν=1/5/day
+        omega=0.0,      # Phase: 0=winter peak, 0.25=spring, 0.5=summer, 0.75=fall
+        eps=0.5,        # Seasonal amplitude: 50% variation (to be used in optimization)
         n_regions=2,
         contact_matrix=None,
         population=None,
         start_date="1900-01-01"):
-    """Native python code to allocate arrays for and appropriately
-    pack the results of the numba code above
-   
-    User should utilize C1 and C2 columns, which represent number of
-    cases in the time before the sampling time. F1 and F2 the
-    environmental drivers.
-
-    season should be a date!!
+    """
+    Run multi-region SEIR simulation with seasonal forcing.
     
+    Parameters:
+    -----------
+    S_init, E_init, I_init : array_like
+        Initial conditions (absolute numbers, not fractions)
+    n_weeks : int
+        Simulation duration in weeks
+    beta0 : float
+        Baseline transmission rate (contacts/day). For flu: ~R₀/infectious_period
+    sigma : float  
+        Incubation rate E→I (1/day). For flu: ~1/3 day⁻¹
+    nu : float
+        Recovery rate I→R (1/day). For flu: ~1/5 day⁻¹  
+    mu : float
+        Birth/death rate (1/day). Typical: 1/(70*365)
+    omega : float
+        Seasonal phase (fraction of year). Should be constrained to [0,1]
+        0=winter peak, 0.5=summer peak
+    eps : float
+        Seasonal amplitude (0-1). 0=no seasonality, 0.5=50% variation
+    contact_matrix : 2D array, optional
+        C[i,j] = relative contact rate from region j to region i.
+        Dimensionless matrix in [0,1]. Units come from multiplication by beta0.
+        Default: identity matrix (no inter-region transmission)
+    population : array, optional
+        Population size per region
+        
+    Returns:
+    --------
+    DataFrame with columns:
+        - C{i}: Weekly incidence (new cases) in region i
+        - F{i}: Transmission rate β(t) in region i  
+        - S{i}, E{i}, I{i}: Compartment sizes in region i
     """
     
     logS = np.full((n_weeks, n_regions), np.nan)
@@ -217,7 +266,6 @@ def run(S_init,
     multi_seir(
         dt_euler=dt_euler,
         dt_output=dt_output,
-        n_regions=n_regions,
         logSs=logS,
         logEs=logE,
         logIs=logI,
@@ -257,7 +305,7 @@ def simulate(seed=43):
     np.random.seed(seed)
 
     # Implement random initial condition with small fraction infected/exposed
-    total_pop = 1.0  # Normalized population
+    total_pop = np.array([1e3, 1e4]) # np.array([1e6, 2e6])  # Normalized population
     
     # Small random fractions for initial conditions
     I_init = np.random.uniform(1e-6, 1e-4, size=2) * total_pop  # 0.0001% to 0.01% infected 
@@ -266,9 +314,56 @@ def simulate(seed=43):
     # Susceptible = remaining population
     S_init = total_pop - I_init - E_init
     
-    df = run(n_weeks=100,
+    df = run(n_weeks=15,
              S_init=S_init,
              I_init=I_init,
              E_init=E_init)
     return df
 
+
+
+def main():
+    # Set dark mode style
+    plt.style.use('dark_background')
+
+    # Run simulation for 5 years with random initial conditions
+    df = simulate()
+
+    # Create visualization
+    fig, axes = plt.subplots(1, 2, figsize=(17, 7))
+    fig.patch.set_facecolor('black')
+    fig.suptitle('Two-Strain SEIR Model Simulation', fontsize=14, color='white')
+    col1 = '#00FF7F'
+    col2 = '#DA70D6'
+
+    # Plot cases (incidence)
+    ax = axes[0]
+    ax.plot(df.index, df.C0, col1, label='Incidence 1', alpha=0.8, linewidth=2)  # Deep pink
+    ax.plot(df.index, df.C1, col2, label='Incidence 2', alpha=0.8, linewidth=2)  # Dark orange
+    ax.set_ylabel('Cases per Week', color='white')
+    ax.legend()
+    ax.grid(True, alpha=0.3, color='gray')
+    ax.set_facecolor('black')
+    # Plot transmission rates (seasonal forcing)
+    ax = axes[1]
+    ax.plot(df.index, df.F0, col1, label='β1(t)', alpha=0.8, linewidth=2)  # Spring green
+    ax.plot(df.index, df.F1, col2, label='β2(t)', alpha=0.8, linewidth=2)  # Orchid
+    ax.set_ylabel('β(t)', color='white')
+    ax.set_xlabel('Time', color='white')
+    ax.legend()
+    ax.grid(True, alpha=0.3, color='gray')
+    ax.set_facecolor('black')
+
+    plt.tight_layout()
+    plt.show()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        import traceback
+        import pdb
+
+        traceback.print_exc()  # Prints the full stack trace to stderr
+        pdb.post_mortem()  # Starts debugger at the poi
