@@ -31,7 +31,7 @@ def calc_log_betas(t,
     eps : array  
         Seasonal amplitude (0-1) per region
     omega : array
-        Phase shift per region (fraction of year, 0=peak at t=0)
+        Phase shift per region (fraction of year, 0=peak at t=0). should be in [-0.5, 0.5]
     log_betas : array
         Output array for log(beta(t)) values
     
@@ -50,7 +50,7 @@ def one_step(t,
              logS,
              logE,
              logI,
-             C, ## Cases
+             C,
              dlogS,
              dlogE,
              dlogI,
@@ -184,7 +184,6 @@ def run(S_init,
         nu=1.0/5.0,     # Flu: infectious period ~5 days → ν=1/5/day
         omega=0.0,      # Phase: 0=winter peak, 0.25=spring, 0.5=summer, 0.75=fall
         eps=0.5,        # Seasonal amplitude: 50% variation (to be used in optimization)
-        n_regions=2,
         contact_matrix=None,
         population=None,
         start_date="1900-01-01"):
@@ -193,8 +192,8 @@ def run(S_init,
     
     Parameters:
     -----------
-    S_init, E_init, I_init : array_like
-        Initial conditions (absolute numbers, not fractions)
+    S_init, E_init, I_init : numpy arrays
+        Initial conditions as fractions of population (0-1)
     n_weeks : int
         Simulation duration in weeks
     beta0 : float
@@ -215,7 +214,7 @@ def run(S_init,
         Dimensionless matrix in [0,1]. Units come from multiplication by beta0.
         Default: identity matrix (no inter-region transmission)
     population : array, optional
-        Population size per region
+        Population size per region. Default: ones (normalized population)
         
     Returns:
     --------
@@ -224,6 +223,19 @@ def run(S_init,
         - F{i}: Transmission rate β(t) in region i  
         - S{i}, E{i}, I{i}: Compartment sizes in region i
     """
+    n_regions = len(S_init)
+
+    # Default population: all regions have population = 1.0 (normalized)
+    if population is None:
+        population = np.ones(n_regions, dtype=np.float64)
+    else:
+        population = np.array(population, dtype=np.float64)
+        assert len(population) == n_regions, f"Population array must have {n_regions} elements"
+    
+    # Convert fraction initial conditions to absolute numbers
+    S_init = np.array(S_init) * population
+    E_init = np.array(E_init) * population  
+    I_init = np.array(I_init) * population
     
     logS = np.full((n_weeks, n_regions), np.nan)
     logE = np.full((n_weeks, n_regions), np.nan)
@@ -255,13 +267,6 @@ def run(S_init,
     else:
         contact_matrix = np.array(contact_matrix, dtype=np.float64)
         assert contact_matrix.shape == (n_regions, n_regions), f"Contact matrix must be {n_regions}x{n_regions}"
-    
-    # Default population: all regions have population = 1.0
-    if population is None:
-        population = np.ones(n_regions, dtype=np.float64)
-    else:
-        population = np.array(population, dtype=np.float64)
-        assert len(population) == n_regions, f"Population array must have {n_regions} elements"
   
     multi_seir(
         dt_euler=dt_euler,
@@ -299,71 +304,6 @@ def run(S_init,
     return df
 
 
-def simulate(seed=43):
-    
-    # Set random seed for reproducible results
-    np.random.seed(seed)
-
-    # Implement random initial condition with small fraction infected/exposed
-    total_pop = np.array([1e3, 1e4]) # np.array([1e6, 2e6])  # Normalized population
-    
-    # Small random fractions for initial conditions
-    I_init = np.random.uniform(1e-6, 1e-4, size=2) * total_pop  # 0.0001% to 0.01% infected 
-    E_init = np.random.uniform(1e-5, 1e-3, size=2) * total_pop # 0.001% to 0.1% exposed             
-     
-    # Susceptible = remaining population
-    S_init = total_pop - I_init - E_init
-    
-    df = run(n_weeks=15,
-             S_init=S_init,
-             I_init=I_init,
-             E_init=E_init)
-    return df
-
-
-
-def main():
-    # Set dark mode style
-    plt.style.use('dark_background')
-
-    # Run simulation for 5 years with random initial conditions
-    df = simulate()
-
-    # Create visualization
-    fig, axes = plt.subplots(1, 2, figsize=(17, 7))
-    fig.patch.set_facecolor('black')
-    fig.suptitle('Two-Strain SEIR Model Simulation', fontsize=14, color='white')
-    col1 = '#00FF7F'
-    col2 = '#DA70D6'
-
-    # Plot cases (incidence)
-    ax = axes[0]
-    ax.plot(df.index, df.C0, col1, label='Incidence 1', alpha=0.8, linewidth=2)  # Deep pink
-    ax.plot(df.index, df.C1, col2, label='Incidence 2', alpha=0.8, linewidth=2)  # Dark orange
-    ax.set_ylabel('Cases per Week', color='white')
-    ax.legend()
-    ax.grid(True, alpha=0.3, color='gray')
-    ax.set_facecolor('black')
-    # Plot transmission rates (seasonal forcing)
-    ax = axes[1]
-    ax.plot(df.index, df.F0, col1, label='β1(t)', alpha=0.8, linewidth=2)  # Spring green
-    ax.plot(df.index, df.F1, col2, label='β2(t)', alpha=0.8, linewidth=2)  # Orchid
-    ax.set_ylabel('β(t)', color='white')
-    ax.set_xlabel('Time', color='white')
-    ax.legend()
-    ax.grid(True, alpha=0.3, color='gray')
-    ax.set_facecolor('black')
-
-    plt.tight_layout()
-    plt.show()
-
-
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        import traceback
-        import pdb
-
-        traceback.print_exc()  # Prints the full stack trace to stderr
-        pdb.post_mortem()  # Starts debugger at the poi
+    # Visualization moved to visualization/vis_multi.py
+    print("Visualization moved to visualization/vis_multi.py")
