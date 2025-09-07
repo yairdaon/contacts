@@ -40,7 +40,7 @@ def test_symmetry_and_diagonal():
     packer = Packer(regions, seasons)
     for _ in range(100):  # Reduced iterations
         params = packer.random_dict()
-        packer.verify(packer.real2pop(params.copy()))
+        packer.verify_params(packer.real2pop(params.copy()))
         c_mat = packer.c_vec_to_mat(params["c_vec"])
 
         # Check symmetry and unit diagonal
@@ -65,7 +65,7 @@ def test_random_dict():
         unpacked = packer.random_dict()
         unpacked = packer.real2pop(unpacked)
         try:
-            packer.verify(unpacked)
+            packer.verify_params(unpacked)
         except AssertionError as e:
             print(f"Verification failed at iteration {i}: {e}")
             print(f"Problem values: {unpacked}")

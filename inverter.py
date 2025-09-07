@@ -50,7 +50,7 @@ class Inverter:
 
         xx = self.packer.unpack(x)
         xx = self.packer.real2pop(xx)
-        self.packer.verify(xx)
+        self.packer.verify_params(xx)
         S_init = xx.pop('S_init')
         E_init = xx.pop('E_init')
         I_init = xx.pop('I_init')
@@ -109,9 +109,11 @@ class Inverter:
             seed=None):
 
         def objective(x):
+            assert not np.isnan(x).any()
+            self.packer.verify_vector(x)
             kk = self.sim(x)
             assert np.all(kk.index == obs.index)
-            assert np.all(np.isnan(kk.values) == np.isnan(obs.values))
+            assert np.all(kk.isnull() == obs.isnull())
             #df.sort_values(["season", "region", "time"]).set_index(["season", "region", "time"])
             out = self.loss(obs.dropna(), kk.dropna())
             assert not np.isnan(out)

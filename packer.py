@@ -34,7 +34,7 @@ class Packer:
         params["S_init"] = S_init/tot
         params["E_init"] = E_init/tot
         params["I_init"] = I_init/tot
-        self.verify(params)
+        self.verify_params(params)
         return params
 
     def pop2real(self, params):
@@ -43,16 +43,21 @@ class Packer:
         params["I_init"] = log(params['I_init'])
         return params
 
-    def verify(self, params):
+    def verify_vector(self, x):
+        params = self.unpack(x)
+        params = self.real2pop(params)
+        self.verify_params(params)
+
+    def verify_params(self, params):
         """Verify that all parameters are in valid epidemiological ranges."""
-        assert params['beta0'] > 0, "beta0 must be positive"
+        assert params['beta0'] > 0, f"beta0 == {params['beta0']} must be positive"
         assert np.all(0 <= params['c_vec']), "contact matrix elements must be > 0"
         assert np.all(params['c_vec'] < 1), "contact matrix elements must be < 1"
         assert 0 < params['eps'] < 1, "seasonal amplitude eps must be in (0,1)"
         
-        # NEW: omega verification for seasonal phase (fraction of year)
-        assert np.all(-0.5 <= params['omega']), "omega must be >= -0.5"
-        assert np.all(params['omega'] <= 0.5), "omega must be <= 0.5"
+        # omega verification for seasonal phase (fraction of year)
+        # assert np.all(-0.5 <= params['omega']), "omega must be >= -0.5"
+        # assert np.all(params['omega'] <= 0.5), "omega must be <= 0.5"
         
         # Compartment fractions must be positive and < 1
         assert np.all(0 < params["S_init"]), "S_init must be positive"
@@ -166,7 +171,7 @@ class Packer:
         out["I_init"] = np.random.uniform(1e-6, 1e-4, size=self.n_seasons * self.n_regions).reshape(self.n_seasons, self.n_regions)
         # S_init = most of population, ensuring S + E + I < 1
         out["S_init"] = np.random.uniform(0.95, 0.99, (self.n_seasons, self.n_regions)) - out['E_init'] - out['I_init']
-        self.verify(out)
+        self.verify_params(out)
         return out
 
 

@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import pandas as pd
 import sys
@@ -81,7 +82,7 @@ def test_parameter_inference(seed=43):
     This is the key test for parameter inference capability.
     """
     print("Running parameter inference test...")
-    seasons = ['2020-01-01', '2021-01-01']
+    seasons = ['2020-01-01', '2021-01-01', '2022-01-01']
     regions = ['Region1', 'Region2']
 
     # Setup: 1 season, 2 regions for simpler test
@@ -98,11 +99,12 @@ def test_parameter_inference(seed=43):
     # Create "true" parameters that we'll try to recover
     inv = Inverter(population=population_df, n_weeks=32)
     true = inv.packer.random_dict(seed=seed)
-    true['c_vec'][:] = 0
+    true['c_vec'][:] = 1e-9
 
     # Pack true parameters
     x_true = inv.packer.pack(inv.packer.pop2real(true))
-    
+    assert not np.isnan(x_true).any()
+
     # Generate "observed" data using true parameters
     obs_data = inv.sim(x_true)
     
@@ -114,39 +116,34 @@ def test_parameter_inference(seed=43):
     # Note: In practice you'd use more iterations and better starting points
     np.random.seed(42)  # For reproducible starting point
 
-    try:
-        x0 = x_true + np.random.randn(x_true.size) * 1e-4
-        # Fit model (with limited iterations for testing)
-        inv.fit(obs=obs_data, x0=x0)
+    x0 = x_true + np.random.randn(x_true.size) * 1e-1
+    inv.packer.verify_vector(x0)
 
-        # Compare inferred vs true parameters
-        inferred_params = inv.params
+    # Fit model (with limited iterations for testing)
+    inv.fit(obs=obs_data, x0=x0)
+
+    # Compare inferred vs true parameters
+    inferred_params = inv.params
+
+    print("\nParameter Recovery Results:")
+    print(f"  beta0 - True: {true['beta0']:.3f}, Inferred: {inferred_params['beta0']:.3f}")
+    print(f"  eps   - True: {true['eps']:.3f}, Inferred: {inferred_params['eps']:.3f}")
+    print(f"  omega - True: {true['omega']}, Inferred: {inferred_params['omega']}")
+
+    # Check if reasonably close (loose tolerances for test)
+    beta0_close = abs(true['beta0'] - inferred_params['beta0'])/true['beta0'] < 0.1
+    eps_close = abs(true['eps'] - inferred_params['eps'])/true['eps'] < 0.1
+
+    if beta0_close and eps_close:
+        print("✓ Parameter inference test passed (parameters reasonably recovered)")
+    else:
+        print("⚠ Parameter inference test passed but recovery not very accurate")
+        print("  (This is expected for complex optimization problems)")
+
+    # Test that final loss is finite and reasonable
+    assert np.isfinite(inv.fun)
+    assert inv.fun >= 0
         
-        print("\nParameter Recovery Results:")
-        print(f"  beta0 - True: {true['beta0']:.3f}, Inferred: {inferred_params['beta0']:.3f}")
-        print(f"  eps   - True: {true['eps']:.3f}, Inferred: {inferred_params['eps']:.3f}")
-        print(f"  omega - True: {true['omega']}, Inferred: {inferred_params['omega']}")
-        
-        # Check if reasonably close (loose tolerances for test)
-        beta0_close = abs(true['beta0'] - inferred_params['beta0']) < 0.1
-        eps_close = abs(true['eps'] - inferred_params['eps']) < 0.2
-        
-        if beta0_close and eps_close:
-            print("✓ Parameter inference test passed (parameters reasonably recovered)")
-        else:
-            print("⚠ Parameter inference test passed but recovery not very accurate")
-            print("  (This is expected for complex optimization problems)")
-        
-        # Test that final loss is finite and reasonable
-        assert np.isfinite(inv.fun)
-        assert inv.fun >= 0
-        
-    except Exception as e:
-        print(f"⚠ Parameter inference test completed with optimization issues: {e}")
-        print("  This is common with complex epidemiological models")
-        # Still count as passing if we can at least run the fit method
-    
-    print("✓ Parameter inference framework test passed")
 
 #
 # def test_contact_matrix_inference():
