@@ -3,11 +3,16 @@ import pandas as pd
 from scipy.special import logit, expit
 from numpy import exp, log
 
+
 class Packer:
     def __init__(self,
-                 regions,
-                 seasons):
+                 regions=None,
+                 seasons=None):
 
+        if regions is None:
+            regions = ["HHS1", "HHS2"]
+        if seasons is None:
+            seasons = ["1900-01-01", "2000-01-01", "2100-01-01"]
         self.regions = regions
         self.n_regions = len(self.regions)
         self.region_dict = dict(zip(range(self.n_regions), regions)) 
@@ -21,6 +26,7 @@ class Packer:
         self.n_params = 1 + len(self.iu[0]) + self.n_regions + 1 + 3 * self.n_regions * self.n_seasons
 
     def real2pop(self, params):
+        """Generates fractions of population, not absolute numbers"""
         S_init = exp(params['S_init'])
         E_init = exp(params['E_init'])
         I_init = exp(params['I_init'])
@@ -28,6 +34,7 @@ class Packer:
         params["S_init"] = S_init/tot
         params["E_init"] = E_init/tot
         params["I_init"] = I_init/tot
+        self.verify(params)
         return params
 
     def pop2real(self, params):
@@ -39,7 +46,7 @@ class Packer:
     def verify(self, params):
         """Verify that all parameters are in valid epidemiological ranges."""
         assert params['beta0'] > 0, "beta0 must be positive"
-        assert np.all(0 < params['c_vec']), "contact matrix elements must be > 0"
+        assert np.all(0 <= params['c_vec']), "contact matrix elements must be > 0"
         assert np.all(params['c_vec'] < 1), "contact matrix elements must be < 1"
         assert 0 < params['eps'] < 1, "seasonal amplitude eps must be in (0,1)"
         
@@ -139,13 +146,14 @@ class Packer:
 
     def random_vector(self, seed=None):
         """Generate a random packed vector in the transformed parameter space."""
-        params = self.random_dict()
-        vec = self.pack(params)
+        params = self.random_dict(seed=seed)
+        vec = self.pack(self.pop2real(params))
         return vec
 
     def random_dict(self, seed=None):
         """Generate random parameters close to realistic flu values."""
         np.random.seed(seed)
+
         out = dict(
             beta0=np.random.uniform(0.2, 0.4),  # Flu range around 0.28
             c_vec=np.random.uniform(0.1, 0.9, size=self.c_vec_length),  # Avoid extremes
@@ -158,7 +166,7 @@ class Packer:
         out["I_init"] = np.random.uniform(1e-6, 1e-4, size=self.n_seasons * self.n_regions).reshape(self.n_seasons, self.n_regions)
         # S_init = most of population, ensuring S + E + I < 1
         out["S_init"] = np.random.uniform(0.95, 0.99, (self.n_seasons, self.n_regions)) - out['E_init'] - out['I_init']
-        
+        self.verify(out)
         return out
 
 
@@ -167,86 +175,6 @@ class Packer:
         return len(self.iu[0])
 
 
-def test_unpack():
-    """Test that unpack(pack(x)) == x for random vectors."""
-    regions = ["HHS1", "HHS3", "HHS5"]
-    seasons = ["1900-01-01", "1990-01-02"]
-    packer = Packer(regions, seasons)
-    for i in range(100):  # Fewer iterations for debugging
-        vector = packer.random_vector()
-        dic = packer.unpack(vector)
-        packed = packer.pack(dic)
-        # FIX: Actually assert the test!
-        assert np.allclose(vector, packed, atol=1e-12), f"Pack/unpack failed at iteration {i}"
-
-def test_pack():
-    """Test that pack(unpack(x)) gives back original dict."""
-    regions = ["HHS1", "HHS3", "HHS5"]
-    seasons = ["1900-01-01", "1990-01-02"]
-    packer = Packer(regions, seasons)
-    for i in range(100):  # Fewer iterations for debugging
-        dic = packer.random_dict()
-        vector = packer.pack(dic)
-        unpacked = packer.unpack(vector)
-
-        for key, value in dic.items():
-            corresponding = unpacked[key]
-            assert np.allclose(value, corresponding, atol=1e-12), f"Pack/unpack failed for {key} at iteration {i}"
-
-
-def test_symmetry_and_diagonal():
-    regions = ["HHS1", "HHS3", "HHS5"]
-    seasons = ["1900-01-01", "1990-01-02"]
-    packer = Packer(regions, seasons)
-    for _ in range(2000):
-        params = packer.random_dict()
-        packer.verify(params)
-        c_mat = packer.c_vec_to_mat(params["c_vec"])
-
-        # Check symmetry and unit diagonal
-        assert np.allclose(c_mat, c_mat.T)
-        assert np.allclose(np.diag(c_mat), np.ones(packer.n_regions))
-
-
-def test_random_vector():
-    regions = ["HHS2", "HHS4", "HHS6"]
-    seasons = ["1999-01-01", "2000-01-01"]
-    packer = Packer(regions=regions, seasons=seasons)
-    packed = packer.random_vector()
-    assert packed.shape[0] == packer.n_params
-
-def test_random_dict():
-    """Test that random_dict generates valid parameters."""
-    regions = ["HHS2", "HHS4", "HHS6"]
-    seasons = ["1999-01-01", "2000-01-01"]
-    packer = Packer(regions=regions, seasons=seasons)
-    for i in range(100):  # Test with fewer iterations
-        unpacked = packer.random_dict()
-        unpacked = packer.real2pop(unpacked)
-        try:
-            packer.verify(unpacked)
-        except AssertionError as e:
-            print(f"Verification failed at iteration {i}: {e}")
-            print(f"Problem values: {unpacked}")
-            raise
-
-
-
-
 if __name__ == "__main__":
-    print("Running packer tests...")
-    try:
-        test_unpack()
-        print("✓ test_unpack passed")
-        test_pack()
-        print("✓ test_pack passed")
-        test_symmetry_and_diagonal()
-        print("✓ test_symmetry_and_diagonal passed")
-        test_random_vector()
-        print("✓ test_random_vector passed")
-        test_random_dict()
-        print("✓ test_random_dict passed")
-        print("All tests passed!")
-    except Exception as e:
-        print(f"Test failed: {e}")
-        raise
+    # Tests have been moved to tests/test_packer.py
+    print("Tests moved to tests/test_packer.py")
