@@ -9,80 +9,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from inverter import Inverter
 
-
-def test_inverter_initialization():
-    """Test that Inverter initializes correctly with population dataframe."""
-    # Create test population data
-    seasons = ['2020-01-01', '2021-01-01']
-    regions = ['A', 'B']
-    population_data = []
-    for season, region in product(seasons, regions):
-        population_data.append({
-            'season': season,
-            'region': region,
-            'population': np.random.randint(low=10 ** 5, high=10 ** 6)
-        })
-
-    population_df = pd.DataFrame(population_data)
-
-    # Test initialization
-    inv = Inverter(population=population_df, n_weeks=20)
-
-    assert inv.packer.n_seasons == 2
-    assert inv.packer.n_regions == 2
-    assert inv.n_weeks == 20
-    assert population_df.shape == (inv.packer.n_seasons * inv.packer.n_regions, 3)
-
-    print("✓ Inverter initialization test passed")
-
-
-def test_inverter_sim():
-    """Test that Inverter.sim() produces valid output."""
-    # Simple 1 season, 2 regions setup
-    seasons = ['2020-01-01']
-    regions = ['Region1', 'Region2']
-    population_data = []
-    for season, region in product(seasons, regions):
-        population_data.append({
-            'season': season,
-            'region': region,
-            'population': 1e6
-        })
-
-    population_df = pd.DataFrame(population_data)
-    inv = Inverter(population=population_df, n_weeks=10)
-
-    # Generate random parameters and run simulation
-    x = inv.packer.random_vector(seed=123)
-    results = inv.sim(x)
-
-    # Check output format
-    assert isinstance(results, pd.DataFrame)
-    expected_cols = {'time', 'region', 'incidence', 'season'}
-    assert set(results.columns) == expected_cols
-
-    # Check data completeness
-    expected_rows = len(seasons) * len(regions) * inv.n_weeks
-    assert len(results) == expected_rows
-
-    # Check no NaN values in incidence
-    for (region, season), dd in results.groupby(['region', 'season']):
-        inc = dd.reset_index(drop=True).loc[1:, 'incidence']
-        assert not inc.isna().any(), (region, season)
-
-        # Check all incidence values     are non-negative
-        assert (inc >= 0).all()
-
-    print("✓ Inverter.sim() test passed")
-
-
-def test_parameter_inference(seed=43):
-    """
-    Test that Inverter can recover known parameters from synthetic data.
-    This is the key test for parameter inference capability.
-    """
-    print("Running parameter inference test...")
-    seasons = ['2020-01-01', '2021-01-01', '2022-01-01']
+NWEEKS = 20
+def makepop():
+    seasons = [f"{year}-01-01" for year in range(2020, 2028)]
     regions = ['Region1', 'Region2']
 
     # Setup: 1 season, 2 regions for simpler test
@@ -91,13 +20,64 @@ def test_parameter_inference(seed=43):
         population_data.append({
             'season': season,
             'region': region,
-            'population': 1e5
+            'population': 100
         })
 
-    population_df = pd.DataFrame(population_data)
+    return pd.DataFrame(population_data)
+
+
+def test_inverter_initialization():
+    """Test that Inverter initializes correctly with population dataframe."""
+    pop = makepop()
+
+    # Test initialization
+    inv = Inverter(population=pop, n_weeks=NWEEKS)
+
+    assert inv.packer.n_seasons == pop.season.nunique()
+    assert inv.packer.n_regions == pop.region.nunique()
+    assert inv.n_weeks == NWEEKS
+    assert pop.shape == (inv.packer.n_seasons * inv.packer.n_regions, 3)
+
+    print("✓ Inverter initialization test passed")
+
+
+def test_sim():
+    """Test that Inverter.sim() produces valid output."""
+    pop = makepop()
+    inv = Inverter(population=pop, n_weeks=NWEEKS)
+
+    # Generate random parameters and run simulation
+    for i in range(100):
+        x = inv.packer.random_vector(seed=i*23)
+        results = inv.sim(x)
+
+        # Check output format
+        assert isinstance(results, pd.DataFrame)
+        expected_cols = {'time', 'region', 'incidence', 'season'}
+        assert set(results.columns) == expected_cols
+
+        # Check data completeness
+        expected_rows = pop.season.nunique() * pop.region.nunique() * inv.n_weeks
+        assert len(results) == expected_rows
+
+        # Check no NaN values in incidence
+        for (region, season), dd in results.groupby(['region', 'season']):
+            inc = dd.reset_index(drop=True).loc[1:, 'incidence']
+            assert not inc.isna().any(), (region, season)
+
+            # Check all incidence values     are non-negative
+            assert (inc >= 0).all()
+
+
+def test_parameter_inference(seed=43):
+    """
+    Test that Inverter can recover known parameters from synthetic data.
+    This is the key test for parameter inference capability.
+    """
+    pop = makepop()
 
     # Create "true" parameters that we'll try to recover
-    inv = Inverter(population=population_df, n_weeks=32)
+    inv = Inverter(population=pop, n_weeks=15)
     true = inv.packer.random_dict(seed=seed)
 
     # Pack true parameters
@@ -110,14 +90,8 @@ def test_parameter_inference(seed=43):
     print(f"Generated {len(obs_data)} observations")
     print(f"True parameters - beta0: {true['beta0']}, eps: {true['eps']}")
 
-    # Note: In practice you'd use more iterations and better starting points
-    np.random.seed(42)  # For reproducible starting point
-
-    x0 = x_true + np.random.randn(x_true.size) * 1e-1
-    inv.packer.verify_vector(x0)
-
     # Fit model (with limited iterations for testing)
-    inv.fit(obs=obs_data, x0=x0)
+    inv.fit(obs=obs_data)
 
     # Compare inferred vs true parameters
     inferred_params = inv.params
@@ -197,11 +171,14 @@ def test_parameter_inference(seed=43):
 #
 
 if __name__ == "__main__":
-    print("Running Inverter tests...")
+    try:
+        test_inverter_initialization()
+        test_sim()
+        test_parameter_inference()
+        # test_contact_matrix_inference()
 
-    test_inverter_initialization()
-    test_inverter_sim()
-    test_parameter_inference()
-    # test_contact_matrix_inference()
-
-    print("\nAll Inverter tests completed!")
+    except:
+        import traceback as tb
+        import pdb
+        tb.print_exc()
+        pdb.post_mortem()

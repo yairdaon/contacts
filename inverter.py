@@ -27,7 +27,6 @@ class Inverter:
                  mu=0 / (30 * 365),
                  nu=0.2,
                  loss='lsq'):
-
         """population is a dataframe with columns [region, season, population]"""
         self.packer = Packer(seasons=sorted(population.season.unique()),
                              regions=sorted(population.region.unique()))
@@ -44,10 +43,8 @@ class Inverter:
         self.loss = LOSSES[loss]
         self.run_time = 0
 
-
     def sim(self,
             x):
-
         xx = self.packer.unpack(x)
         xx = self.packer.real2pop(xx)
         self.packer.verify_params(xx)
@@ -85,7 +82,7 @@ class Inverter:
                 population=pop,
                 start_date=season
             )
-            letter = "C"
+            letter = "C"  ## If at any point wed like to look at infecteds instead
             df = df[[col for col in df.columns if letter in col]].reset_index(drop=False)
             df_long = df.melt(id_vars=["time"], var_name="region", value_name="incidence")
             df_long["region"] = (df_long["region"]
@@ -101,13 +98,11 @@ class Inverter:
 
         return res
 
-
     def fit(self,
             obs,
             method="L-BFGS-B",
             x0=None,
             seed=None):
-
         def objective(x):
             assert not np.isnan(x).any()
             self.packer.verify_vector(x)
@@ -125,10 +120,4 @@ class Inverter:
         self.params = self.packer.real2pop(self.packer.unpack(res.x))
         self.fun = res.fun
         return self
-
-
-if __name__ == "__main__":
-    # Visualization and tests moved to visualization/vis_inverter.py and tests/test_inverter.py
-    print("Visualizations moved to visualization/vis_inverter.py")
-    print("Tests moved to tests/test_inverter.py")
 

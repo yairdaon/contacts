@@ -64,12 +64,7 @@ def test_random_dict():
     for i in range(100):  # Test with fewer iterations
         unpacked = packer.random_dict()
         unpacked = packer.real2pop(unpacked)
-        try:
-            packer.verify_params(unpacked)
-        except AssertionError as e:
-            print(f"Verification failed at iteration {i}: {e}")
-            print(f"Problem values: {unpacked}")
-            raise
+        packer.verify_params(unpacked)
 
 
 if __name__ == "__main__":
@@ -86,6 +81,8 @@ if __name__ == "__main__":
         test_random_dict()
         print("✓ test_random_dict passed")
         print("All tests passed!")
-    except Exception as e:
-        print(f"Test failed: {e}")
-        raise
+    except:
+        import traceback as tb
+        import pdb
+        tb.print_exc()
+        pdb.post_mortem()

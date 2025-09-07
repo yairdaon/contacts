@@ -13,6 +13,7 @@ matplotlib.use("MacOSX")
 # Days per year for seasonal forcing
 PSI = 365
 
+
 @jit(nopython=True)
 def calc_log_betas(t,
                    beta0,
@@ -204,8 +205,8 @@ def run(S_init,
         Recovery rate I→R (1/day). For flu: ~1/5 day⁻¹  
     mu : float
         Birth/death rate (1/day). Typical: 1/(70*365)
-    omega : float
-        Seasonal phase (fraction of year). Should be constrained to [0,1]
+    omega : numpy array
+        Seasonal phase (fraction of year). Should be constrained to [-1/2,1/2]
         0=winter peak, 0.5=summer peak
     eps : float
         Seasonal amplitude (0-1). 0=no seasonality, 0.5=50% variation
@@ -249,10 +250,10 @@ def run(S_init,
     logI[0, :] = log(I_init)
     Cs[0, :] = np.nan ## Initial count of new cases is C
 
-    beta0 = np.full(n_regions, beta0)
+    #beta0 = np.full(n_regions, beta0)
     nu = np.full(n_regions, nu)
-    omega = np.full(n_regions, omega)
-    eps = np.full(n_regions, eps)
+    #omega = np.full(n_regions, omega)
+    #eps = np.full(n_regions, eps)
     log_betas = np.empty(n_regions)
     calc_log_betas(0,
                    beta0=beta0,

@@ -178,8 +178,3 @@ class Packer:
     @property
     def c_vec_length(self):
         return len(self.iu[0])
-
-
-if __name__ == "__main__":
-    # Tests have been moved to tests/test_packer.py
-    print("Tests moved to tests/test_packer.py")
