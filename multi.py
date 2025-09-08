@@ -180,7 +180,7 @@ def run(S_init,
         beta0=0.28,     # Flu: R₀≈1.4, recovery period ~5 days → β₀≈1.4/5=0.28/day
         sigma=1.0/3.0,  # Flu: incubation period ~3 days → σ=1/3/day  
         dt_output=7,    # Output every 7 days (weekly)
-        dt_euler=5e-2,  # Euler step size (days)
+        dt_euler=1e-2,  # Euler step size (days)
         mu=1/(70*365),  # Birth/death rate: 70-year lifespan
         nu=1.0/5.0,     # Flu: infectious period ~5 days → ν=1/5/day
         omega=0.0,      # Phase: 0=winter peak, 0.25=spring, 0.5=summer, 0.75=fall

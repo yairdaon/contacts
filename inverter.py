@@ -3,11 +3,8 @@ import time
 
 import numpy as np
 import pandas as pd
-from itertools import product
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
-from joblib import Parallel, delayed
-import seaborn as sns
 import matplotlib
 
 matplotlib.use("MacOSX")
@@ -23,7 +20,7 @@ class Inverter:
                  n_weeks=26,
                  sigma=0.5,
                  dt_output=7,
-                 dt_euler=5e-2,
+                 dt_euler=1e-2,
                  mu=0 / (30 * 365),
                  nu=0.2,
                  loss='lsq'):
@@ -59,6 +56,7 @@ class Inverter:
         start = time.time()
         results = []
         for season_idx, season in enumerate(self.packer.seasons):
+            print(season_idx, end=' ')
             pop = (self.population
                    .query("season == @season")
                    .set_index("region")

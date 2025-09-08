@@ -51,6 +51,7 @@ def test_sim():
         x = inv.packer.random_vector(seed=i*23)
         results = inv.sim(x)
 
+
         # Check output format
         assert isinstance(results, pd.DataFrame)
         expected_cols = {'time', 'region', 'incidence', 'season'}
