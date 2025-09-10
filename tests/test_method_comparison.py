@@ -152,7 +152,7 @@ def test_euler_vs_rk_comparison():
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig('euler_vs_rk_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig('pix/euler_vs_rk_comparison.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     print("✅ Method comparison test passed with visualization saved")
