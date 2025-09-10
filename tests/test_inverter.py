@@ -174,5 +174,5 @@ def test_inference(noise, seed=43):
         ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(f'tests/test_inference_visualization_{noise}.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'pix/test_inference_visualization_{noise}.png', dpi=300, bbox_inches='tight')
     plt.close()
