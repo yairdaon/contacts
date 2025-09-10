@@ -1,3 +1,5 @@
+import time
+
 import pytest
 import numpy as np
 import pandas as pd
@@ -10,9 +12,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from inverter import Inverter
 
 NWEEKS = 20
-def makepop():
-    seasons = [f"{year}-01-01" for year in range(2020, 2028)]
-    regions = ['Region1', 'Region2']
+EPS = 0.1 ## Allowed relative (!!) error
+
+def makepop(n_regions=10, n_seasons=30):
+    seasons = [f"{year}-01-01" for year in range(1990, 1990 + n_seasons)]
+    regions = [f"HHS{region}" for region in range(n_regions)]
 
     # Setup: 1 season, 2 regions for simpler test
     population_data = []
@@ -46,11 +50,13 @@ def test_sim():
     pop = makepop()
     inv = Inverter(population=pop, n_weeks=NWEEKS)
 
+    total = 0
     # Generate random parameters and run simulation
     for i in range(100):
         x = inv.packer.random_vector(seed=i*23)
+        start = time.time()
         results = inv.sim(x)
-
+        total = total + time.time() - start
 
         # Check output format
         assert isinstance(results, pd.DataFrame)
@@ -69,8 +75,11 @@ def test_sim():
             # Check all incidence values     are non-negative
             assert (inc >= 0).all()
 
+    print("Total", total)
+    print("Sims", inv.run_time)
 
-def test_parameter_inference(seed=43):
+
+def test_inference(seed=43):
     """
     Test that Inverter can recover known parameters from synthetic data.
     This is the key test for parameter inference capability.
@@ -78,7 +87,7 @@ def test_parameter_inference(seed=43):
     pop = makepop()
 
     # Create "true" parameters that we'll try to recover
-    inv = Inverter(population=pop, n_weeks=15)
+    inv = Inverter(population=pop, n_weeks=NWEEKS)
     true = inv.packer.random_dict(seed=seed)
 
     # Pack true parameters
@@ -97,86 +106,82 @@ def test_parameter_inference(seed=43):
     # Compare inferred vs true parameters
     inferred_params = inv.params
 
-    print("\nParameter Recovery Results:")
-    print(f"  beta0 - True: {true['beta0']:.3f}, Inferred: {inferred_params['beta0']:.3f}")
-    print(f"  eps   - True: {true['eps']:.3f}, Inferred: {inferred_params['eps']:.3f}")
-    print(f"  omega - True: {true['omega']}, Inferred: {inferred_params['omega']}")
+    err_beta0 = abs(true['beta0'] - inferred_params['beta0']) / true['beta0']
+    err_eps = abs(true['eps'] - inferred_params['eps']) / true['eps']
+    err_omega = np.abs(true['omega'] - inferred_params['omega']) / true['omega']
+    err_c = np.abs(true['c_vec'] - inferred_params['c_vec']) / true['c_vec']
 
-    # Check if reasonably close (loose tolerances for test)
-    assert abs(true['beta0'] - inferred_params['beta0']) / true['beta0'] < 0.1
-    assert abs(true['eps'] - inferred_params['eps']) / true['eps'] < 0.1
-    print("✓ Parameter inference test passed (parameters reasonably recovered)")
+    print("\nParameter Recovery Results:")
+    print(f"  beta0 - True: {true['beta0']:.3f}, Inferred: {inferred_params['beta0']:.3f} err {err_beta0:.3f}")
+    print(f"  eps   - True: {true['eps']:.3f}, Inferred: {inferred_params['eps']:.3f}, err {err_eps:.3f}")
+    print(f"  omega - True: {true['omega']}, Inferred: {inferred_params['omega']}, err {err_omega:.3f}")
+    print(f"  c - True: {true['c_vec']}, Inferred: {inferred_params['c_vec']}, err {err_c:.3f}")
+
+    assert err_beta0 < EPS, err_beta0
+    assert err_eps < EPS, err_eps
+    assert np.all(err_omega < EPS), err_omega
+    assert np.all(err_c < EPS), err_c
 
     # Test that final loss is finite and reasonable
     assert np.isfinite(inv.fun)
     assert inv.fun >= 0
 
 
-#
-# def test_contact_matrix_inference():
-#     """Test specifically that we can infer contact matrix structure."""
-#     print("Testing contact matrix inference...")
-#
-#     # 2 regions with known contact pattern
-#     seasons = ['2020-01-01']
-#     regions = ['Urban', 'Rural']
-#     population_data = []
-#     for season, region in product(seasons, regions):
-#         population_data.append({
-#             'season': season,
-#             'region': region,
-#             'population': 1e6
-#         })
-#
-#     population_df = pd.DataFrame(population_data)
-#     inv = Inverter(population=population_df, n_weeks=15)
-#
-#     # Create "true" contact matrix with strong asymmetry
-#     # Urban affects Rural more than Rural affects Urban
-#     true_c_vec = np.array([0.8])  # High contact from Rural to Urban
-#     true_contact_matrix = inv.packer.c_vec_to_mat(true_c_vec)
-#
-#     print("True contact matrix:")
-#     print(true_contact_matrix)
-#
-#     # Generate synthetic data with this contact pattern
-#     true_params = inv.packer.random_dict()
-#     true_params['c_vec'] = true_c_vec
-#     true_params = inv.packer.real2pop(true_params.copy())
-#
-#     x_true = inv.packer.pack(true_params)
-#     synthetic_data = inv.sim(x_true)
-#
-#     # Try to infer the contact matrix
-#     try:
-#         inv.fit(synthetic_data)
-#         inferred_c_vec = inv.params['c_vec']
-#         inferred_contact_matrix = inv.packer.c_vec_to_mat(inferred_c_vec)
-#
-#         print("Inferred contact matrix:")
-#         print(inferred_contact_matrix)
-#
-#         # Check if structure is preserved (loose tolerance)
-#         contact_error = abs(true_c_vec[0] - inferred_c_vec[0])
-#         print(f"Contact parameter error: {contact_error:.3f}")
-#
-#         if contact_error < 0.3:
-#             print("✓ Contact matrix inference test passed")
-#         else:
-#             print("⚠ Contact matrix inference shows large error (expected for complex fitting)")
-#
-#     except Exception as e:
-#         print(f"⚠ Contact matrix inference completed with issues: {e}")
-#
-#     print("✓ Contact matrix inference framework test passed")
-#
+def test_noisy(seed=43):
+    """
+    Test that Inverter can recover known parameters from synthetic data.
+    This is the key test for parameter inference capability.
+    """
+    pop = makepop(n_seasons=15)
+
+    # Create "true" parameters that we'll try to recover
+    inv = Inverter(population=pop, n_weeks=NWEEKS)
+    true = inv.packer.random_dict(seed=seed)
+
+    # Pack true parameters
+    x_true = inv.packer.pack(inv.packer.pop2real(true))
+    assert not np.isnan(x_true).any()
+
+    # Generate "observed" data using true parameters
+    obs = inv.sim(x_true)
+    obs['incidence'] = obs['incidence'] + np.random.normal(size=obs.shape[0]) * obs['incidence'] / 10
+
+
+    print(f"Generated {len(obs)} observations")
+    print(f"True parameters - beta0: {true['beta0']}, eps: {true['eps']}")
+
+    # Fit model (with limited iterations for testing)
+    inv.fit(obs=obs)
+
+    # Compare inferred vs true parameters
+    inferred_params = inv.params
+
+    err_beta0 = abs(true['beta0'] - inferred_params['beta0']) / true['beta0']
+    err_eps = abs(true['eps'] - inferred_params['eps']) / true['eps']
+    err_omega = np.abs(true['omega'] - inferred_params['omega']) / true['omega']
+    err_c = np.abs(true['c_vec'] - inferred_params['c_vec']) / true['c_vec']
+
+    print("\nParameter Recovery Results:")
+    print(f"  beta0 - True: {true['beta0']:.3f}, Inferred: {inferred_params['beta0']:.3f} err {err_beta0:.3f}")
+    print(f"  eps   - True: {true['eps']:.3f}, Inferred: {inferred_params['eps']:.3f}, err {err_eps:.3f}")
+    print(f"  omega - True: {true['omega']}, Inferred: {inferred_params['omega']}, err {err_omega:.3f}")
+    print(f"  c - True: {true['c_vec']}, Inferred: {inferred_params['c_vec']}, err {err_c:.3f}")
+
+    assert err_beta0 < EPS, err_beta0
+    assert err_eps < EPS, err_eps
+    assert np.all(err_omega < EPS), err_omega
+    assert np.all(err_c < EPS), err_c
+
+    # Test that final loss is finite and reasonable
+    assert np.isfinite(inv.fun)
+    assert inv.fun >= 0
+
 
 if __name__ == "__main__":
     try:
         test_inverter_initialization()
         test_sim()
-        test_parameter_inference()
-        # test_contact_matrix_inference()
+        test_inference()
 
     except:
         import traceback as tb

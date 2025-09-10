@@ -14,7 +14,7 @@ matplotlib.use("MacOSX")
 PSI = 365
 
 
-@jit(nopython=True)
+@jit(nopython=True, cache=True)
 def calc_log_betas(t,
                    beta0,
                    eps,
@@ -45,7 +45,7 @@ def calc_log_betas(t,
     log_betas[:] = log(beta0 * (1.0 + eps * sin(2.0 * pi * (t / PSI - omega))))
     
 
-@jit(nopython=True)
+@jit(nopython=True, cache=True)
 def one_step(t,
              h,
              logS,
@@ -94,7 +94,7 @@ def one_step(t,
     C[:] += dC
 
     
-@jit(nopython=True)
+@jit(nopython=True, cache=True)
 def multi_seir(
         dt_euler,
         dt_output, 
@@ -268,7 +268,7 @@ def run(S_init,
     else:
         contact_matrix = np.array(contact_matrix, dtype=np.float64)
         assert contact_matrix.shape == (n_regions, n_regions), f"Contact matrix must be {n_regions}x{n_regions}"
-  
+    start = time.time()
     multi_seir(
         dt_euler=dt_euler,
         dt_output=dt_output,
@@ -291,7 +291,7 @@ def run(S_init,
         dlogI=np.zeros(n_regions),
         dC=np.zeros(n_regions),
         log_betas=log_betas)
-
+    end = time.time()
     C = pd.DataFrame(index=T, data=Cs, columns=[f'C{i}' for i in range(n_regions)])
     F = pd.DataFrame(index=T, data=F, columns=[f'F{i}' for i in range(n_regions)])
     S = pd.DataFrame(index=T, data=exp(logS), columns=[f'S{i}' for i in range(n_regions)])
@@ -302,7 +302,7 @@ def run(S_init,
 
     df.index = pd.date_range(start=start_date, periods=len(df), freq='7D')
     df.index.name = 'time'
-    return df
+    return df, end-start
 
 
 if __name__ == "__main__":

@@ -3,9 +3,12 @@ import time
 
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 import matplotlib
+
+from paralllel_inverter import runner
 
 matplotlib.use("MacOSX")
 
@@ -34,14 +37,30 @@ class Inverter:
         self.dt_euler = dt_euler
         self.mu = mu
         self.nu = nu
-        self.population = population
+        self.pops = {}
+        for season in self.packer.seasons:
+            pop = (population
+                   .query("season == @season")
+                   .set_index("region")
+                   .loc[self.packer.regions, "population"]
+                   .values)
+            self.pops[season] = pop
+
+        self.params = dict(n_weeks=self.n_weeks,
+                           sigma=self.sigma,
+                           dt_output=self.dt_output,
+                           dt_euler=self.dt_euler,
+                           mu=self.mu,
+                           nu=self.nu)
 
         assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3)
         self.loss = LOSSES[loss]
         self.run_time = 0
 
     def sim(self,
-            x):
+            x=None):
+        if x is None:
+            x = self.packer.random_vector()
         xx = self.packer.unpack(x)
         xx = self.packer.real2pop(xx)
         self.packer.verify_params(xx)
@@ -53,17 +72,13 @@ class Inverter:
         eps = xx['eps']
         c_mat = self.packer.c_vec_to_mat(xx.pop("c_vec"))
 
-        start = time.time()
-        results = []
-        for season_idx, season in enumerate(self.packer.seasons):
-            print(season_idx, end=' ')
-            pop = (self.population
-                   .query("season == @season")
-                   .set_index("region")
-                   .loc[self.packer.regions, "population"]
-                   .values)
 
-            df = run(
+        results = []
+
+        for season_idx, season in enumerate(self.packer.seasons):
+            pop = self.pops[season]
+            #start = time.time()
+            df, tt = run(
                 S_init=S_init[season_idx, :],  # Now using fractions
                 E_init=E_init[season_idx, :],
                 I_init=I_init[season_idx, :],
@@ -80,6 +95,9 @@ class Inverter:
                 population=pop,
                 start_date=season
             )
+            #end = time.time()
+            self.run_time += tt#end - start
+
             letter = "C"  ## If at any point wed like to look at infecteds instead
             df = df[[col for col in df.columns if letter in col]].reset_index(drop=False)
             df_long = df.melt(id_vars=["time"], var_name="region", value_name="incidence")
@@ -90,8 +108,7 @@ class Inverter:
                                  )
             df_long["season"] = season
             results.append(df_long)
-        end = time.time()
-        self.run_time += end - start
+
         res = pd.concat(results, ignore_index=True)
 
         return res
