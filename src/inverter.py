@@ -8,13 +8,14 @@ from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 import matplotlib
 
-from paralllel_inverter import runner
+from src.paralllel_inverter import runner
 
 matplotlib.use("MacOSX")
 
-from multi import run
-from packer import Packer
-from losses import LOSSES
+from src.multi import run
+from src.rk import run_rk
+from src.packer import Packer
+from src.losses import LOSSES
 
 
 class Inverter:
@@ -23,10 +24,11 @@ class Inverter:
                  n_weeks=26,
                  sigma=0.5,
                  dt_output=7,
-                 dt_euler=1e-2,
+                 dt_euler=None,
                  mu=0 / (30 * 365),
                  nu=0.2,
-                 loss='lsq'):
+                 loss='lsq',
+                 integration='rk'):
         """population is a dataframe with columns [region, season, population]"""
         self.packer = Packer(seasons=sorted(population.season.unique()),
                              regions=sorted(population.region.unique()))
@@ -34,9 +36,10 @@ class Inverter:
         self.n_weeks = n_weeks
         self.sigma = sigma
         self.dt_output = dt_output
-        self.dt_euler = dt_euler
+        self.dt_euler = dt_euler if dt_euler is not None else (1e-2 if integration == 'euler' else None)
         self.mu = mu
         self.nu = nu
+        self.integration = integration
         self.pops = {}
         for season in self.packer.seasons:
             pop = (population
@@ -72,31 +75,49 @@ class Inverter:
         eps = xx['eps']
         c_mat = self.packer.c_vec_to_mat(xx.pop("c_vec"))
 
-
         results = []
-
         for season_idx, season in enumerate(self.packer.seasons):
             pop = self.pops[season]
-            #start = time.time()
-            df, tt = run(
-                S_init=S_init[season_idx, :],  # Now using fractions
-                E_init=E_init[season_idx, :],
-                I_init=I_init[season_idx, :],
-                n_weeks=self.n_weeks,
-                beta0=beta0,
-                sigma=self.sigma,
-                dt_output=self.dt_output,
-                dt_euler=self.dt_euler,
-                mu=self.mu,
-                nu=self.nu,
-                omega=omega,
-                eps=eps,
-                contact_matrix=c_mat,
-                population=pop,
-                start_date=season
-            )
-            #end = time.time()
-            self.run_time += tt#end - start
+            
+            if self.integration == 'euler':
+                df, tt = run(
+                    S_init=S_init[season_idx, :],  # Now using fractions
+                    E_init=E_init[season_idx, :],
+                    I_init=I_init[season_idx, :],
+                    n_weeks=self.n_weeks,
+                    beta0=beta0,
+                    sigma=self.sigma,
+                    dt_output=self.dt_output,
+                    dt_euler=self.dt_euler,
+                    mu=self.mu,
+                    nu=self.nu,
+                    omega=omega,
+                    eps=eps,
+                    contact_matrix=c_mat,
+                    population=pop,
+                    start_date=season
+                )
+            elif self.integration == 'rk':
+                df, tt = run_rk(
+                    S_init=S_init[season_idx, :],  # Now using fractions
+                    E_init=E_init[season_idx, :],
+                    I_init=I_init[season_idx, :],
+                    n_weeks=self.n_weeks,
+                    beta0=beta0,
+                    sigma=self.sigma,
+                    #dt_output=self.dt_output,
+                    mu=self.mu,
+                    nu=self.nu,
+                    omega=omega,
+                    eps=eps,
+                    contact_matrix=c_mat,
+                    population=pop,
+                    start_date=season
+                )
+            else:
+                raise ValueError(f"Unknown integration method: {self.integration}. Use 'euler' or 'rk'")
+            
+            self.run_time += tt
 
             letter = "C"  ## If at any point wed like to look at infecteds instead
             df = df[[col for col in df.columns if letter in col]].reset_index(drop=False)

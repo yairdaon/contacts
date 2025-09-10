@@ -1,9 +1,6 @@
 import numpy as np
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from packer import Packer
+from src.packer import Packer
 
 
 def test_unpack():
@@ -65,24 +62,3 @@ def test_random_dict():
         unpacked = packer.random_dict()
         unpacked = packer.real2pop(unpacked)
         packer.verify_params(unpacked)
-
-
-if __name__ == "__main__":
-    print("Running packer tests...")
-    try:
-        test_unpack()
-        print("✓ test_unpack passed")
-        test_pack()
-        print("✓ test_pack passed")
-        test_symmetry_and_diagonal()
-        print("✓ test_symmetry_and_diagonal passed")
-        test_random_vector()
-        print("✓ test_random_vector passed")
-        test_random_dict()
-        print("✓ test_random_dict passed")
-        print("All tests passed!")
-    except:
-        import traceback as tb
-        import pdb
-        tb.print_exc()
-        pdb.post_mortem()
