@@ -34,12 +34,12 @@ def test_inverter_initialization():
 
 def test_sim():
     """Test that Inverter.sim() produces valid output."""
-    pop = makepop()
+    pop = makepop(n_regions=4, n_seasons=10)
     euler = Inverter(population=pop, n_weeks=NWEEKS, integration="euler")
     runge_kutta = Inverter(population=pop, n_weeks=NWEEKS, integration="rk")
 
     # Generate random parameters and run simulation
-    for i in range(10):  # Reduced for faster testing
+    for i in range(1000):  # Reduced for faster testing
         x = runge_kutta.packer.random_vector(seed=i*23)
         results = runge_kutta.sim(x)  # Use RK as primary
         euler.sim(x)  # Still test Euler
@@ -90,7 +90,6 @@ def test_inference(noise, seed=43):
     print(f"Generated {len(true_trajectory)} observations")
     print(f"True parameters - beta0: {true_params['beta0']}, eps: {true_params['eps']}")
 
-    # Fit model (with limited iterations for testing)
     inv.fit(obs=obs, x0=x_true)
 
     # Generate reconstructed trajectory for visualization
@@ -102,7 +101,7 @@ def test_inference(noise, seed=43):
 
     err_beta0 = abs(true_params['beta0'] - inferred_params['beta0']) / true_params['beta0']
     err_eps = abs(true_params['eps'] - inferred_params['eps']) / true_params['eps']
-    err_omega = np.max(np.abs(true_params['omega'] - inferred_params['omega']) / true_params['omega'])
+    err_omega = np.max(np.abs(true_params['omega'] - inferred_params['omega']) / np.abs(true_params['omega']))
     err_c = np.max(np.abs(true_params['c_vec'] - inferred_params['c_vec']) / true_params['c_vec'])
 
     print("\nParameter Recovery Results:")

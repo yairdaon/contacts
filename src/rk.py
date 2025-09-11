@@ -76,6 +76,7 @@ def log_der(t, y, mu, sigma, nu, beta0, eps, omega, contact_matrix, population):
 def run_rk(S_init,
            E_init,
            I_init,
+           dt_step=1,
            dt_output=7,
            n_weeks=20,
            beta0=0.28,
@@ -89,13 +90,19 @@ def run_rk(S_init,
            start_date="1900-01-01"):
     """
     Run multi-region SEIR simulation using CyRK's nbsolve_ivp with RK method.
-    Integration step is dt_output (usually 7 days, i.e. weekly output).
     
-    Parameters are the same as multi.py run() function, except dt_euler is removed.
+    Parameters:
+    -----------
+    dt_step : float
+        Integration step size (days) for RK method
+    dt_output : float  
+        Output sampling interval (days), typically 7 for weekly output
+    n_weeks : int
+        Number of weeks to simulate
     
     Returns:
     --------
-    DataFrame with weekly results and timing information
+    DataFrame with results sampled at dt_output intervals, aligned with Euler method
     """
     n_regions = len(S_init)
     
@@ -113,40 +120,27 @@ def run_rk(S_init,
     # Convert to arrays and ensure proper types
     omega = np.array(omega, dtype=np.float64) if np.isscalar(omega) else np.array(omega, dtype=np.float64)
 
-    # Convert initial conditions to absolute numbers
-    S_init_abs = np.array(S_init, dtype=np.float64) * population
-    E_init_abs = np.array(E_init, dtype=np.float64) * population
-    I_init_abs = np.array(I_init, dtype=np.float64) * population
-    
     # Initial state vector in log space
     y0 = np.concatenate([
-        log(S_init_abs),
-        log(E_init_abs),
-        log(I_init_abs)
+        log(S_init * population),
+        log(E_init * population),
+        log(I_init * population),
     ])
     
-    # Time span and evaluation points (weekly: 7-day steps)
     t_span = (0.0, float(n_weeks * dt_output))
-    t_eval = np.arange(0, n_weeks * dt_output, dt_output, dtype=np.float64)
-    
-    # Solve using CyRK
-    start_time = time.time()
-    
+    t_eval = np.arange(0, n_weeks * dt_output, dt_step, dtype=np.float64)
+
     result = nbsolve_ivp(
         log_der,
         t_span,
         y0,
         args=(mu, sigma, nu, beta0, eps, omega, contact_matrix, population),
         t_eval=t_eval,
-        rtol=1e-6,
-        atol=1e-8
+        rtol=1e-8,
+        atol=1e-15
     )
-    
-    end_time = time.time()
-    
-    if not result.success:
-        raise RuntimeError(f"Integration failed: {result.message}")
-    
+    assert result.success
+
     # Extract solution
     n_times = len(result.t)
     logS = result.y[0:n_regions, :].T
@@ -158,46 +152,60 @@ def run_rk(S_init,
     E = exp(logE)
     I = exp(logI)
     
-    # Calculate new cases (E -> I transitions) more accurately
-    # New cases = integral of sigma * E over each week
-    C = np.zeros_like(S)
-    C[1:, :] = (E[:-1,:] + E[1:,:])/2 * sigma * dt_output
-    # First week uses initial - No cases at t=0
+    # Calculate instantaneous incidence rate (E -> I transitions per day)
+    incidence_rate = sigma * E  # Cases per day at each time point
 
-    # Calculate time-varying transmission rates for output
-    F = np.zeros_like(S)
+
+    # Convert to DataFrame with proper time index for rolling calculations
+    time_full = pd.date_range(start=start_date, periods=n_times, freq=f'{dt_step}D')
+    incidence_df = pd.DataFrame(incidence_rate, index=time_full)
+    
+    # Calculate cumulative incidence over rolling dt_output windows
+    # Rolling sum over dt_output days, then multiply by dt_step to get total cases
+    window_size = int(dt_output / dt_step)  # Number of dt_step intervals in dt_output window
+    C_rolling = incidence_df.rolling(window=window_size, min_periods=1).sum() * dt_step
+    
+    # Set first time point to zero (no cases at t=0 by convention)
+    C_rolling.iloc[0, :] = 0.0
+
+    # Sample at dt_output intervals to align with Euler method
+    # Create sampling indices: every dt_output/dt_step points
+    sample_stride = int(dt_output / dt_step)
+    sample_indices = np.arange(0, n_times, sample_stride)
+    
+    # If the last point doesn't align exactly, include it
+    if sample_indices[-1] != n_times - 1:
+        sample_indices = np.append(sample_indices, n_times - 1)
+    
+    # Limit to n_weeks points (to match Euler output)
+    sample_indices = sample_indices[:n_weeks]
+    
+    # Sample all arrays at these indices
+    S_sampled = S[sample_indices, :]
+    E_sampled = E[sample_indices, :]
+    I_sampled = I[sample_indices, :]
+    C_sampled = C_rolling.iloc[sample_indices].values
+    
+    # Calculate time-varying transmission rates at sampled points
+    F_sampled = np.zeros_like(S_sampled)
     log_betas = np.empty(n_regions)
-    for i in range(n_times):
-        t_current = result.t[i]
+    for i, idx in enumerate(sample_indices):
+        t_current = result.t[idx]
         calc_log_betas(t_current, beta0, eps, omega, log_betas)
-        F[i, :] = exp(log_betas)
+        F_sampled[i, :] = exp(log_betas)
     
-    # Create DataFrames
-    time_index = pd.date_range(start=start_date, periods=n_times, freq=f'{dt_output}D')
+    # Create DataFrames with proper time index aligned with Euler method
+    n_sampled = len(sample_indices)
+    time_index = pd.date_range(start=start_date, periods=n_sampled, freq=f'{dt_output}D')
     
-    C_df = pd.DataFrame(C, index=time_index, columns=[f'C{i}' for i in range(n_regions)])
-    F_df = pd.DataFrame(F, index=time_index, columns=[f'F{i}' for i in range(n_regions)])
-    S_df = pd.DataFrame(S, index=time_index, columns=[f'S{i}' for i in range(n_regions)])
-    E_df = pd.DataFrame(E, index=time_index, columns=[f'E{i}' for i in range(n_regions)])
-    I_df = pd.DataFrame(I, index=time_index, columns=[f'I{i}' for i in range(n_regions)])
+    C_df = pd.DataFrame(C_sampled, index=time_index, columns=[f'C{i}' for i in range(n_regions)])
+    F_df = pd.DataFrame(F_sampled, index=time_index, columns=[f'F{i}' for i in range(n_regions)])
+    S_df = pd.DataFrame(S_sampled, index=time_index, columns=[f'S{i}' for i in range(n_regions)])
+    E_df = pd.DataFrame(E_sampled, index=time_index, columns=[f'E{i}' for i in range(n_regions)])
+    I_df = pd.DataFrame(I_sampled, index=time_index, columns=[f'I{i}' for i in range(n_regions)])
     
     # Combine all results
     df = pd.concat([C_df, F_df, S_df, E_df, I_df], axis=1)
     df.index.name = 'time'
     
-    return df, end_time - start_time
-
-
-if __name__ == "__main__":
-    # Simple test
-    print("Testing RK integration...")
-
-    # Simple 2-region test
-    S_init = [0.99, 0.98]
-    E_init = [0.005, 0.01]
-    I_init = [0.005, 0.01]
-
-    df, timing = run_rk(S_init, E_init, I_init, n_weeks=10)
-    print(f"Integration completed in {timing:.4f} seconds")
-    print("Sample output:")
-    print(df.head())
+    return df

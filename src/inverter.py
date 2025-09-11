@@ -24,7 +24,6 @@ class Inverter:
                  n_weeks=26,
                  sigma=0.5,
                  dt_output=7,
-                 dt_euler=None,
                  mu=0 / (30 * 365),
                  nu=0.2,
                  loss='lsq',
@@ -36,7 +35,6 @@ class Inverter:
         self.n_weeks = n_weeks
         self.sigma = sigma
         self.dt_output = dt_output
-        self.dt_euler = dt_euler if dt_euler is not None else (1e-2 if integration == 'euler' else None)
         self.mu = mu
         self.nu = nu
         self.integration = integration
@@ -49,12 +47,12 @@ class Inverter:
                    .values)
             self.pops[season] = pop
 
-        self.params = dict(n_weeks=self.n_weeks,
-                           sigma=self.sigma,
-                           dt_output=self.dt_output,
-                           dt_euler=self.dt_euler,
-                           mu=self.mu,
-                           nu=self.nu)
+        # self.params = dict(n_weeks=self.n_weeks,
+        #                    sigma=self.sigma,
+        #                    dt_output=self.dt_output,
+        #                    dt_step=self.dt_step,
+        #                    mu=self.mu,
+        #                    nu=self.nu)
 
         assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3)
         self.loss = LOSSES[loss]
@@ -78,46 +76,19 @@ class Inverter:
         results = []
         for season_idx, season in enumerate(self.packer.seasons):
             pop = self.pops[season]
-            
+            start = time.time()
             if self.integration == 'euler':
-                df, tt = run(
-                    S_init=S_init[season_idx, :],
-                    E_init=E_init[season_idx, :],
-                    I_init=I_init[season_idx, :],
-                    n_weeks=self.n_weeks,
-                    beta0=beta0,
-                    sigma=self.sigma,
-                    dt_output=self.dt_output,
-                    dt_euler=self.dt_euler,
-                    mu=self.mu,
-                    nu=self.nu,
-                    omega=omega,
-                    eps=eps,
-                    contact_matrix=c_mat,
-                    population=pop,
-                    start_date=season
-                )
+                df = run(S_init=S_init[season_idx, :], E_init=E_init[season_idx, :], I_init=I_init[season_idx, :],
+                         n_weeks=self.n_weeks, beta0=beta0, sigma=self.sigma, dt_output=self.dt_output, dt_step=1e-2,
+                         mu=self.mu, nu=self.nu, omega=omega, eps=eps, contact_matrix=c_mat, population=pop,
+                         start_date=season)
             elif self.integration == 'rk':
-                df, tt = run_rk(
-                    S_init=S_init[season_idx, :],
-                    E_init=E_init[season_idx, :],
-                    I_init=I_init[season_idx, :],
-                    n_weeks=self.n_weeks,
-                    beta0=beta0,
-                    sigma=self.sigma,
-                    dt_output=self.dt_output,
-                    mu=self.mu,
-                    nu=self.nu,
-                    omega=omega,
-                    eps=eps,
-                    contact_matrix=c_mat,
-                    population=pop,
-                    start_date=season
-                )
+                df = run_rk(S_init=S_init[season_idx, :], E_init=E_init[season_idx, :], I_init=I_init[season_idx, :],
+                            dt_step=1, dt_output=self.dt_output, n_weeks=self.n_weeks, beta0=beta0, sigma=self.sigma, mu=self.mu, nu=self.nu,
+                            omega=omega, eps=eps, contact_matrix=c_mat, population=pop, start_date=season)
             else:
                 raise ValueError(f"Unknown integration method: {self.integration}. Use 'euler' or 'rk'")
-            
-            self.run_time += tt
+            self.run_time += time.time() - start
 
             letter = "C"  ## If at any point wed like to look at infecteds instead
             df = df[[col for col in df.columns if letter in col]].reset_index(drop=False)

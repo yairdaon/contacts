@@ -94,7 +94,7 @@ def one_step(t,
     C[:] += dC
 
     
-@jit(nopython=True, cache=True)
+@jit(nopython=True)
 def multi_seir(
         dt_euler,
         dt_output, 
@@ -178,9 +178,9 @@ def run(S_init,
         I_init,
         n_weeks=20,
         beta0=0.28,     # Flu: R₀≈1.4, recovery period ~5 days → β₀≈1.4/5=0.28/day
-        sigma=1.0/3.0,  # Flu: incubation period ~3 days → σ=1/3/day  
+        sigma=1.0/3.0,  # Flu: incubation period ~3 days → σ=1/3/day
         dt_output=7,    # Output every 7 days (weekly)
-        dt_euler=1e-2,  # Euler step size (days)
+        dt_step=1e-2,  # Euler step size (days)
         mu=1/(70*365),  # Birth/death rate: 70-year lifespan
         nu=1.0/5.0,     # Flu: infectious period ~5 days → ν=1/5/day
         omega=0.0,      # Phase: 0=winter peak, 0.25=spring, 0.5=summer, 0.75=fall
@@ -268,9 +268,8 @@ def run(S_init,
     else:
         contact_matrix = np.array(contact_matrix, dtype=np.float64)
         assert contact_matrix.shape == (n_regions, n_regions), f"Contact matrix must be {n_regions}x{n_regions}"
-    start = time.time()
     multi_seir(
-        dt_euler=dt_euler,
+        dt_euler=dt_step,
         dt_output=dt_output,
         logSs=logS,
         logEs=logE,
@@ -291,7 +290,6 @@ def run(S_init,
         dlogI=np.zeros(n_regions),
         dC=np.zeros(n_regions),
         log_betas=log_betas)
-    end = time.time()
     C = pd.DataFrame(index=T, data=Cs, columns=[f'C{i}' for i in range(n_regions)])
     F = pd.DataFrame(index=T, data=F, columns=[f'F{i}' for i in range(n_regions)])
     S = pd.DataFrame(index=T, data=exp(logS), columns=[f'S{i}' for i in range(n_regions)])
@@ -302,9 +300,4 @@ def run(S_init,
 
     df.index = pd.date_range(start=start_date, periods=len(df), freq='7D')
     df.index.name = 'time'
-    return df, end-start
-
-
-if __name__ == "__main__":
-    # Visualization moved to visualization/vis_multi.py
-    print("Visualization moved to visualization/vis_multi.py")
+    return df
