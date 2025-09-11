@@ -81,7 +81,7 @@ class Inverter:
             
             if self.integration == 'euler':
                 df, tt = run(
-                    S_init=S_init[season_idx, :],  # Now using fractions
+                    S_init=S_init[season_idx, :],
                     E_init=E_init[season_idx, :],
                     I_init=I_init[season_idx, :],
                     n_weeks=self.n_weeks,
@@ -99,13 +99,13 @@ class Inverter:
                 )
             elif self.integration == 'rk':
                 df, tt = run_rk(
-                    S_init=S_init[season_idx, :],  # Now using fractions
+                    S_init=S_init[season_idx, :],
                     E_init=E_init[season_idx, :],
                     I_init=I_init[season_idx, :],
                     n_weeks=self.n_weeks,
                     beta0=beta0,
                     sigma=self.sigma,
-                    #dt_output=self.dt_output,
+                    dt_output=self.dt_output,
                     mu=self.mu,
                     nu=self.nu,
                     omega=omega,

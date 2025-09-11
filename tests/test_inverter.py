@@ -123,14 +123,17 @@ def test_inference(noise, seed=43):
     # Create visualization
     print("Creating parameter inference visualization...")
     seasons = sorted(pop.season.unique())
-    fig, axes = plt.subplots(1, len(seasons), figsize=(5*len(seasons), 5))
+    
+    # Set dark theme
+    plt.style.use('dark_background')
+    fig, axes = plt.subplots(1, len(seasons), figsize=(5*len(seasons), 5), facecolor='#1e1e1e')
     if len(seasons) == 1:
         axes = [axes]
     
     fig.suptitle(f'Parameter Inference Test Results (seed={seed})\n'
-                 f'β₀ err: {err_beta0:.3f}, ε err: {err_eps:.3f}', fontsize=14)
+                 f'β₀ err: {err_beta0:.3f}, ε err: {err_eps:.3f}', fontsize=14, color='white')
     
-    colors = ['#2E86AB', '#A23B72']
+    colors = ['#00D4FF', '#FF6B9D']  # Bright cyan and pink for dark background
     regions = ['HHS0', 'HHS1']
     
     for season_idx, season in enumerate(seasons):
@@ -164,14 +167,16 @@ def test_inference(noise, seed=43):
 
             ax.plot(obs_data.time, reconstructed_data.incidence,
                     color=colors[region_idx], linewidth=2.5, linestyle=':', alpha=0.8,
-                    label=f'{region} - Inferred' if season_idx == 0 else "")
+                    label=f'{region} - Noisy' if season_idx == 0 else "")
         
-        ax.set_title(f'{season[:4]}', fontsize=12)
-        ax.set_xlabel('Time')
+        ax.set_title(f'{season[:4]}', fontsize=12, color='white')
+        ax.set_xlabel('Time', color='white')
         if season_idx == 0:
-            ax.set_ylabel('Weekly Incidence')
-            ax.legend(loc='upper right')
-        ax.grid(True, alpha=0.3)
+            ax.set_ylabel('Weekly Incidence', color='white')
+            ax.legend(loc='upper right', fancybox=True, shadow=True, facecolor='#2e2e2e', edgecolor='white')
+        ax.grid(True, alpha=0.2, color='white')
+        ax.set_facecolor('#1e1e1e')
+        ax.tick_params(colors='white')
     
     plt.tight_layout()
     plt.savefig(f'pix/test_inference_visualization_{noise}.png', dpi=300, bbox_inches='tight')

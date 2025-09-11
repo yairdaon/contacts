@@ -10,9 +10,9 @@ from src.helper import makepop
 from src.inverter import Inverter
 
 matplotlib.use('Agg')  # Non-interactive backend for testing
+EPS=0.07
 
-
-def test_euler_vs_rk_comparison():
+def test_euler_vs_rk():
     """
     Test comparing Euler vs RK methods with visualization.
     """
@@ -23,29 +23,27 @@ def test_euler_vs_rk_comparison():
     I_init = [0.005, 0.01, 0.015, 0.02]
     n_weeks = 15
 
-    print("Comparing Euler vs RK integration methods...")
-
     # Test original Euler method
     start = time.time()
-    df_euler, euler_time = run(S_init, E_init, I_init, n_weeks=n_weeks, dt_euler=1e-2)
+    df_euler, euler_time = run(S_init, E_init, I_init, n_weeks=n_weeks, dt_euler=1e-2, population=pop.population.values)
     total_euler_time = time.time() - start
     df_euler.fillna(0, inplace=True)
 
     # Test RK method
     start = time.time()
-    df_rk, rk_time = run_rk(S_init, E_init, I_init, n_weeks=n_weeks)
+    df_rk, rk_time = run_rk(S_init, E_init, I_init, n_weeks=n_weeks, population=pop.population.values)
     total_rk_time = time.time() - start
 
-    print(f"Euler method: {euler_time:.4f}s (total: {total_euler_time:.4f}s)")
-    print(f"RK method: {rk_time:.4f}s (total: {total_rk_time:.4f}s)")
-    print(f"Speed ratio: {total_euler_time/total_rk_time:.2f}x")
+    # print(f"Euler method: {euler_time:.4f}s (total: {total_euler_time:.4f}s)")
+    # print(f"RK method: {rk_time:.4f}s (total: {total_rk_time:.4f}s)")
+    # print(f"Speed ratio: {total_euler_time/total_rk_time:.2f}x")
 
     # Verify both methods produced results
     assert isinstance(df_euler, pd.DataFrame)
     assert isinstance(df_rk, pd.DataFrame)
     assert len(df_euler) == len(df_rk)
     
-    # Test relative error between methods is ≤1%
+    # Test relative error between methods is small
     for region in range(4):
         rk_col = f'C{region}'
         euler_col = f'C{region}'
@@ -61,14 +59,15 @@ def test_euler_vs_rk_comparison():
         max_error = np.max(relative_error)
         print(f"Region {region} max relative error: {max_error:.4f}")
         
-        # Allow 10% maximum relative error (reasonable for different integration methods)
-        assert max_error <= 0.10, f"Region {region} relative error {max_error:.4f} exceeds 10%"
+        # Allow EPS maximum relative error
+        assert max_error <= EPS, f"Region {region} relative error {max_error:.4f} exceeds 10%"
 
     # Create comparison visualization
-    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-    fig.suptitle('Euler vs RK Methods: 4 Regions Comparison', fontsize=16)
+    plt.style.use('dark_background')
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10), facecolor='#1e1e1e')
+    fig.suptitle('Euler vs RK Methods: 4 Regions Comparison', fontsize=16, color='white')
 
-    colors = ['blue', 'red', 'green', 'orange']
+    colors = ['#00D4FF', '#FF6B9D', '#00FF7F', '#FFD700']  # Bright colors for dark background
     region_names = ['Region 0', 'Region 1', 'Region 2', 'Region 3']
 
     # Plot 1: New Cases for all regions
@@ -85,11 +84,13 @@ def test_euler_vs_rk_comparison():
                color=colors[region], linestyle='--', linewidth=2, alpha=0.8,
                label=f'Euler - {region_names[region]}')
 
-    ax.set_title('New Cases (C) - All Regions')
-    ax.set_xlabel('Time')
-    ax.set_ylabel('New Cases')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.set_title('New Cases (C) - All Regions', color='white')
+    ax.set_xlabel('Time', color='white')
+    ax.set_ylabel('New Cases', color='white')
+    ax.legend(fancybox=True, shadow=True, facecolor='#2e2e2e', edgecolor='white')
+    ax.grid(True, alpha=0.2, color='white')
+    ax.set_facecolor('#1e1e1e')
+    ax.tick_params(colors='white')
 
     # Plot 2: Infected for all regions
     ax = axes[0, 1]
@@ -105,11 +106,13 @@ def test_euler_vs_rk_comparison():
                color=colors[region], linestyle='--', linewidth=2, alpha=0.8,
                label=f'Euler - {region_names[region]}')
 
-    ax.set_title('Infected (I) - All Regions')
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Infected')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.set_title('Infected (I) - All Regions', color='white')
+    ax.set_xlabel('Time', color='white')
+    ax.set_ylabel('Infected', color='white')
+    ax.legend(fancybox=True, shadow=True, facecolor='#2e2e2e', edgecolor='white')
+    ax.grid(True, alpha=0.2, color='white')
+    ax.set_facecolor('#1e1e1e')
+    ax.tick_params(colors='white')
 
     # Plot 3: Susceptible for all regions
     ax = axes[1, 0]
@@ -125,11 +128,13 @@ def test_euler_vs_rk_comparison():
                color=colors[region], linestyle='--', linewidth=2, alpha=0.8,
                label=f'Euler - {region_names[region]}')
 
-    ax.set_title('Susceptible (S) - All Regions')
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Susceptible')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.set_title('Susceptible (S) - All Regions', color='white')
+    ax.set_xlabel('Time', color='white')
+    ax.set_ylabel('Susceptible', color='white')
+    ax.legend(fancybox=True, shadow=True, facecolor='#2e2e2e', edgecolor='white')
+    ax.grid(True, alpha=0.2, color='white')
+    ax.set_facecolor('#1e1e1e')
+    ax.tick_params(colors='white')
 
     # Plot 4: Exposed for all regions
     ax = axes[1, 1]
@@ -145,32 +150,32 @@ def test_euler_vs_rk_comparison():
                color=colors[region], linestyle='--', linewidth=2, alpha=0.8,
                label=f'Euler - {region_names[region]}')
 
-    ax.set_title('Exposed (E) - All Regions')
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Exposed')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.set_title('Exposed (E) - All Regions', color='white')
+    ax.set_xlabel('Time', color='white')
+    ax.set_ylabel('Exposed', color='white')
+    ax.legend(fancybox=True, shadow=True, facecolor='#2e2e2e', edgecolor='white')
+    ax.grid(True, alpha=0.2, color='white')
+    ax.set_facecolor('#1e1e1e')
+    ax.tick_params(colors='white')
 
     plt.tight_layout()
-    plt.savefig('pix/euler_vs_rk_comparison.png', dpi=300, bbox_inches='tight')
-    plt.close()
-
-    print("✅ Method comparison test passed with visualization saved")
+    plt.savefig('pix/euler_vs_rk.png', dpi=300, bbox_inches='tight')
 
 
-def test_integration_methods_in_inverter():
+def test_integration_inverter():
     """Test that both integration methods work in Inverter class."""
     pop = makepop(n_regions=2, n_seasons=2)
     
     # Test RK integration (primary)
-    inv_rk = Inverter(population=pop, n_weeks=8, integration='rk')
-    x = inv_rk.packer.random_vector(seed=42)
-    result_rk = inv_rk.sim(x)
+    inv_rk = Inverter(population=pop, n_weeks=15, integration='rk')
+    x0 = inv_rk.packer.random_vector(seed=2)
+
+    result_rk = inv_rk.sim(x0)
     rk_runtime = inv_rk.run_time
     
     # Test Euler integration (for comparison)
-    inv_euler = Inverter(population=pop, n_weeks=8, integration='euler')
-    result_euler = inv_euler.sim(x)
+    inv_euler = Inverter(population=pop, n_weeks=15, integration='euler')
+    result_euler = inv_euler.sim(x0)#.fillna(0)
     euler_runtime = inv_euler.run_time
     
     # Verify both methods work
@@ -178,15 +183,18 @@ def test_integration_methods_in_inverter():
     assert isinstance(result_rk, pd.DataFrame)
     assert len(result_euler) == len(result_rk)
     assert set(result_euler.columns) == set(result_rk.columns)
-    
+    assert np.all(result_euler.set_index(["season", "region", "time"]).index == result_euler.set_index(["season", "region", "time"]).index)
+
+
     print(f"Inverter integration timing - Euler: {euler_runtime:.4f}s, RK: {rk_runtime:.4f}s")
     
     # Create simple comparison plot
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    fig.suptitle('Integration Methods in Inverter Class', fontsize=14)
+    plt.style.use('dark_background')
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5), facecolor='#1e1e1e')
+    fig.suptitle('Integration Methods in Inverter Class', fontsize=14, color='white')
     
     seasons = sorted(pop.season.unique())
-    colors = ['blue', 'red']
+    colors = ['#00D4FF', '#FF6B9D']
     
     for season_idx, season in enumerate(seasons):
         ax = axes[season_idx]
@@ -198,7 +206,8 @@ def test_integration_methods_in_inverter():
         for region_idx, region in enumerate(['HHS0', 'HHS1']):
             euler_region = euler_season[euler_season.region == region].sort_values('time')
             rk_region = rk_season[rk_season.region == region].sort_values('time')
-            
+
+
             ax.plot(euler_region.time, euler_region.incidence,
                    color=colors[region_idx], linewidth=2,
                    label=f'{region} - Euler' if season_idx == 0 else "")
@@ -207,29 +216,22 @@ def test_integration_methods_in_inverter():
                    color=colors[region_idx], linewidth=2, linestyle='--', alpha=0.8,
                    label=f'{region} - RK' if season_idx == 0 else "")
         
-        ax.set_title(f'Season {season}')
-        ax.set_xlabel('Time')
-        ax.set_ylabel('Incidence')
+        ax.set_title(f'Season {season}', color='white')
+        ax.set_xlabel('Time', color='white')
+        ax.set_ylabel('Incidence', color='white')
         if season_idx == 0:
-            ax.legend()
-        ax.grid(True, alpha=0.3)
+            ax.legend(fancybox=True, shadow=True, facecolor='#2e2e2e', edgecolor='white')
+        ax.grid(True, alpha=0.2, color='white')
+        ax.set_facecolor('#1e1e1e')
+        ax.tick_params(colors='white')
     
     plt.tight_layout()
-    plt.savefig('inverter_integration_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig('pix/inverter_integration_comparison.png', dpi=300, bbox_inches='tight')
     plt.close()
-    
-    print("✅ Inverter integration methods test passed")
 
+    denominator = np.maximum(np.abs(result_euler.incidence.values), 1e-9)
+    err = np.max(np.abs(result_euler.incidence.values - result_rk.incidence.values) / denominator)
 
-if __name__ == "__main__":
-    import pandas as pd  # Import pandas for the test
-    
-    print("🔬 RUNNING METHOD COMPARISON TESTS")
-    print("=" * 50)
-    
-    timing_results = test_euler_vs_rk_comparison()
-    test_integration_methods_in_inverter()
-    
-    print("=" * 50)
-    print("🎉 ALL METHOD COMPARISON TESTS PASSED!")
-    print(f"Final timing comparison: Euler vs RK speedup = {timing_results['speedup']:.2f}x")
+    re = result_euler.query("season == '1991-01-01' and region == 'HHS1'")
+    rr = result_rk.query("season == '1991-01-01' and region == 'HHS1'")
+    assert err < EPS

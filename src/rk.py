@@ -4,6 +4,8 @@ from numba import jit
 from numpy import sin, cos, pi, log, exp
 import time
 
+from CyRK import nbsolve_ivp
+
 # Import from multi.py
 from src.multi import calc_log_betas
 
@@ -95,11 +97,6 @@ def run_rk(S_init,
     --------
     DataFrame with weekly results and timing information
     """
-    try:
-        from CyRK import nbsolve_ivp
-    except ImportError:
-        raise ImportError("CyRK package is required. Install with: pip install CyRK")
-    
     n_regions = len(S_init)
     
     # Default population and contact matrix
@@ -114,11 +111,8 @@ def run_rk(S_init,
         contact_matrix = np.array(contact_matrix, dtype=np.float64)
     
     # Convert to arrays and ensure proper types
-    beta0 = np.array(beta0, dtype=np.float64) if np.isscalar(beta0) else np.array(beta0, dtype=np.float64)
     omega = np.array(omega, dtype=np.float64) if np.isscalar(omega) else np.array(omega, dtype=np.float64)
-    eps = np.array(eps, dtype=np.float64) if np.isscalar(eps) else np.array(eps, dtype=np.float64)
-    nu = np.full(n_regions, nu, dtype=np.float64)
-    
+
     # Convert initial conditions to absolute numbers
     S_init_abs = np.array(S_init, dtype=np.float64) * population
     E_init_abs = np.array(E_init, dtype=np.float64) * population

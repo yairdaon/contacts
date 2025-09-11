@@ -104,8 +104,6 @@ class Packer:
         assert flat.shape == (self.n_params,)
         return flat
 
-    
-    # ---- unpack ----
     def unpack(self, flat):
         assert flat.shape == (self.n_params,)
         out = {}
