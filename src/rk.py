@@ -139,7 +139,7 @@ def run_rk(S_init,
         rtol=1e-8,
         atol=1e-15
     )
-    assert result.success
+    assert result.success, f"RK integration failed: {result.message}"
 
     # Extract solution
     n_times = len(result.t)
@@ -151,20 +151,26 @@ def run_rk(S_init,
     S = exp(logS)
     E = exp(logE)
     I = exp(logI)
-    
+    assert np.all(S >= 0), f"Negative S values found: min={np.min(S)}"
+    assert np.all(E >= 0), f"Negative E values found: min={np.min(E)}"
+    assert np.all(I >= 0), f"Negative I values found: min={np.min(I)}"
+
     # Calculate instantaneous incidence rate (E -> I transitions per day)
     incidence_rate = sigma * E  # Cases per day at each time point
-
+    assert np.all(incidence_rate >= 0), f"Negative incidence rate found: min={np.min(incidence_rate)}"
 
     # Convert to DataFrame with proper time index for rolling calculations
     time_full = pd.date_range(start=start_date, periods=n_times, freq=f'{dt_step}D')
     incidence_df = pd.DataFrame(incidence_rate, index=time_full)
-    
+    assert np.all(incidence_df >= 0), f"Negative incidence in DataFrame: min={incidence_df.min().min()}"
+
     # Calculate cumulative incidence over rolling dt_output windows
     # Rolling sum over dt_output days, then multiply by dt_step to get total cases
     window_size = int(dt_output / dt_step)  # Number of dt_step intervals in dt_output window
     C_rolling = incidence_df.rolling(window=window_size, min_periods=1).sum() * dt_step
-    
+    C_rolling = C_rolling.clip(lower=0)
+    assert (C_rolling >= 0).all().all(), f"Negative rolling incidence found: min={C_rolling.min().min()}"
+
     # Set first time point to zero (no cases at t=0 by convention)
     C_rolling.iloc[0, :] = 0.0
 

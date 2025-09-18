@@ -1,5 +1,10 @@
 import pandas as pd
 from itertools import product
+import numpy as np
+
+
+def a2s(x):
+    return np.array2string(x, precision=3)
 
 
 def makepop(n_regions=2, n_seasons=3):

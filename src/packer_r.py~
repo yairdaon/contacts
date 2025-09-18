@@ -1,12 +1,16 @@
 import numpy as np
 import pandas as pd
-from scipy.special import logit, expit
+from scipy.optimize import Bounds, LinearConstraint
 from numpy import exp, log
 
 from src.helper import a2s
 
 
-class Packer:
+class PackerR:
+    """
+    Parameter packer for constrained optimization (no transformations).
+    Uses scipy Bounds and LinearConstraint instead of logit/log transformations.
+    """
     def __init__(self,
                  regions=None,
                  seasons=None):
@@ -25,31 +29,8 @@ class Packer:
         self.iu = np.triu_indices(self.n_regions, k=1)
 
         # compute parameter count directly
-        # 1: beta0, len(iu[0]): c_vec, n_regions: omega, 1: eps, 1: rho, 3*n_regions*n_seasons: S,E,I init
-        self.n_params = 1 + len(self.iu[0]) + self.n_regions + 1 + 1 + 3 * self.n_regions * self.n_seasons
-
-    def real2pop(self, params):
-        """Generates fractions of population, not absolute numbers"""
-        S_init = exp(params['S_init'])
-        E_init = exp(params['E_init'])
-        I_init = exp(params['I_init'])
-        tot = S_init + E_init + I_init + 1  # eq R_init = 0
-        params["S_init"] = S_init/tot
-        params["E_init"] = E_init/tot
-        params["I_init"] = I_init/tot
-        self.verify_params(params)
-        return params
-
-    def pop2real(self, params):
-        params["S_init"] = log(params['S_init'])
-        params["E_init"] = log(params['E_init'])
-        params["I_init"] = log(params['I_init'])
-        return params
-
-    def verify_vector(self, x):
-        params = self.unpack(x)
-        params = self.real2pop(params)
-        self.verify_params(params)
+        # Order: S,E,I init (3*n_regions*n_seasons), beta0, c_vec, omega, eps, rho
+        self.n_params = 3 * self.n_regions * self.n_seasons + 1 + len(self.iu[0]) + self.n_regions + 1 + 1
 
     def verify_params(self, params):
         """Verify that all parameters are in valid epidemiological ranges."""
@@ -58,10 +39,6 @@ class Packer:
         assert np.all(params['c_vec'] < 1), "contact matrix " + a2s(params['c_vec'])
         assert 0 < params['eps'] < 1, f"eps {params['eps']:.3f}"
         assert 0 < params['rho'] <= 1, f"reporting rate {params['rho']:.3f}"
-        
-        # omega verification for seasonal phase (fraction of year)
-        # assert np.all(-0.5 <= params['omega']), "omega must be >= -0.5"
-        # assert np.all(params['omega'] <= 0.5), "omega must be <= 0.5"
         
         # Compartment fractions must be positive and < 1
         assert np.all(0 < params["S_init"]), "S_init must be positive"
@@ -86,67 +63,120 @@ class Packer:
 
         
     def pack(self, params):
+        """Pack parameters into flat vector (no transformations). S,E,I init first."""
         parts = []
 
-        # beta0: single scalar
-        parts.append([log(params["beta0"])])
+        # S_init, E_init, I_init: each shape (n_seas, n_reg) - PUT THESE FIRST
+        for key in ["S_init", "E_init", "I_init"]:
+            parts.append(params[key].ravel())
 
-        # c_vec: upper triangular (excluding diagonal) as vector
-        parts.append(logit(params["c_vec"]))
+        # beta0: single scalar (no log transformation)
+        parts.append([params["beta0"]])
 
-        # omega: vector size n_reg
+        # c_vec: upper triangular (excluding diagonal) as vector (no logit)
+        parts.append(params["c_vec"])
+
+        # omega: vector size n_reg (no transformation)
         parts.append(params["omega"])
 
-        # eps: scalar
-        parts.append([logit(params["eps"])])
+        # eps: scalar (no logit)
+        parts.append([params["eps"]])
         
-        # rho: scalar
-        parts.append([logit(params["rho"])])
-
-        # S_init, I_init, E_init: each shape (n_seas, n_reg)
-        for key in ["S_init", "I_init", "E_init"]:
-            parts.append(params[key].ravel())
+        # rho: scalar (no logit)
+        parts.append([params["rho"]])
 
         flat = np.concatenate(parts)
         assert flat.shape == (self.n_params,), f"Packed vector shape {flat.shape} doesn't match expected ({self.n_params},)"
         return flat
 
     def unpack(self, flat):
+        """Unpack flat vector into parameter dictionary (no transformations)."""
         assert flat.shape == (self.n_params,), f"Input vector shape {flat.shape} doesn't match expected ({self.n_params},)"
         out = {}
         idx = 0
 
-        # beta0
-        out["beta0"] = exp(flat[idx])
-        idx += 1
-
-        # c_vec
-        c_size = len(self.iu[0])
-        c_vec = expit(flat[idx:idx+c_size])
-        out["c_vec"] = c_vec
-        idx += c_size
-
-        # omega
-        omega = flat[idx:idx+self.n_regions]
-        out["omega"] = omega
-        idx += self.n_regions
-
-        # eps
-        out["eps"] = expit(flat[idx])
-        idx += 1
-        
-        # rho
-        out["rho"] = expit(flat[idx])
-        idx += 1
-
-        # S_init, I_init, E_init
-        for key in ["S_init", "I_init", "E_init"]:
+        # S_init, E_init, I_init (no transformation) - THESE ARE FIRST
+        for key in ["S_init", "E_init", "I_init"]:
             size = self.n_regions * self.n_seasons
             arr = flat[idx:idx+size].reshape(self.n_seasons, self.n_regions)
             out[key] = arr
             idx += size
 
+        # beta0 (no exp)
+        out["beta0"] = flat[idx]
+        idx += 1
+
+        # c_vec (no expit)
+        c_size = len(self.iu[0])
+        c_vec = flat[idx:idx+c_size]
+        out["c_vec"] = c_vec
+        idx += c_size
+
+        # omega (no transformation)
+        omega = flat[idx:idx+self.n_regions]
+        out["omega"] = omega
+        idx += self.n_regions
+
+        # eps (no expit)
+        out["eps"] = flat[idx]
+        idx += 1
+        
+        # rho (no expit)
+        out["rho"] = flat[idx]
+        idx += 1
+
         return out
+
+    def get_bounds(self):
+        """Create scipy Bounds object for constrained optimization."""
+        lower = []
+        upper = []
+        
+        # S_init, E_init, I_init: (0, 1) for each - THESE ARE FIRST
+        sei_size = 3 * self.n_regions * self.n_seasons
+        lower.extend([1e-6] * sei_size)
+        upper.extend([1.0 - 1e-6] * sei_size)
+        
+        # beta0: > 0
+        lower.append(1e-6)  # Small positive number instead of 0
+        upper.append(np.inf)
+        
+        # c_vec: [0, 1)
+        c_size = len(self.iu[0])
+        lower.extend([0.0] * c_size)
+        upper.extend([1.0 - 1e-6] * c_size)  # Slightly less than 1
+        
+        # omega: no bounds (can be negative for phase)
+        lower.extend([-np.inf] * self.n_regions)
+        upper.extend([np.inf] * self.n_regions)
+        
+        # eps: (0, 1)
+        lower.append(1e-6)
+        upper.append(1.0 - 1e-6)
+        
+        # rho: (0, 1]
+        lower.append(1e-6)
+        upper.append(1.0)
+        
+        return Bounds(lower, upper)
+    
+    def get_linear_constraint(self):
+        """Create vectorized LinearConstraint for S + E + I <= 1."""
+        n_compartments = self.n_seasons * self.n_regions
+        
+        # Create constraint matrix - only affects the first 3*n_compartments elements (S,E,I)
+        A = np.zeros((n_compartments, self.n_params))
+        
+        # For each season-region pair i, we want S_i + E_i + I_i <= 1
+        for i in range(n_compartments):
+            # S_i coefficient (S_init comes first)
+            A[i, i] = 1.0
+            # E_i coefficient (E_init comes after all S_init)
+            A[i, i + n_compartments] = 1.0  
+            # I_i coefficient (I_init comes after all S_init and E_init)
+            A[i, i + 2*n_compartments] = 1.0
+        
+        return LinearConstraint(A, lb=0.0, ub=1.0 - 1e-6)
 
     def c_vec_to_mat(self, c_vec):
         """Convert a compact c_vec representation into a full symmetric matrix with unit diagonal."""
@@ -159,9 +189,9 @@ class Packer:
         return c_mat[self.iu]
 
     def random_vector(self, seed=None):
-        """Generate a random packed vector in the transformed parameter space."""
+        """Generate a random packed vector in the natural parameter space."""
         params = self.random_dict(seed=seed)
-        vec = self.pack(self.pop2real(params))
+        vec = self.pack(params)
         return vec
 
     def random_dict(self, seed=None):
@@ -183,7 +213,6 @@ class Packer:
         out["S_init"] = np.random.uniform(0.95, 0.99, (self.n_seasons, self.n_regions)) - out['E_init'] - out['I_init']
         self.verify_params(out)
         return out
-
 
     @property
     def c_vec_length(self):

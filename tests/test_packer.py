@@ -41,8 +41,8 @@ def test_symmetry_and_diagonal():
         c_mat = packer.c_vec_to_mat(params["c_vec"])
 
         # Check symmetry and unit diagonal
-        assert np.allclose(c_mat, c_mat.T)
-        assert np.allclose(np.diag(c_mat), np.ones(packer.n_regions))
+        assert np.allclose(c_mat, c_mat.T), f"Contact matrix not symmetric: max asymmetry = {np.max(np.abs(c_mat - c_mat.T))}"
+        assert np.allclose(np.diag(c_mat), np.ones(packer.n_regions)), f"Contact matrix diagonal not unity: diag = {np.diag(c_mat)}"
 
 
 def test_random_vector():
@@ -50,7 +50,7 @@ def test_random_vector():
     seasons = ["1999-01-01", "2000-01-01"]
     packer = Packer(regions=regions, seasons=seasons)
     packed = packer.random_vector()
-    assert packed.shape[0] == packer.n_params
+    assert packed.shape[0] == packer.n_params, f"Packed vector length {packed.shape[0]} != expected {packer.n_params}"
 
 
 def test_random_dict():

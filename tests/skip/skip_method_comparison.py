@@ -29,9 +29,9 @@ def test_euler_vs_rk():
     df_rk = run_rk(S_init, E_init, I_init, n_weeks=n_weeks, dt_output=7, population=pop)
 
     # Verify both methods produced results
-    assert isinstance(df_euler, pd.DataFrame)
-    assert isinstance(df_rk, pd.DataFrame)
-    assert df_euler.shape == df_rk.shape
+    assert isinstance(df_euler, pd.DataFrame), f"Euler result is {type(df_euler)}, expected DataFrame"
+    assert isinstance(df_rk, pd.DataFrame), f"RK result is {type(df_rk)}, expected DataFrame"
+    assert df_euler.shape == df_rk.shape, f"Shape mismatch: Euler {df_euler.shape} vs RK {df_rk.shape}"
 
     # Create comparison visualization
     plt.style.use('dark_background')
@@ -132,7 +132,7 @@ def test_euler_vs_rk():
     plt.tight_layout()
     plt.savefig('pix/euler_vs_rk.png', dpi=300, bbox_inches='tight')
     err = np.max(np.abs(df_euler - df_rk) / (df_euler + 1e-15))
-    assert err < EPS, f"rel err {err}"
+    assert err < EPS, f"Relative error {err:.6f} exceeds tolerance {EPS}"
 
 
 @pytest.mark.skip(reason="Integration method comparison in Inverter needs debugging")
@@ -151,11 +151,11 @@ def test_integration_inverter():
     result_euler = inv_euler.sim(x0)#.fillna(0)
 
     # Verify both methods work
-    assert isinstance(result_euler, pd.DataFrame)
-    assert isinstance(result_rk, pd.DataFrame)
-    assert len(result_euler) == len(result_rk)
-    assert set(result_euler.columns) == set(result_rk.columns)
-    assert np.all(result_euler.set_index(["season", "region", "time"]).index == result_euler.set_index(["season", "region", "time"]).index)
+    assert isinstance(result_euler, pd.DataFrame), f"Euler inverter result is {type(result_euler)}, expected DataFrame"
+    assert isinstance(result_rk, pd.DataFrame), f"RK inverter result is {type(result_rk)}, expected DataFrame"
+    assert len(result_euler) == len(result_rk), f"Length mismatch: Euler {len(result_euler)} vs RK {len(result_rk)}"
+    assert set(result_euler.columns) == set(result_rk.columns), f"Column mismatch: Euler {set(result_euler.columns)} vs RK {set(result_rk.columns)}"
+    assert np.all(result_euler.set_index(["season", "region", "time"]).index == result_rk.set_index(["season", "region", "time"]).index), "Index mismatch between Euler and RK results"
 
     # Create simple comparison plot
     plt.style.use('dark_background')
@@ -201,4 +201,4 @@ def test_integration_inverter():
     re = result_euler.fillna(0).incidence.values
     rr = result_rk.incidence.values
     err = np.max(np.abs(re - rr) / (re + 1e-14))
-    assert err < EPS
+    assert err < EPS, f"Relative error {err:.6f} exceeds tolerance {EPS}"

@@ -296,7 +296,7 @@ def run(S_init,
     E = pd.DataFrame(index=T, data=exp(logE), columns=[f'E{i}' for i in range(n_regions)])
     I = pd.DataFrame(index=T, data=exp(logI), columns=[f'I{i}' for i in range(n_regions)])
     df = pd.concat([C, F, S, E, I], axis=1)
-    assert not pd.isnull(df.iloc[1:,:].drop(C.columns, axis=1)).any().any()
+    assert not pd.isnull(df.iloc[1:,:].drop(C.columns, axis=1)).any().any(), "NaN values found in simulation output (excluding case columns)"
 
     df.index = pd.date_range(start=start_date, periods=len(df), freq='7D')
     df.index.name = 'time'

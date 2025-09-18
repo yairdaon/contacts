@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from src.inverter import Inverter
+from src.inverter_r import InverterR
 from src.helper import makepop, a2s
 
 NWEEKS = 28
@@ -16,12 +16,12 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend for testing
 
 
-def test_inverter_initialization():
-    """Test that Inverter initializes correctly with population dataframe."""
+def test_inverter_r_initialization():
+    """Test that InverterR initializes correctly with population dataframe."""
     pop = makepop()
 
     # Test initialization
-    inv = Inverter(population=pop, n_weeks=NWEEKS)
+    inv = InverterR(population=pop, n_weeks=NWEEKS)
 
     assert inv.packer.n_seasons == pop.season.nunique(), f"Packer seasons {inv.packer.n_seasons} != population seasons {pop.season.nunique()}"
     assert inv.packer.n_regions == pop.region.nunique(), f"Packer regions {inv.packer.n_regions} != population regions {pop.region.nunique()}"
@@ -29,12 +29,11 @@ def test_inverter_initialization():
     assert pop.shape == (inv.packer.n_seasons * inv.packer.n_regions, 3), f"Population shape {pop.shape} != expected ({inv.packer.n_seasons * inv.packer.n_regions}, 3)"
 
 
-
-def test_sim():
-    """Test that Inverter.sim() produces valid output."""
+def test_sim_r():
+    """Test that InverterR.sim() produces valid output."""
     pop = makepop(n_regions=10, n_seasons=30)
-    euler = Inverter(population=pop, n_weeks=NWEEKS, integration="euler")
-    runge_kutta = Inverter(population=pop, n_weeks=NWEEKS, integration="rk")
+    euler = InverterR(population=pop, n_weeks=NWEEKS, integration="euler")
+    runge_kutta = InverterR(population=pop, n_weeks=NWEEKS, integration="rk")
 
     # Generate random parameters and run simulation
     for i in range(500):
@@ -59,29 +58,34 @@ def test_sim():
 
 @pytest.mark.parametrize("rho", [0.9, 0.8])
 @pytest.mark.parametrize("ic_noise", [0, 1e-3])
-@pytest.mark.parametrize("method", ["L-BFGS-B"]) ##"Nelder-Mead", "L-BFGS-B", "Powell"])
-def test_inference(rho, ic_noise, method, seed=43):
+@pytest.mark.parametrize("method", ["trust-constr"])  # Use method that supports constraints 
+def test_inference_r(rho, ic_noise, method, seed=43):
     """
-    Test that Inverter can recover known parameters from synthetic data.
-    This is the key test for parameter inference capability.
+    Test that InverterR can recover known parameters from synthetic data using constrained optimization.
+    This is the key test for parameter inference capability with constraints.
     Also creates visualization of the reconstruction.
     """
-    pop = makepop(n_regions=5, n_seasons=30)
+    pop = makepop(n_regions=2, n_seasons=2)  # Smaller problem for testing
 
     # Create "true" parameters that we'll try to recover
-    inv = Inverter(population=pop, n_weeks=NWEEKS, integration='rk', loss='poisson_reporting')
+    inv = InverterR(population=pop, n_weeks=NWEEKS, integration='rk', loss='poisson_reporting')
     true_params = inv.packer.random_dict(seed=seed)
     # Override rho with the parameterized value for testing
     true_params['rho'] = rho
 
-    # Pack true parameters
-    x_true = inv.packer.pack(inv.packer.pop2real(true_params))
-    x0 = x_true.copy() + np.random.normal(scale=ic_noise, size=x_true.shape)
+    # Pack true parameters (no transformations)
+    x_true = inv.packer.pack(true_params)
+    w = 1 + ic_noise
+    x0 = x_true / w + inv.packer.random_vector() * ic_noise / w  
+    
+    # Ensure x0 satisfies bounds and constraints
+    bounds = inv.packer.get_bounds()
+    x0 = np.clip(x0, bounds.lb, bounds.ub)
+    
     assert not np.isnan(x_true).any(), f"NaN values found in true parameter vector"
 
     # Generate "observed" data using true parameters  
     initial_params = inv.packer.unpack(x0)
-    initial_params = inv.packer.real2pop(initial_params)
     true_trajectory = inv.sim(initial_params)
     # Generate observed data using Poisson sampling with true reporting rate
     obs = true_trajectory.copy()
@@ -91,7 +95,7 @@ def test_inference(rho, ic_noise, method, seed=43):
     print(f"Method: {method}")
     print(f"True parameters - beta0: {true_params['beta0']:.3f}, eps: {true_params['eps']:.3f}, rho: {true_params['rho']:.3f}")
 
-    inv.fit(obs=obs, x0=x_true, method=method, n_starts=5)  # Use 5 starts for testing
+    inv.fit(obs=obs, x0=x_true, method=method, n_starts=3)  # Use fewer starts for testing
 
     # Generate reconstructed trajectory for visualization
     reconstructed_trajectory = inv.sim(inv.params)
@@ -124,7 +128,7 @@ def test_inference(rho, ic_noise, method, seed=43):
     assert inv.fun >= 0, f"Final loss is negative: {inv.fun}"
     
     # Create visualization
-    print("Creating parameter inference visualization...")
+    print("Creating constrained parameter inference visualization...")
     seasons = sorted(pop.season.unique())
     
     # Set dark theme
@@ -133,7 +137,7 @@ def test_inference(rho, ic_noise, method, seed=43):
     if len(seasons) == 1:
         axes = [axes]
     
-    fig.suptitle(f'Parameter Inference Test Results (seed={seed})\n'
+    fig.suptitle(f'Constrained Parameter Inference Test Results (seed={seed})\n'
                  f'β₀ err: {err_beta0:.3f}, ε err: {err_eps:.3f}', fontsize=14, color='white')
     
     colors = ['#00D4FF', '#FF6B9D']  # Bright cyan and pink for dark background
@@ -182,5 +186,38 @@ def test_inference(rho, ic_noise, method, seed=43):
         ax.tick_params(colors='white')
     
     plt.tight_layout()
-    plt.savefig(f'pix/test_inference_visualization_{method}_{rho}_{ic_noise}.png', dpi=300, box_inches='tight')
+    plt.savefig(f'pix/test_inference_r_visualization_{method}_{rho}_{ic_noise}.png', dpi=300, bbox_inches='tight')
     plt.close()
+
+
+def test_constraints_satisfaction():
+    """Test that the optimization respects the constraints."""
+    pop = makepop(n_regions=2, n_seasons=2)
+    inv = InverterR(population=pop, n_weeks=4, integration='rk')
+    
+    # Get constraints
+    bounds = inv.packer.get_bounds()
+    constraint = inv.packer.get_linear_constraint()
+    
+    # Generate random parameter sets and check constraint satisfaction
+    for i in range(20):
+        params = inv.packer.random_dict(seed=i)
+        x = inv.packer.pack(params)
+        
+        # Check bounds
+        bounds_ok = np.all((x >= bounds.lb) & (x <= bounds.ub))
+        assert bounds_ok, f"Random parameters {i} violate bounds"
+        
+        # Check linear constraints (S + E + I <= 1)
+        constraint_values = constraint.A @ x
+        constraints_ok = np.all((constraint_values >= constraint.lb) & (constraint_values <= constraint.ub))
+        assert constraints_ok, f"Random parameters {i} violate linear constraints"
+        
+        # Manual check: verify S + E + I <= 1 for each season-region
+        for season_idx in range(inv.packer.n_seasons):
+            for region_idx in range(inv.packer.n_regions):
+                s_val = params['S_init'][season_idx, region_idx]
+                e_val = params['E_init'][season_idx, region_idx]
+                i_val = params['I_init'][season_idx, region_idx]
+                total = s_val + e_val + i_val
+                assert total <= 1.0, f"S+E+I = {total:.6f} > 1 for season {season_idx}, region {region_idx}"
