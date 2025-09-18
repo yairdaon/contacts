@@ -143,7 +143,6 @@ class Packer:
         for key, value in params.items():
             assert not np.any(np.isnan(value)), f"NaN found in {key}"
 
-        
     def pack(self, params):
         parts = []
 

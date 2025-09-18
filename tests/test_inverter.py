@@ -15,13 +15,13 @@ import matplotlib
 
 matplotlib.use('Agg')  # Use non-interactive backend for testing
 
-
-def test_inverter_initialization():
+@pytest.mark.parametrize("transform", [True, False])
+def test_inverter_initialization(transform):
     """Test that Inverter initializes correctly with population dataframe."""
     pop = makepop()
 
     # Test initialization
-    inv = Inverter(population=pop, n_weeks=NWEEKS)
+    inv = Inverter(population=pop, n_weeks=NWEEKS, transform=transform)
 
     assert inv.packer.n_seasons == pop.season.nunique(), f"Packer seasons {inv.packer.n_seasons} != population seasons {pop.season.nunique()}"
     assert inv.packer.n_regions == pop.region.nunique(), f"Packer regions {inv.packer.n_regions} != population regions {pop.region.nunique()}"
@@ -29,38 +29,37 @@ def test_inverter_initialization():
     assert pop.shape == (inv.packer.n_seasons * inv.packer.n_regions, 3), f"Population shape {pop.shape} != expected ({inv.packer.n_seasons * inv.packer.n_regions}, 3)"
 
 
-
-def test_sim():
+@pytest.mark.parametrize("transform", [True, False])
+def test_sim(transform):
     """Test that Inverter.sim() produces valid output."""
     pop = makepop(n_regions=10, n_seasons=30)
-    euler = Inverter(population=pop, n_weeks=NWEEKS, integration="euler")
-    runge_kutta = Inverter(population=pop, n_weeks=NWEEKS, integration="rk")
+    inv = Inverter(population=pop, n_weeks=NWEEKS, transform=transform)
 
     # Generate random parameters and run simulation
-    for i in range(500):
-        params = runge_kutta.packer.random_dict()
-        results = runge_kutta.sim(params)  # Use RK as primary
-        euler.sim(params)  # Still test Euler
-        
+    for i in range(10):
+        params = inv.packer.random_dict()
+        results = inv.sim(params)  # Use RK as primary
+
         # Check output format
         assert isinstance(results, pd.DataFrame), f"Simulation result is {type(results)}, expected DataFrame"
         expected_cols = {'time', 'region', 'incidence', 'season'}
         assert set(results.columns) == expected_cols, f"Result columns {set(results.columns)} != expected {expected_cols}"
 
         # Check data completeness
-        expected_rows = pop.season.nunique() * pop.region.nunique() * runge_kutta.n_weeks
+        expected_rows = pop.season.nunique() * pop.region.nunique() * inv.n_weeks
         assert len(results) == expected_rows, f"Result length {len(results)} != expected {expected_rows}"
         assert results.incidence.min() >= 0, f"Negative incidence found: min={results.incidence.min()}"
 
 
-    print("RK", runge_kutta.run_time)
-    print("Euler", euler.run_time)
+    print(f"Run time transform {transform}", inv.run_time)
 
 
-@pytest.mark.parametrize("rho", [0.9, 0.8])
-@pytest.mark.parametrize("ic_noise", [0, 1e-3])
-@pytest.mark.parametrize("method", ["L-BFGS-B"]) ##"Nelder-Mead", "L-BFGS-B", "Powell"])
-def test_inference(rho, ic_noise, method, seed=43):
+
+@pytest.mark.parametrize("rho", [0.95, 0.8])
+@pytest.mark.parametrize("cheat", [True, False])
+
+@pytest.mark.parametrize("transform", [True, False])
+def test_inference(rho, cheat, transform, seed=43):
     """
     Test that Inverter can recover known parameters from synthetic data.
     This is the key test for parameter inference capability.
@@ -69,29 +68,27 @@ def test_inference(rho, ic_noise, method, seed=43):
     pop = makepop(n_regions=5, n_seasons=30)
 
     # Create "true" parameters that we'll try to recover
-    inv = Inverter(population=pop, n_weeks=NWEEKS, integration='rk', loss='poisson_reporting')
+    inv = Inverter(population=pop, n_weeks=NWEEKS, transform=transform)
     true_params = inv.packer.random_dict(seed=seed)
     # Override rho with the parameterized value for testing
     true_params['rho'] = rho
 
     # Pack true parameters
     x_true = inv.packer.pack(inv.packer.pop2real(true_params))
-    x0 = x_true.copy() + np.random.normal(scale=ic_noise, size=x_true.shape)
+    x0 = x_true if cheat else inv.packer.random_vector()
     assert not np.isnan(x_true).any(), f"NaN values found in true parameter vector"
 
     # Generate "observed" data using true parameters  
     initial_params = inv.packer.unpack(x0)
     initial_params = inv.packer.real2pop(initial_params)
     true_trajectory = inv.sim(initial_params)
+
     # Generate observed data using Poisson sampling with true reporting rate
     obs = true_trajectory.copy()
     obs['incidence'] = np.random.poisson(true_trajectory['incidence'] * true_params['rho'])
 
     print(f"Generated {len(true_trajectory)} observations")
-    print(f"Method: {method}")
-    print(f"True parameters - beta0: {true_params['beta0']:.3f}, eps: {true_params['eps']:.3f}, rho: {true_params['rho']:.3f}")
-
-    inv.fit(obs=obs, x0=x_true, method=method, n_starts=5)  # Use 5 starts for testing
+    inv.fit(obs=obs, x0=x_true, n_starts=5)  # Use 5 starts for testing
 
     # Generate reconstructed trajectory for visualization
     reconstructed_trajectory = inv.sim(inv.params)

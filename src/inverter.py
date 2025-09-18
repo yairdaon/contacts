@@ -21,15 +21,17 @@ from src.losses import LOSSES
 class Inverter:
     def __init__(self,
                  population,
+                 transform,
                  n_weeks=26,
                  sigma=0.5,
                  dt_output=7,
                  mu=0 / (30 * 365),
                  nu=0.2,
-                 loss='lsq',
-                 integration='rk'):
+                 loss='poisson_reporting'
+                 ):
         """population is a dataframe with columns [region, season, population]"""
-        self.packer = Packer(seasons=sorted(population.season.unique()),
+        self.packer = Packer(transform=transform,
+                             seasons=sorted(population.season.unique()),
                              regions=sorted(population.region.unique()))
 
         self.n_weeks = n_weeks
@@ -37,7 +39,6 @@ class Inverter:
         self.dt_output = dt_output
         self.mu = mu
         self.nu = nu
-        self.integration = integration
         self.pops = {}
         for season in self.packer.seasons:
             pop = (population
@@ -75,39 +76,21 @@ class Inverter:
         for season_idx, season in enumerate(self.packer.seasons):
             pop = self.pops[season]
             start = time.time()
-            if self.integration == 'euler':
-                df = run(S_init=S_init[season_idx, :],
-                         E_init=E_init[season_idx, :],
-                         I_init=I_init[season_idx, :],
-                         n_weeks=self.n_weeks,
-                         beta0=beta0,
-                         sigma=self.sigma,
-                         dt_output=self.dt_output,
-                         dt_step=1e-2,
-                         mu=self.mu,
-                         nu=self.nu, omega=omega,
-                         eps=eps,
-                         contact_matrix=c_mat,
-                         population=pop,
-                         start_date=season).fillna(0)
-            elif self.integration == 'rk':
-                df = run_rk(S_init=S_init[season_idx, :],
-                            E_init=E_init[season_idx, :],
-                            I_init=I_init[season_idx, :],
-                            dt_step=1,
-                            dt_output=self.dt_output,
-                            n_weeks=self.n_weeks,
-                            beta0=beta0,
-                            sigma=self.sigma,
-                            mu=self.mu,
-                            nu=self.nu,
-                            omega=omega,
-                            eps=eps,
-                            contact_matrix=c_mat,
-                            population=pop,
-                            start_date=season)
-            else:
-                raise ValueError(f"Unknown integration method: {self.integration}. Use 'euler' or 'rk'")
+            df = run_rk(S_init=S_init[season_idx, :],
+                        E_init=E_init[season_idx, :],
+                        I_init=I_init[season_idx, :],
+                        dt_step=1,
+                        dt_output=self.dt_output,
+                        n_weeks=self.n_weeks,
+                        beta0=beta0,
+                        sigma=self.sigma,
+                        mu=self.mu,
+                        nu=self.nu,
+                        omega=omega,
+                        eps=eps,
+                        contact_matrix=c_mat,
+                        population=pop,
+                        start_date=season)
             self.run_time += time.time() - start
 
             letter = "C"  ## If at any point wed like to look at infecteds instead
@@ -128,11 +111,12 @@ class Inverter:
 
     def fit(self,
             obs,
-            method="L-BFGS-B",
             x0=None,
             seed=None,
             n_starts=10):
-        
+
+        method = "L-BFGS-B" if self.packer.transform else "SLSQP"
+
         # Start timing optimization
         opt_start_time = time.time()
         
@@ -142,7 +126,8 @@ class Inverter:
             
             # Unpack and transform parameters
             params = self.packer.unpack(x)
-            params = self.packer.real2pop(params)
+            if self.packer.transform:
+                params = self.packer.real2pop(params)
 
             # Run simulation with parameter dictionary
             kk = self.sim(params)
@@ -157,12 +142,20 @@ class Inverter:
             if start_idx == 0 and x0 is not None:
                 x_start = x0
             else:
-                x_start = self.packer.random_vector(seed=(seed + start_idx) if seed is not None else None)
+                seed = seed + start_idx if seed is not None else None
+                x_start = self.packer.random_vector(seed=seed)
             starts.append(x_start)
 
         # Run multiple optimizations in parallel
         options = dict(maxiter=5000, disp=False)
-        results = Parallel(n_jobs=-1)(delayed(minimize)(objective, x0=x, method=method, options=options) for x in starts)
+        results = Parallel(n_jobs=-1)(
+            delayed(minimize)(
+                objective,
+                x0=x,
+                method=method,
+                bounds=self.packer.bounds,
+                constraints=self.packer.constraints,
+                options=options) for x in starts)
         #results = [minimize(objective, x0=x, method=method, options=options) for x in starts]
         
         # Filter out failed optimizations and find best result
