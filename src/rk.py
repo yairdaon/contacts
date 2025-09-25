@@ -136,8 +136,8 @@ def run_rk(S_init,
         y0,
         args=(mu, sigma, nu, beta0, eps, omega, contact_matrix, population),
         t_eval=t_eval,
-        rtol=1e-8,
-        atol=1e-15
+        rtol=1e-3,
+        atol=1e-6
     )
     assert result.success, f"RK integration failed: {result.message}"
 

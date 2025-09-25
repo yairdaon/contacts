@@ -1,15 +1,7 @@
 import numpy as np
 from scipy.stats import nbinom, poisson
 
-
-def least_squares_loss(observed, simulated, rho=1.0):
-    """Least squares on log-incidence with reporting rate."""
-    obs = np.log1p(observed["incidence"].values)
-    # Apply reporting rate to simulated data
-    sim = np.log1p(simulated["incidence"].values * rho)
-    return np.sum((obs - sim) ** 2)
-
-def negbinom_loss(observed, simulated, rho=1.0, theta=10.0):
+def negbinom(observed, simulated, rho=1.0, theta=10.0):
     """Negative binomial log-likelihood with reporting rate (return negative for minimization)."""
     # Apply reporting rate to simulated mean
     mu = simulated["incidence"].values * rho + 1e-6
@@ -17,14 +9,19 @@ def negbinom_loss(observed, simulated, rho=1.0, theta=10.0):
     loglik = nbinom.logpmf(observed["incidence"].values, n=k, p=k / (k + mu))
     return -np.sum(loglik)
 
-def gaussian_loss(observed, simulated, rho=1.0, sigma=1.0):
+def gaussian(observed, simulated, rho):
     """Gaussian likelihood with reporting rate (return negative log-likelihood)."""
     obs = observed["incidence"].values
+
     # Apply reporting rate to simulated data
     sim = simulated["incidence"].values * rho
-    return np.sum((obs - sim) ** 2) / (2 * sigma ** 2)
 
-def poisson_reporting_loss(observed, simulated, rho):
+    err = sim * (1-rho) + 1e-6
+    ret = np.sum((obs - sim) ** 2 / 2 / err)
+    assert not np.any(np.isnan(ret))
+    return ret
+
+def poisson(observed, simulated, rho):
     """
     Poisson observation model with reporting rate.
     
@@ -61,8 +58,7 @@ def poisson_reporting_loss(observed, simulated, rho):
     return -np.sum(loglik)  # Return negative for minimization
 
 LOSSES = {
-            "lsq": least_squares_loss,
-            "negbinom": negbinom_loss,
-            "gaussian": gaussian_loss,
-            "poisson_reporting": poisson_reporting_loss,
+            "negbinom": negbinom,
+            "gaussian": gaussian,
+            "poisson_reporting": poisson,
         }
