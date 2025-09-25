@@ -5,6 +5,7 @@ from numpy import sin, cos, pi, log, exp
 import time
 
 from CyRK import nbsolve_ivp
+from scipy.integrate import solve_ivp
 
 # Import from multi.py
 from src.multi import calc_log_betas
@@ -88,6 +89,7 @@ def run_rk(S_init,
            contact_matrix=None,
            population=None,
            start_date="1900-01-01"):
+
     """
     Run multi-region SEIR simulation using CyRK's nbsolve_ivp with RK method.
     
@@ -130,14 +132,15 @@ def run_rk(S_init,
     t_span = (0.0, float(n_weeks * dt_output))
     t_eval = np.arange(0, n_weeks * dt_output, dt_step, dtype=np.float64)
 
-    result = nbsolve_ivp(
+    result = solve_ivp(
         log_der,
         t_span,
         y0,
         args=(mu, sigma, nu, beta0, eps, omega, contact_matrix, population),
         t_eval=t_eval,
         rtol=1e-3,
-        atol=1e-6
+        atol=1e-6,
+        method="LSODA"
     )
     assert result.success, f"RK integration failed: {result.message}"
 
@@ -146,7 +149,7 @@ def run_rk(S_init,
     logS = result.y[0:n_regions, :].T
     logE = result.y[n_regions:2*n_regions, :].T
     logI = result.y[2*n_regions:3*n_regions, :].T
-    
+
     # Convert back to regular space
     S = exp(logS)
     E = exp(logE)
@@ -178,20 +181,20 @@ def run_rk(S_init,
     # Create sampling indices: every dt_output/dt_step points
     sample_stride = int(dt_output / dt_step)
     sample_indices = np.arange(0, n_times, sample_stride)
-    
+
     # If the last point doesn't align exactly, include it
     if sample_indices[-1] != n_times - 1:
         sample_indices = np.append(sample_indices, n_times - 1)
-    
+
     # Limit to n_weeks points (to match Euler output)
     sample_indices = sample_indices[:n_weeks]
-    
+
     # Sample all arrays at these indices
     S_sampled = S[sample_indices, :]
     E_sampled = E[sample_indices, :]
     I_sampled = I[sample_indices, :]
     C_sampled = C_rolling.iloc[sample_indices].values
-    
+
     # Calculate time-varying transmission rates at sampled points
     F_sampled = np.zeros_like(S_sampled)
     log_betas = np.empty(n_regions)
@@ -199,19 +202,19 @@ def run_rk(S_init,
         t_current = result.t[idx]
         calc_log_betas(t_current, beta0, eps, omega, log_betas)
         F_sampled[i, :] = exp(log_betas)
-    
+
     # Create DataFrames with proper time index aligned with Euler method
     n_sampled = len(sample_indices)
     time_index = pd.date_range(start=start_date, periods=n_sampled, freq=f'{dt_output}D')
-    
+
     C_df = pd.DataFrame(C_sampled, index=time_index, columns=[f'C{i}' for i in range(n_regions)])
     F_df = pd.DataFrame(F_sampled, index=time_index, columns=[f'F{i}' for i in range(n_regions)])
     S_df = pd.DataFrame(S_sampled, index=time_index, columns=[f'S{i}' for i in range(n_regions)])
     E_df = pd.DataFrame(E_sampled, index=time_index, columns=[f'E{i}' for i in range(n_regions)])
     I_df = pd.DataFrame(I_sampled, index=time_index, columns=[f'I{i}' for i in range(n_regions)])
-    
+
     # Combine all results
     df = pd.concat([C_df, F_df, S_df, E_df, I_df], axis=1)
     df.index.name = 'time'
-    
+
     return df

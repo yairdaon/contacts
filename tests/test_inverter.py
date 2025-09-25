@@ -66,11 +66,11 @@ def test_inference(difficulty, seed=43):
     """
     # Set test parameters based on difficulty
     if difficulty == "easy":
-        n_regions, n_seasons, rho, n0 = 2, 5, 0.99, 250
+        n_regions, n_seasons, rho, n0 = 2, 5, 0.99, 30
     elif difficulty == "intermediate":
-        n_regions, n_seasons, rho, n0 = 4, 15, 0.8, 750
+        n_regions, n_seasons, rho, n0 = 4, 15, 0.8, 100
     elif difficulty == "hard":
-        n_regions, n_seasons, rho, n0 = 10, 30, 0.7, 1500
+        n_regions, n_seasons, rho, n0 = 10, 30, 0.7, 500
     else:
         raise ValueError(f"Unknown difficulty: {difficulty}")
     print(f"{difficulty} regions {n_regions}, seasons {n_seasons} rho={rho}, starts={n0}")
@@ -94,11 +94,11 @@ def test_inference(difficulty, seed=43):
     obs = true_trajectory.copy()
     true_counts = true_trajectory['incidence'] * true_params['rho']
     
-    scale = 1e-12 if difficulty == 'easy' else np.sqrt(rho * (1-rho) * true_counts)
+    scale = np.sqrt(rho * (1-rho) * true_counts)
     obs['incidence'] = true_counts + np.random.randn(true_counts.size) * scale
     obs['incidence'] = np.maximum(0, obs['incidence'])  # Ensure non-negative
 
-    inv.fit(obs=obs, x0=x_true, n0=1)
+    inv.fit(obs=obs, n0=n0)
 
     # Generate reconstructed trajectory for visualization
     reconstructed_trajectory = inv.sim(inv.params)

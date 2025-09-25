@@ -1,26 +1,19 @@
-import pdb
-import time
-import os
-import pickle
-from functools import partial
-
+import matplotlib
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from matplotlib import pyplot as plt
 from scipy.optimize import minimize
-import matplotlib
+from tqdm import tqdm
 
-from src.paralllel_inverter import runner
-
-from src.multi import run
-from src.rk import run_rk
-from src.packer import Packer
 from src.losses import LOSSES
+from src.packer import Packer
+from src.rk import run_rk
+from src.multi import run_euler
 
 matplotlib.use("MacOSX")
 
-
+RUNNER = run_rk
+DT = 1
 class Inverter:
     def __init__(self,
                  population,
@@ -73,10 +66,10 @@ class Inverter:
             E = E_init[season_idx, :]
             I = I_init[season_idx, :]
 
-            df = run_rk(S_init=S,
+            df = RUNNER(S_init=S,
                         E_init=E,
                         I_init=I,
-                        dt_step=1,
+                        dt_step=DT,
                         dt_output=self.dt_output,
                         n_weeks=self.n_weeks,
                         beta0=beta0,
@@ -113,22 +106,18 @@ class Inverter:
         np.random.seed(seed)
 
         def objective(x):
-            try:
-                assert not np.isnan(x).any(), f"NaN values found in optimization vector: {x[np.isnan(x)]}"
+            assert not np.isnan(x).any(), f"NaN values found in optimization vector: {x[np.isnan(x)]}"
 
-                # Unpack and transform parameters
-                params = self.packer.unpack(x)
+            # Unpack and transform parameters
+            params = self.packer.unpack(x)
 
-                # Run simulation with parameter dictionary
-                kk = self.sim(params)
-                assert np.all(kk.index == obs.index), f"Simulation and observation indices don't match. Sim: {len(kk)}, Obs: {len(obs)}"
-                assert np.all(kk.isnull() == obs.isnull()), f"Nulls dont match. Sim: {kk.isnull().sum().sum()}, Obs: {obs.isnull().sum().sum()}"
-                out = self.loss(obs.dropna(), kk.dropna(), rho=params.pop('rho'))#, theta=params.pop('theta'))
-                assert not np.isnan(out), f"Loss function returned NaN. Loss value: {out}"
-                return out
-            except Exception as e:
-                print(e)
-                return np.inf
+            # Run simulation with parameter dictionary
+            kk = self.sim(params)
+            assert np.all(kk.index == obs.index), f"Simulation and observation indices don't match. Sim: {len(kk)}, Obs: {len(obs)}"
+            assert np.all(kk.isnull() == obs.isnull()), f"Nulls dont match. Sim: {kk.isnull().sum().sum()}, Obs: {obs.isnull().sum().sum()}"
+            out = self.loss(obs.dropna(), kk.dropna(), rho=params.pop('rho'))#, theta=params.pop('theta'))
+            assert not np.isnan(out), f"Loss function returned NaN. Loss value: {out}"
+            return out
 
         starts = []
         for i in range(n0):
@@ -138,10 +127,11 @@ class Inverter:
             starts.append(x0)
 
         if n0 > 1:
-            results = Parallel(n_jobs=-1)(delayed(minimize)(objective, x0=x, method="L-BFGS-B") for x in starts)
+            results = Parallel(n_jobs=-1)(delayed(minimize)(objective, x0=x, method="L-BFGS-B") for x in tqdm(starts))
+            print(f"successes rate {sum(int(res.success) for res in results)}  / {len(results)}")
             best = min(results, key=lambda r: r.fun)
         else:
-            best = minimize(objective, x0=starts[0], method="L-BFGS-B")
+            best = minimize(objective, x0=x0, method="L-BFGS-B")
 
         self.params = self.packer.unpack(best.x)
         self.fun = best.fun

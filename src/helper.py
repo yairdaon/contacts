@@ -1,10 +1,25 @@
 import pandas as pd
 from itertools import product
 import numpy as np
+from scipy.special import logit, expit
 
 
 def a2s(x):
     return np.array2string(x, precision=3)
+
+
+def fwd(x, lower, upper):
+    """Transform values from [lower, upper] to the real line using scaled logit"""
+    # Scale to [0, 1] then apply logit
+    scaled = (x - lower) / (upper - lower)
+    return logit(scaled)
+
+
+def bckwd(y, lower, upper):
+    """Transform values from real line to [lower, upper] using scaled expit"""
+    # Apply expit then scale to [lower, upper]
+    scaled = expit(y)
+    return lower + (upper - lower) * scaled
 
 
 def makepop(n_regions=2, n_seasons=3):

@@ -22,7 +22,7 @@ def test_pack():
     regions = ["HHS1", "HHS3", "HHS5"]
     seasons = ["1900-01-01", "1990-01-02"]
     packer = Packer(regions=regions, seasons=seasons)
-    for i in range(100):  # Fewer iterations for debugging
+    for i in range(1000):  # Fewer iterations for debugging
         dic = packer.random_dict()
         vector = packer.pack(dic)
         unpacked = packer.unpack(vector)
@@ -30,6 +30,8 @@ def test_pack():
         for key, value in dic.items():
             corresponding = unpacked[key]
             assert np.allclose(value, corresponding, atol=1e-15), f"Pack/unpack failed for {key} at iteration {i}"
+            if "init" in key:
+                assert np.all(value > 1e-6)
 
 
 # @pytest.mark.parametrize("transform", [True, False])
@@ -64,6 +66,7 @@ def test_random_dict():
     packer = Packer(regions=regions, seasons=seasons)
     for i in range(100):  # Test with fewer iterations
         unpacked = packer.random_dict()
+
         packer.verify(unpacked)
 
 

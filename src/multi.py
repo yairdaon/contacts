@@ -173,7 +173,8 @@ def multi_seir(
         logIs[iteration, :] = logI
                 
 
-def run(S_init,
+def run_euler(
+        S_init,
         E_init,
         I_init,
         n_weeks=20,
@@ -290,6 +291,7 @@ def run(S_init,
         dlogI=np.zeros(n_regions),
         dC=np.zeros(n_regions),
         log_betas=log_betas)
+    Cs[0, :] = 0.  ## Initial count of new cases is C
     C = pd.DataFrame(index=T, data=Cs, columns=[f'C{i}' for i in range(n_regions)])
     F = pd.DataFrame(index=T, data=F, columns=[f'F{i}' for i in range(n_regions)])
     S = pd.DataFrame(index=T, data=exp(logS), columns=[f'S{i}' for i in range(n_regions)])
@@ -300,4 +302,5 @@ def run(S_init,
 
     df.index = pd.date_range(start=start_date, periods=len(df), freq='7D')
     df.index.name = 'time'
+
     return df
