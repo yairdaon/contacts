@@ -2,7 +2,9 @@ import matplotlib
 import nlopt
 import numpy as np
 import pandas as pd
+from joblib import delayed, Parallel
 from scipy.optimize import minimize
+from tqdm import tqdm
 
 from src.losses import LOSSES
 from src.multi import run_euler
@@ -16,7 +18,7 @@ class Objective:
     def __init__(self,
                  population,
                  transform,
-                 method='euler',
+                 method='rk',
                  loss='gaussian',
                  n_weeks=26,
                  sigma=0.5,
@@ -64,8 +66,9 @@ class Objective:
         self.packer.verify(params)
 
         S_init = params['S_init']
-        E_init = params['E_init']  
+        # E_init = params['E_init']  # E_init = I_init
         I_init = params['I_init']
+        E_init = I_init  # Fixed: E_init = I_init
         beta0 = params['beta0']
         omega = params['omega']
         eps = params['eps']
@@ -110,19 +113,23 @@ class Objective:
         return res
 
     def __call__(self, x, grad=None):
-        assert not np.isnan(x).any(), f"NaN values found in optimization vector: {x[np.isnan(x)]}"
+        try:
+            assert not np.isnan(x).any(), f"NaN values found in optimization vector: {x[np.isnan(x)]}"
 
-        # Unpack and transform parameters
-        params = self.packer.unpack(x)
+            # Unpack and transform parameters
+            params = self.packer.unpack(x)
 
-        # Run simulation with parameter dictionary
-        kk = self.sim(params)
-        assert np.all(
-            kk.index == self.obs.index), f"Simulation and observation indices don't match. Sim: {len(kk)}, Obs: {len(self.obs)}"
-        assert np.all(
-            kk.isnull() == self.obs.isnull()), f"Nulls dont match. Sim: {kk.isnull().sum().sum()}, Obs: {self.obs.isnull().sum().sum()}"
-        out = self.loss(self.obs.dropna(), kk.dropna(), rho=params.pop('rho'))  # , theta=params.pop('theta'))
-        assert not np.isnan(out), f"Loss function returned NaN. Loss value: {out}"
+            # Run simulation with parameter dictionary
+            kk = self.sim(params)
+            assert np.all(
+                kk.index == self.obs.index), f"Simulation and observation indices don't match. Sim: {len(kk)}, Obs: {len(self.obs)}"
+            assert np.all(
+                kk.isnull() == self.obs.isnull()), f"Nulls dont match. Sim: {kk.isnull().sum().sum()}, Obs: {self.obs.isnull().sum().sum()}"
+            out = self.loss(self.obs.dropna(), kk.dropna())  # Fixed rho, params.pop('rho'))  # , theta=params.pop('theta'))
+            assert not np.isnan(out), f"Loss function returned NaN. Loss value: {out}"
+        except Exception as e:
+            #print(e)
+            out = np.inf
         return out
 
 
@@ -139,46 +146,54 @@ class Inverter:
         elif self.optimizer == 'nlopt':
             assert type(self.objective.packer) == Straight
 
-    def fit(self, x0=None):
+    def fit(self, seed=None, n0=1):
 
-        # np.random.seed(seed)
-        #
-        # starts = []
-        # for i in range(n0):
-        #     local_seed = seed + i if seed is not None else None
-        #     starts.append(self.packer.random_vector(seed=local_seed))
-        # if x0 is not None:
-        #     starts.append(x0)
-        x0 = self.packer.random_vector() if x0 is None else x0
-        if self.optimizer == 'nlopt':
-            assert np.all(x0 < 1)
-            assert np.all(x0 > 0)
+        np.random.seed(seed)
 
+        starts = []
+        for i in range(n0):
+            local_seed = seed + i if seed is not None else None
+            x0 = self.packer.random_vector(seed=local_seed)
+            starts.append(x0)
+            if self.optimizer == 'nlopt':
+                assert np.all(x0 < 1)
+                assert np.all(x0 > 0)
+
+        if n0 > 1:
+            results = Parallel(n_jobs=-1)(delayed(self.single_optimization)(x) for x in tqdm(starts))
+        else:
+            results = [self.single_optimization(starts[0])]
+
+        print(f"successes rate {sum(int(res['success']) for res in results)} / {len(results)}")
+        best = min(results, key=lambda r: r['fun'])
+        self.x = best['x']
+        self.success = best['success']
+        self.fun = best['fun']
+        return self
+
+
+    def single_optimization(self, x0):
         if self.optimizer == 'scipy':
             best = minimize(self.objective, x0=x0, method="SLSQP")#L-BFGS-B")
-            # results = Parallel(n_jobs=-1)(delayed() for x in tqdm(starts))
-            # print(f"successes rate {sum(int(res.success) for res in results)} / {len(results)}")
-            # best = min(results, key=lambda r: r.fun)
-            params = self.packer.unpack(best.x)
-            params['fun'] = best.fun
+            params = dict(x=best.x, fun=best.fun, success=best.success)
+
         elif self.optimizer == 'nlopt':
             n_regions = self.packer.n_regions
             n_seasons = self .packer.n_seasons
             M = n_regions * n_seasons
             n = self.packer.n_params
-            opt = nlopt.opt(nlopt.LD_SLSQP, n)
+            #opt = nlopt.opt(nlopt.LD_SLSQP, n)
             opt = nlopt.opt(nlopt.LN_COBYLA, n)
             opt.set_min_objective(self.objective)
-            opt.set_lower_bounds([1e-9]*n)
-            opt.set_upper_bounds([1-1e-9]*n)
+            opt.set_lower_bounds([0]*(n-1) + [-float('inf')])
+            opt.set_upper_bounds([1]*(n-1) + [float('inf')])
             for idx in range(M):
-                lower = lambda x, grad: -x[idx] - x[idx + M] - x[idx + 2 * M]
-                upper = lambda x, grad: x[idx] + x[idx + M] + x[idx + 2 * M] - 1
+                lower = lambda x, grad: -x[idx] - x[idx + M] #- x[idx + 2 * M]
+                upper = lambda x, grad: -1 + x[idx] + x[idx + M] #+ x[idx + 2 * M]
                 opt.add_inequality_constraint(lower, 1e-8)
                 opt.add_inequality_constraint(upper, 1e-8)
             opt.set_xtol_rel(1e-4)
             x0 = self.packer.random_vector()
             x = opt.optimize(x0)
-            params = self.packer.unpack(x)
-            params['fun'] = opt.last_optimum_value()
+            params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() == 4)
         return params

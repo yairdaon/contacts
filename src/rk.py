@@ -132,7 +132,7 @@ def run_rk(S_init,
     t_span = (0.0, float(n_weeks * dt_output))
     t_eval = np.arange(0, n_weeks * dt_output, dt_step, dtype=np.float64)
 
-    result = solve_ivp(
+    result = nbsolve_ivp(
         log_der,
         t_span,
         y0,
@@ -140,7 +140,7 @@ def run_rk(S_init,
         t_eval=t_eval,
         rtol=1e-3,
         atol=1e-6,
-        method="LSODA"
+        #method="LSODA"
     )
     assert result.success, f"RK integration failed: {result.message}"
 

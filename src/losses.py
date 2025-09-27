@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import nbinom, poisson
-
-def negbinom(observed, simulated, rho=1.0, theta=10.0):
+RHO=0.8
+def negbinom(observed, simulated, rho=RHO, theta=10.0):
     """Negative binomial log-likelihood with reporting rate (return negative for minimization)."""
     # Apply reporting rate to simulated mean
     mu = simulated["incidence"].values * rho + 1e-6
@@ -9,7 +9,7 @@ def negbinom(observed, simulated, rho=1.0, theta=10.0):
     loglik = nbinom.logpmf(observed["incidence"].values, n=k, p=k / (k + mu))
     return -np.sum(loglik)
 
-def gaussian(observed, simulated, rho):
+def gaussian(observed, simulated, rho=RHO):
     """Gaussian likelihood with reporting rate (return negative log-likelihood)."""
     obs = observed["incidence"].values
 

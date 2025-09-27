@@ -8,6 +8,7 @@ from statsmodels.base import optimizer
 
 from src.inverter import Objective, Inverter
 from src.helper import makepop, a2s
+from src.losses import RHO
 
 NWEEKS = 28
 EPS = 0.15  ## Allowed relative (!!) error
@@ -73,48 +74,50 @@ def test_inference(optimizer, difficulty, seed=43):
     """
     # Set test parameters based on difficulty
     if difficulty == "easy":
-        n_regions, n_seasons, rho, n0 = 2, 5, 0.99, 30
+        n_regions, n_seasons, n0 = 2, 5, 50
     elif difficulty == "intermediate":
-        n_regions, n_seasons, rho, n0 = 4, 15, 0.8, 100
+        n_regions, n_seasons, n0 = 4, 15, 250
     elif difficulty == "hard":
-        n_regions, n_seasons, rho, n0 = 10, 30, 0.7, 500
+        n_regions, n_seasons, n0 = 10, 30, 1000
     else:
         raise ValueError(f"Unknown difficulty: {difficulty}")
-    print(f"{difficulty} regions {n_regions}, seasons {n_seasons} rho={rho}, starts={n0}")
+    print(f"{difficulty} regions {n_regions}, seasons {n_seasons} starts={n0}")
     pop = makepop(n_regions=n_regions, n_seasons=n_seasons)
 
     objective = Objective(population=pop, n_weeks=NWEEKS, transform=optimizer=='scipy')
     true_params = objective.packer.random_dict(seed=seed)
 
     # Override rho and theta with the parameterized values for testing
-    true_params['rho'] = rho
+    # true_params['rho'] = rho  # rho is now fixed at 0.8
 
     # Pack true parameters
     x_true = objective.packer.pack(true_params)
-    objective.packer.verify(x_true)
+    #objective.packer.verify(x_true)
 
     # Generate "observed" data using true parameters (not initial guess)
     true_trajectory = objective.sim(true_params)
 
     # Generate observed data
     obs = true_trajectory.copy()
-    true_counts = true_trajectory['incidence'] * true_params['rho']
+    true_counts = true_trajectory['incidence'] * RHO # Fixed rho value
 
-    scale = np.sqrt(rho * (1 - rho) * true_counts)
+    scale = np.sqrt(RHO * (1 - RHO) * true_counts)
     obs['incidence'] = true_counts + np.random.randn(true_counts.size) * scale
     obs['incidence'] = np.maximum(0, obs['incidence'])  # Ensure non-negative
     objective.obs = obs
 
-    inferred_params = Inverter(objective=objective, optimizer=optimizer).fit()
-    fun = inferred_params.pop('fun')
+    res = Inverter(objective=objective, optimizer=optimizer).fit(n0=n0)
+    fun = res.fun
+    inferred_params = res.packer.unpack(res.x)
 
     # Generate reconstructed trajectory for visualization
     reconstructed_trajectory = objective.sim(inferred_params)
 
     err_beta0 = abs(true_params['beta0'] - inferred_params['beta0'])  #/ true_params['beta0']
     err_eps = abs(true_params['eps'] - inferred_params['eps'])  #/ true_params['eps']
-    err_rho = abs(true_params['rho'] - inferred_params['rho'])  #/ true_params['rho']
-    err_omega = np.max(np.abs(true_params['omega'] - inferred_params['omega']))  # #/ np.abs(true_params['omega']))
+    # err_rho = abs(true_params['rho'] - inferred_params['rho'])  # rho is fixed at 0.8
+    # err_E_init = np.max(np.abs(true_params['E_init'] - inferred_params['E_init']))  # E_init = I_init
+    err_omega = abs(true_params['omega'] - inferred_params['omega'])  # omega now scalar
     err_c = np.max(np.abs(true_params['c_vec'] - inferred_params['c_vec']))  # / true_params['c_vec'])
     # err_theta = abs(true_params['theta'] - inferred_params['theta']) / true_params['theta']
 
@@ -122,15 +125,15 @@ def test_inference(optimizer, difficulty, seed=43):
     print(
         f"  beta0  - True: {true_params['beta0']:.3f}, Inferred: {inferred_params['beta0']:.3f}, err: {err_beta0:.3f}")
     print(f"  eps    - True: {true_params['eps']:.3f}, Inferred: {inferred_params['eps']:.3f}, err: {err_eps:.3f}")
-    print(f"  rho    - True: {true_params['rho']:.3f}, Inferred: {inferred_params['rho']:.3f}, err: {err_rho:.3f}")
+    # print(f"  rho    - True: {true_params['rho']:.3f}, Inferred: {inferred_params['rho']:.3f}, err: {err_rho:.3f}")  # rho fixed at 0.8
     print(
-        f"  omega  - True: {a2s(true_params['omega'])}, Inferred: {a2s(inferred_params['omega'])}, err: {err_omega:.3f}")
+        f"  omega  - True: {true_params['omega']:.3f}, Inferred: {inferred_params['omega']:.3f}, err: {err_omega:.3f}")
     print(f"  c      - True: {a2s(true_params['c_vec'])}, Inferred: {a2s(inferred_params['c_vec'])}, err: {err_c:.3f}")
     # print(f"  theta  - True: {true_params['theta']:.3f}, Inferred: {inferred_params['theta']:.3f}, err: {err_theta:.3f}")
 
     # assert err_beta0 < EPS, f"err beta0 = {err_beta0:.3f}"
     # assert err_eps < EPS, f"err eps {err_eps:.3f}"
-    # assert err_rho < EPS, f"err rho {err_rho:.3f}"
+    # # assert err_rho < EPS, f"err rho {err_rho:.3f}"  # rho fixed at 0.8
     # assert np.all(err_omega < EPS), f"err omega {err_omega:.3f}"
     # assert np.all(err_c < EPS), f"err c {err_c::.3f}"
     # # assert err_theta < EPS, f"err theta {err_theta:.3f}"

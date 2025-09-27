@@ -8,8 +8,7 @@ from src.helper import a2s, fwd, bckwd
 
 EPS = 1e-9
 SLIM = (2e-6, 0.99)
-ELIM = (1e-5, 1e-3)
-ILIM = ELIM
+ILIM = (1e-5, 1e-3)
 
 class Packer:
     def __init__(self,
@@ -30,8 +29,8 @@ class Packer:
         self.iu = np.triu_indices(self.n_regions, k=1)
 
         # compute parameter count directly
-        # Order: S,E,I init (3*n_regions*n_seasons), beta0, c_vec, omega, eps, rho
-        self.n_params = 3 * self.n_regions * self.n_seasons + 1 + len(self.iu[0]) + self.n_regions + 1 + 1
+        # Order: S,I init (2*n_regions*n_seasons), beta0, c_vec, eps, omega # , E_init (E_init = I_init), rho (fixed at 0.8)
+        self.n_params = 2 * self.n_regions * self.n_seasons + 1 + len(self.iu[0]) + 1 + 1 # + 1 (omega is now scalar)
 
 
 
@@ -102,12 +101,12 @@ class Packer:
             beta0=np.random.uniform(0.2, 0.4),  # Flu range around 0.28
             c_vec=np.random.uniform(0.1, 0.9, size=len(self.iu[0])),  # Within [0.01, 0.99] bounds
             eps=np.random.uniform(0.3, 0.7),  # Within [0.01, 0.99] bounds  
-            rho=np.random.uniform(0.1, 0.9),  # Within [0.01, 0.99] bounds
-            omega=np.random.uniform(0, 1, size=self.n_regions)  # omega in [0,1]
+            # rho=np.random.uniform(0.1, 0.9),  # Within [0.01, 0.99] bounds - FIXED AT 0.8
+            omega=np.random.uniform(0, 1)  # omega scalar in [0,1]
         )
 
-        # Initial conditions with new bounds: E,I in [1e-6, 0.05], S in [0.1, 1-2e-6]
-        out["E_init"] = np.random.uniform(*ELIM, size=(self.n_seasons, self.n_regions))
+        # Initial conditions with new bounds: I in [1e-6, 0.05], S in [0.1, 1-2e-6]
+        # out["E_init"] = np.random.uniform(*ELIM, size=(self.n_seasons, self.n_regions))  # E_init = I_init
         out["I_init"] = np.random.uniform(*ILIM, size=(self.n_seasons, self.n_regions))
         out["S_init"] = np.random.uniform(*SLIM, size=(self.n_seasons, self.n_regions))
         self.verify(out)
@@ -120,20 +119,20 @@ class Trans(Packer):
         parts = []
 
         S_init = params["S_init"]
-        E_init = params["E_init"]
+        #E_init = params["E_init"]
         I_init = params["I_init"]
 
         # Apply individual transformations with specific bounds
-        # E: [1e-6, 0.05], I: [1e-6, 0.05], S: [0.1, 1-2e-6]
+        # I: [1e-6, 0.05], S: [0.1, 1-2e-6] # , E: [1e-6, 0.05] (E_init = I_init)
         parts.append(fwd(S_init, *SLIM).ravel())
-        parts.append(fwd(E_init, *ELIM).ravel())
+        # parts.append(fwd(E_init, *ELIM).ravel())  # E_init = I_init
         parts.append(fwd(I_init, *ILIM).ravel())
 
         parts.append([log(params["beta0"])])
         parts.append(fwd(params["c_vec"], 0.01, 0.99))  # c_vec: upper triangular (excluding diagonal) as vector
-        parts.append(params["omega"] % 1)  # omega: vector size n_reg
         parts.append([fwd(params["eps"], 0.01, 0.99)])  # eps: scalar
-        parts.append([fwd(params["rho"], 0.01, 0.99)])  # rho: scalar
+        parts.append([params["omega"] % 1])  # omega: scalar
+        # parts.append([fwd(params["rho"], 0.01, 0.99)])  # rho: scalar - FIXED AT 0.8
 
         flat = np.concatenate(parts)
         assert flat.shape == (self.n_params,), f"Packed vector shape {flat.shape} != ({self.n_params},)"
@@ -146,21 +145,21 @@ class Trans(Packer):
         out = {}
         idx = 0
 
-        # Unpack individual S, E, I values
+        # Unpack individual S, I values # , E (E_init = I_init)
         s_size = self.n_seasons * self.n_regions
-        e_size = self.n_seasons * self.n_regions
+        # e_size = self.n_seasons * self.n_regions  # E_init = I_init
         i_size = self.n_seasons * self.n_regions
 
         s_flat = flat[idx:idx + s_size]
         idx += s_size
-        e_flat = flat[idx:idx + e_size]
-        idx += e_size
+        # e_flat = flat[idx:idx + e_size]  # E_init = I_init
+        # idx += e_size
         i_flat = flat[idx:idx + i_size]
         idx += i_size
 
         # Apply inverse transformations with specific bounds
         out["S_init"] = bckwd(s_flat, *SLIM).reshape(self.n_seasons, self.n_regions)
-        out["E_init"] = bckwd(e_flat, *ELIM).reshape(self.n_seasons, self.n_regions)
+        # out["E_init"] = bckwd(e_flat, *ELIM).reshape(self.n_seasons, self.n_regions)  # E_init = I_init
         out["I_init"] = bckwd(i_flat, *ILIM).reshape(self.n_seasons, self.n_regions)
 
         out["beta0"] = exp(flat[idx])
@@ -171,16 +170,18 @@ class Trans(Packer):
         out["c_vec"] = bckwd(c_vec, 0.01, 0.99)
         idx += c_size
 
-        omega = flat[idx:idx + self.n_regions]
-        out["omega"] = omega % 1
-        idx += self.n_regions
 
         out["eps"] = bckwd(flat[idx], 0.01, 0.99)
         idx += 1
 
-        out["rho"] = bckwd(flat[idx], 0.01, 0.99)
+        # omega = flat[idx:idx + self.n_regions]  # omega now scalar
+        out["omega"] = flat[idx] % 1
         idx += 1
 
+        # out["rho"] = bckwd(flat[idx], 0.01, 0.99)  # FIXED AT 0.8
+        # idx += 1
+
+        assert idx == flat.size
         return out
 
 
@@ -189,19 +190,19 @@ class Straight(Packer):
         parts = []
 
         S_init = params["S_init"]
-        E_init = params["E_init"]
+        #E_init = params["E_init"]
         I_init = params["I_init"]
 
         # No transformations - direct packing
         parts.append(S_init.ravel())
-        parts.append(E_init.ravel())
+        # parts.append(E_init.ravel())  # E_init = I_init
         parts.append(I_init.ravel())
 
         parts.append([params["beta0"]])
         parts.append(params["c_vec"])  # c_vec: upper triangular (excluding diagonal) as vector
-        parts.append(params["omega"])  # omega: vector size n_reg
         parts.append([params["eps"]])  # eps: scalar
-        parts.append([params["rho"]])  # rho: scalar
+        parts.append([params["omega"]])  # omega: scalar
+        # parts.append([params["rho"]])  # rho: scalar - FIXED AT 0.8
 
         flat = np.concatenate(parts)
         assert flat.shape == (self.n_params,), f"Packed vector shape {flat.shape} != ({self.n_params},)"
@@ -214,19 +215,19 @@ class Straight(Packer):
         out = {}
         idx = 0
 
-        # Unpack individual S, E, I values - no transformations
+        # Unpack individual S, I values - no transformations # , E (E_init = I_init)
         M = self.n_seasons * self.n_regions
 
         s_flat = flat[idx:idx + M]
         idx += M
-        e_flat = flat[idx:idx + M]
-        idx += M
+        # e_flat = flat[idx:idx + M]  # E_init = I_init
+        # idx += M
         i_flat = flat[idx:idx + M]
         idx += M
 
         # No inverse transformations
         out["S_init"] = s_flat.reshape(self.n_seasons, self.n_regions)
-        out["E_init"] = e_flat.reshape(self.n_seasons, self.n_regions)
+        # out["E_init"] = e_flat.reshape(self.n_seasons, self.n_regions)  # E_init = I_init
         out["I_init"] = i_flat.reshape(self.n_seasons, self.n_regions)
 
         out["beta0"] = flat[idx]
@@ -237,14 +238,16 @@ class Straight(Packer):
         out["c_vec"] = c_vec
         idx += c_size
 
-        omega = flat[idx:idx + self.n_regions]
-        out["omega"] = omega
-        idx += self.n_regions
 
         out["eps"] = flat[idx]
         idx += 1
 
-        out["rho"] = flat[idx]
+        # omega = flat[idx:idx + self.n_regions]  # omega now scalar
+        out["omega"] = flat[idx]
         idx += 1
 
+        # out["rho"] = flat[idx]  # FIXED AT 0.8
+        # idx += 1
+
+        assert idx == flat.size
         return out
