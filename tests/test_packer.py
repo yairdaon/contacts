@@ -1,31 +1,34 @@
 import numpy as np
 import pytest
 
-from src.packer import Packer
+from src.packer import Trans, Straight
 
-# @pytest.mark.parametrize("transform", [True, False])
-def test_unpack():
+
+@pytest.mark.parametrize("transform", [True, False])
+def test_unpack(transform):
     """Test that unpack(pack(x)) == x for random vectors."""
     regions = ["HHS1", "HHS3", "HHS5"]
     seasons = ["1900-01-01", "1990-01-02"]
-    packer = Packer(regions=regions, seasons=seasons)
+    packer = Trans if transform else Straight
+    pck = packer(regions=regions, seasons=seasons)
     for i in range(100):  # Fewer iterations for debugging
-        vector = packer.random_vector()
-        dic = packer.unpack(vector)
-        packed = packer.pack(dic)
+        vector = pck.random_vector()
+        dic = pck.unpack(vector)
+        packed = pck.pack(dic)
         # FIX: Actually assert the test!
         assert np.allclose(vector, packed, atol=1e-15), f"Pack/unpack failed at iteration {i}"
 
-# @pytest.mark.parametrize("transform", [True, False])
-def test_pack():
+@pytest.mark.parametrize("transform", [True, False])
+def test_pack(transform):
     """Test that pack(unpack(x)) gives back original dict."""
     regions = ["HHS1", "HHS3", "HHS5"]
     seasons = ["1900-01-01", "1990-01-02"]
-    packer = Packer(regions=regions, seasons=seasons)
+    packer = Trans if transform else Straight
+    pck = packer(regions=regions, seasons=seasons)
     for i in range(1000):  # Fewer iterations for debugging
-        dic = packer.random_dict()
-        vector = packer.pack(dic)
-        unpacked = packer.unpack(vector)
+        dic = pck.random_dict()
+        vector = pck.pack(dic)
+        unpacked = pck.unpack(vector)
 
         for key, value in dic.items():
             corresponding = unpacked[key]
@@ -34,40 +37,43 @@ def test_pack():
                 assert np.all(value > 1e-6)
 
 
-# @pytest.mark.parametrize("transform", [True, False])
-def test_symmetry_and_diagonal():
+@pytest.mark.parametrize("transform", [True, False])
+def test_symmetry_and_diagonal(transform):
     regions = ["HHS1", "HHS3", "HHS5"]
     seasons = ["1900-01-01", "1990-01-02"]
-    packer = Packer(regions=regions, seasons=seasons)
+    packer = Trans if transform else Straight
+    pck = packer(regions=regions, seasons=seasons)
     for _ in range(100):  # Reduced iterations
-        params = packer.random_dict()
+        params = pck.random_dict()
         # if transform:
         #     params = packer.real2pop(params.copy())
-        packer.verify(params)
-        c_mat = packer.c_vec_to_mat(params["c_vec"])
+        pck.verify(params)
+        c_mat = pck.c_vec_to_mat(params["c_vec"])
 
         # Check symmetry and unit diagonal
         assert np.allclose(c_mat, c_mat.T), f"Contact matrix not symmetric: max asymmetry = {np.max(np.abs(c_mat - c_mat.T))}"
-        assert np.allclose(np.diag(c_mat), np.ones(packer.n_regions)), f"Contact matrix diagonal not unity: diag = {np.diag(c_mat)}"
+        assert np.allclose(np.diag(c_mat), np.ones(pck.n_regions)), f"Contact matrix diagonal not unity: diag = {np.diag(c_mat)}"
 
-# @pytest.mark.parametrize("transform", [True, False])
-def test_random_vector():
+@pytest.mark.parametrize("transform", [True, False])
+def test_random_vector(transform):
     regions = ["HHS2", "HHS4", "HHS6"]
     seasons = ["1999-01-01", "2000-01-01"]
-    packer = Packer(regions=regions, seasons=seasons)
-    packed = packer.random_vector()
-    assert packed.shape[0] == packer.n_params, f"Packed vector length {packed.shape[0]} != expected {packer.n_params}"
+    packer = Trans if transform else Straight
+    pck = packer(regions=regions, seasons=seasons)
+    packed = pck.random_vector()
+    assert packed.shape[0] == pck.n_params, f"Packed vector length {packed.shape[0]} != expected {pck.n_params}"
 
-# @pytest.mark.parametrize("transform", [True, False])
-def test_random_dict():
+@pytest.mark.parametrize("transform", [True, False])
+def test_random_dict(transform):
     """Test that random_dict generates valid parameters."""
     regions = ["HHS2", "HHS4", "HHS6"]
     seasons = ["1999-01-01", "2000-01-01"]
-    packer = Packer(regions=regions, seasons=seasons)
+    packer = Trans if transform else Straight
+    pck = packer(regions=regions, seasons=seasons)
     for i in range(100):  # Test with fewer iterations
-        unpacked = packer.random_dict()
+        unpacked = pck.random_dict()
 
-        packer.verify(unpacked)
+        pck.verify(unpacked)
 
 
 # # @pytest.mark.parametrize("transform", [True, False])

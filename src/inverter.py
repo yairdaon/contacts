@@ -1,34 +1,32 @@
 import matplotlib
+import nlopt
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
 from scipy.optimize import minimize
-from tqdm import tqdm
 
 from src.losses import LOSSES
-from src.packer import Packer
-from src.rk import run_rk
 from src.multi import run_euler
+from src.packer import Trans, Straight
+from src.rk import run_rk
 
 matplotlib.use("MacOSX")
 
-RUNNER = run_rk
-DT = 1
-class Inverter:
+
+class Objective:
     def __init__(self,
                  population,
+                 transform,
+                 method='euler',
                  loss='gaussian',
                  n_weeks=26,
                  sigma=0.5,
                  dt_output=7,
                  mu=0 / (30 * 365),
-                 nu=0.2
-                 ):
-
+                 nu=0.2):
         """population is a dataframe with columns [region, season, population]"""
-        self.packer = Packer(seasons=sorted(population.season.unique()),
-                             regions=sorted(population.region.unique()))
-
+        pack = Trans if transform else Straight
+        self.packer = pack(seasons=population['season'].unique(),
+                           regions=population['region'].unique(),)
         self.n_weeks = n_weeks
         self.sigma = sigma
         self.dt_output = dt_output
@@ -42,11 +40,25 @@ class Inverter:
                    .loc[self.packer.regions, "population"]
                    .values)
             self.pops[season] = pop
-
+        self.population = population
 
         assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3), f"Population DataFrame shape {population.shape} doesn't match expected ({self.packer.n_seasons * self.packer.n_regions}, 3)"
         self.loss = LOSSES[loss]
         self.run_time = 0
+
+        self.method = method
+        if self.method == 'euler':
+            self.run = run_euler
+            self.dt_step = 0.05
+        elif self.method == 'rk':
+            self.run = run_rk
+            self.dt_step = 1
+        else:
+            raise ValueError(f"Method {self.method} not implemented")
+
+    def set_packer(self, packer):
+        self.packer = packer(seasons=sorted(self.population.season.unique()),
+                             regions=sorted(self.population.region.unique()))
 
     def sim(self, params):
         self.packer.verify(params)
@@ -66,10 +78,10 @@ class Inverter:
             E = E_init[season_idx, :]
             I = I_init[season_idx, :]
 
-            df = RUNNER(S_init=S,
+            df = self.run(S_init=S,
                         E_init=E,
                         I_init=I,
-                        dt_step=DT,
+                        dt_step=self.dt_step,
                         dt_output=self.dt_output,
                         n_weeks=self.n_weeks,
                         beta0=beta0,
@@ -97,43 +109,76 @@ class Inverter:
 
         return res
 
-    def fit(self,
-            obs,
-            x0=None,
-            seed=None,
-            n0=1):
+    def __call__(self, x, grad=None):
+        assert not np.isnan(x).any(), f"NaN values found in optimization vector: {x[np.isnan(x)]}"
 
-        np.random.seed(seed)
+        # Unpack and transform parameters
+        params = self.packer.unpack(x)
 
-        def objective(x):
-            assert not np.isnan(x).any(), f"NaN values found in optimization vector: {x[np.isnan(x)]}"
+        # Run simulation with parameter dictionary
+        kk = self.sim(params)
+        assert np.all(
+            kk.index == self.obs.index), f"Simulation and observation indices don't match. Sim: {len(kk)}, Obs: {len(self.obs)}"
+        assert np.all(
+            kk.isnull() == self.obs.isnull()), f"Nulls dont match. Sim: {kk.isnull().sum().sum()}, Obs: {self.obs.isnull().sum().sum()}"
+        out = self.loss(self.obs.dropna(), kk.dropna(), rho=params.pop('rho'))  # , theta=params.pop('theta'))
+        assert not np.isnan(out), f"Loss function returned NaN. Loss value: {out}"
+        return out
 
-            # Unpack and transform parameters
+
+
+class Inverter:
+    def __init__(self,
+                 objective,
+                 optimizer='scipy'):
+        self.objective = objective
+        self.packer = objective.packer
+        self.optimizer = optimizer
+        if self.optimizer == 'scipy':
+            assert type(self.objective.packer) == Trans
+        elif self.optimizer == 'nlopt':
+            assert type(self.objective.packer) == Straight
+
+    def fit(self, x0=None):
+
+        # np.random.seed(seed)
+        #
+        # starts = []
+        # for i in range(n0):
+        #     local_seed = seed + i if seed is not None else None
+        #     starts.append(self.packer.random_vector(seed=local_seed))
+        # if x0 is not None:
+        #     starts.append(x0)
+        x0 = self.packer.random_vector() if x0 is None else x0
+        if self.optimizer == 'nlopt':
+            assert np.all(x0 < 1)
+            assert np.all(x0 > 0)
+
+        if self.optimizer == 'scipy':
+            best = minimize(self.objective, x0=x0, method="SLSQP")#L-BFGS-B")
+            # results = Parallel(n_jobs=-1)(delayed() for x in tqdm(starts))
+            # print(f"successes rate {sum(int(res.success) for res in results)} / {len(results)}")
+            # best = min(results, key=lambda r: r.fun)
+            params = self.packer.unpack(best.x)
+            params['fun'] = best.fun
+        elif self.optimizer == 'nlopt':
+            n_regions = self.packer.n_regions
+            n_seasons = self .packer.n_seasons
+            M = n_regions * n_seasons
+            n = self.packer.n_params
+            opt = nlopt.opt(nlopt.LD_SLSQP, n)
+            opt = nlopt.opt(nlopt.LN_COBYLA, n)
+            opt.set_min_objective(self.objective)
+            opt.set_lower_bounds([1e-9]*n)
+            opt.set_upper_bounds([1-1e-9]*n)
+            for idx in range(M):
+                lower = lambda x, grad: -x[idx] - x[idx + M] - x[idx + 2 * M]
+                upper = lambda x, grad: x[idx] + x[idx + M] + x[idx + 2 * M] - 1
+                opt.add_inequality_constraint(lower, 1e-8)
+                opt.add_inequality_constraint(upper, 1e-8)
+            opt.set_xtol_rel(1e-4)
+            x0 = self.packer.random_vector()
+            x = opt.optimize(x0)
             params = self.packer.unpack(x)
-
-            # Run simulation with parameter dictionary
-            kk = self.sim(params)
-            assert np.all(kk.index == obs.index), f"Simulation and observation indices don't match. Sim: {len(kk)}, Obs: {len(obs)}"
-            assert np.all(kk.isnull() == obs.isnull()), f"Nulls dont match. Sim: {kk.isnull().sum().sum()}, Obs: {obs.isnull().sum().sum()}"
-            out = self.loss(obs.dropna(), kk.dropna(), rho=params.pop('rho'))#, theta=params.pop('theta'))
-            assert not np.isnan(out), f"Loss function returned NaN. Loss value: {out}"
-            return out
-
-        starts = []
-        for i in range(n0):
-            local_seed = seed + i if seed is not None else None
-            starts.append(self.packer.random_vector(seed=local_seed))
-        if x0 is not None:
-            starts.append(x0)
-
-        if n0 > 1:
-            results = Parallel(n_jobs=-1)(delayed(minimize)(objective, x0=x, method="L-BFGS-B") for x in tqdm(starts))
-            print(f"successes rate {sum(int(res.success) for res in results)}  / {len(results)}")
-            best = min(results, key=lambda r: r.fun)
-        else:
-            best = minimize(objective, x0=x0, method="L-BFGS-B")
-
-        self.params = self.packer.unpack(best.x)
-        self.fun = best.fun
-        return self
-
+            params['fun'] = opt.last_optimum_value()
+        return params

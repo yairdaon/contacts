@@ -33,51 +33,88 @@ class Packer:
         # Order: S,E,I init (3*n_regions*n_seasons), beta0, c_vec, omega, eps, rho
         self.n_params = 3 * self.n_regions * self.n_seasons + 1 + len(self.iu[0]) + self.n_regions + 1 + 1
 
+
+
+
     def verify(self, params):
-        if type(params) is np.ndarray:
-            params = self.unpack(params)
+        pass
+        # if type(params) is np.ndarray:
+        #     params = self.unpack(params)
+        #
+        # beta0 = params['beta0']
+        # c_vec = params['c_vec']
+        # eps = params['eps']
+        # rho = params['rho']
+        # # theta = params['theta']
+        # # omega = params['omega']
+        # S_init = params['S_init']
+        # E_init = params['E_init']
+        # I_init = params['I_init']
+        #
+        # assert beta0 >= 0, f"beta0 == {beta0} must be positive"
+        # assert np.all(0 <= c_vec), f"contact matrix {a2s(c_vec)} must be >= 0"
+        # assert np.all(c_vec < 1+EPS), f"contact matrix {a2s(c_vec)} must be <= 1"
+        # assert 0 <= eps < 1, f"eps {eps:.3f} must be in (0,1)"
+        # assert 0 < rho <= 1, f"reporting rate {rho:.3f} must be in (0,1]"
+        # #assert 0 < theta, f"overdispersion {theta:.3f} must be > 0"
+        #
+        # # omega verification for seasonal phase (fraction of year)
+        # # assert np.all(-0.5 <= params['omega']), "omega must be >= -0.5"
+        # # assert np.all(params['omega'] <= 0.5), "omega must be <= 0.5"
+        #
+        # # Compartment fractions must be positive and < 1
+        # assert np.all(-EPS < S_init), f"S_init must be positive. Min: {S_init.min():.6f}, values: {S_init.ravel()[:5]}"
+        # assert np.all(-EPS < E_init), f"E_init must be positive. Min: {E_init.min():.6f}, values: {E_init.ravel()[:5]}"
+        # assert np.all(-EPS < I_init), f"I_init must be positive. Min: {I_init.min():.6f}, values: {I_init.ravel()[:5]}"
+        # assert np.all(S_init < 1+EPS), f"S_init must be < 1. Max: {S_init.max():.6f}, values: {S_init.ravel()[:5]}"
+        # assert np.all(E_init < 1+EPS), f"E_init must be < 1. Max: {E_init.max():.6f}, values: {E_init.ravel()[:5]}"
+        # assert np.all(I_init < 1+EPS), f"I_init must be < 1. Max: {I_init.max():.6f}, values: {I_init.ravel()[:5]}"
+        #
+        # # Total compartments must sum to < 1 (assuming R_init = 1 - S - E - I)
+        # tot = S_init + I_init + E_init
+        # assert np.all(tot < 1+EPS), f"S + E + I must be < 1. Max sum: {tot.max():.6f}, violating indices: {np.where(tot >= 1)}"
+        #
+        # # Shape verification
+        # assert S_init.shape == (self.n_seasons, self.n_regions), f"S_init shape {S_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
+        # assert E_init.shape == (self.n_seasons, self.n_regions), f"E_init shape {E_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
+        # assert I_init.shape == (self.n_seasons, self.n_regions), f"I_init shape {I_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
+        #
+        # # No NaN values
+        # for key, value in params.items():
+        #     assert not np.any(np.isnan(value)), f"NaN found in {key}"
 
-        beta0 = params['beta0']
-        c_vec = params['c_vec']
-        eps = params['eps']
-        rho = params['rho']
-        # theta = params['theta']
-        # omega = params['omega']
-        S_init = params['S_init']
-        E_init = params['E_init']
-        I_init = params['I_init']
 
-        assert beta0 >= 0, f"beta0 == {beta0} must be positive"
-        assert np.all(0 <= c_vec), f"contact matrix {a2s(c_vec)} must be >= 0"
-        assert np.all(c_vec < 1+EPS), f"contact matrix {a2s(c_vec)} must be <= 1"
-        assert 0 <= eps < 1, f"eps {eps:.3f} must be in (0,1)"
-        assert 0 < rho <= 1, f"reporting rate {rho:.3f} must be in (0,1]"
-        #assert 0 < theta, f"overdispersion {theta:.3f} must be > 0"
+    def c_vec_to_mat(self, c_vec):
+        c_mat = np.eye(self.n_regions)
+        c_mat[self.iu] = c_vec
+        c_mat[(self.iu[1], self.iu[0])] = c_vec  # symmetry
+        return c_mat
 
-        # omega verification for seasonal phase (fraction of year)
-        # assert np.all(-0.5 <= params['omega']), "omega must be >= -0.5"
-        # assert np.all(params['omega'] <= 0.5), "omega must be <= 0.5"
+    def random_vector(self, seed=None):
+        params = self.random_dict(seed=seed)
+        vec = self.pack(params)
+        return vec
 
-        # Compartment fractions must be positive and < 1
-        assert np.all(-EPS < S_init), f"S_init must be positive. Min: {S_init.min():.6f}, values: {S_init.ravel()[:5]}"
-        assert np.all(-EPS < E_init), f"E_init must be positive. Min: {E_init.min():.6f}, values: {E_init.ravel()[:5]}"
-        assert np.all(-EPS < I_init), f"I_init must be positive. Min: {I_init.min():.6f}, values: {I_init.ravel()[:5]}"
-        assert np.all(S_init < 1+EPS), f"S_init must be < 1. Max: {S_init.max():.6f}, values: {S_init.ravel()[:5]}"
-        assert np.all(E_init < 1+EPS), f"E_init must be < 1. Max: {E_init.max():.6f}, values: {E_init.ravel()[:5]}"
-        assert np.all(I_init < 1+EPS), f"I_init must be < 1. Max: {I_init.max():.6f}, values: {I_init.ravel()[:5]}"
+    def random_dict(self, seed=None):
+        np.random.seed(seed)
 
-        # Total compartments must sum to < 1 (assuming R_init = 1 - S - E - I)
-        tot = S_init + I_init + E_init
-        assert np.all(tot < 1+EPS), f"S + E + I must be < 1. Max sum: {tot.max():.6f}, violating indices: {np.where(tot >= 1)}"
+        out = dict(
+            beta0=np.random.uniform(0.2, 0.4),  # Flu range around 0.28
+            c_vec=np.random.uniform(0.1, 0.9, size=len(self.iu[0])),  # Within [0.01, 0.99] bounds
+            eps=np.random.uniform(0.3, 0.7),  # Within [0.01, 0.99] bounds  
+            rho=np.random.uniform(0.1, 0.9),  # Within [0.01, 0.99] bounds
+            omega=np.random.uniform(0, 1, size=self.n_regions)  # omega in [0,1]
+        )
 
-        # Shape verification
-        assert S_init.shape == (self.n_seasons, self.n_regions), f"S_init shape {S_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
-        assert E_init.shape == (self.n_seasons, self.n_regions), f"E_init shape {E_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
-        assert I_init.shape == (self.n_seasons, self.n_regions), f"I_init shape {I_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
+        # Initial conditions with new bounds: E,I in [1e-6, 0.05], S in [0.1, 1-2e-6]
+        out["E_init"] = np.random.uniform(*ELIM, size=(self.n_seasons, self.n_regions))
+        out["I_init"] = np.random.uniform(*ILIM, size=(self.n_seasons, self.n_regions))
+        out["S_init"] = np.random.uniform(*SLIM, size=(self.n_seasons, self.n_regions))
+        self.verify(out)
+        return out
 
-        # No NaN values
-        for key, value in params.items():
-            assert not np.any(np.isnan(value)), f"NaN found in {key}"
+
+class Trans(Packer):
 
     def pack(self, params):
         parts = []
@@ -111,16 +148,16 @@ class Packer:
 
         # Unpack individual S, E, I values
         s_size = self.n_seasons * self.n_regions
-        e_size = self.n_seasons * self.n_regions  
+        e_size = self.n_seasons * self.n_regions
         i_size = self.n_seasons * self.n_regions
-        
+
         s_flat = flat[idx:idx + s_size]
         idx += s_size
         e_flat = flat[idx:idx + e_size]
         idx += e_size
         i_flat = flat[idx:idx + i_size]
         idx += i_size
-        
+
         # Apply inverse transformations with specific bounds
         out["S_init"] = bckwd(s_flat, *SLIM).reshape(self.n_seasons, self.n_regions)
         out["E_init"] = bckwd(e_flat, *ELIM).reshape(self.n_seasons, self.n_regions)
@@ -146,31 +183,68 @@ class Packer:
 
         return out
 
-    def c_vec_to_mat(self, c_vec):
-        c_mat = np.eye(self.n_regions)
-        c_mat[self.iu] = c_vec
-        c_mat[(self.iu[1], self.iu[0])] = c_vec  # symmetry
-        return c_mat
 
-    def random_vector(self, seed=None):
-        params = self.random_dict(seed=seed)
-        vec = self.pack(params)
-        return vec
+class Straight(Packer):
+    def pack(self, params):
+        parts = []
 
-    def random_dict(self, seed=None):
-        np.random.seed(seed)
+        S_init = params["S_init"]
+        E_init = params["E_init"]
+        I_init = params["I_init"]
 
-        out = dict(
-            beta0=np.random.uniform(0.2, 0.4),  # Flu range around 0.28
-            c_vec=np.random.uniform(0.1, 0.9, size=len(self.iu[0])),  # Within [0.01, 0.99] bounds
-            eps=np.random.uniform(0.3, 0.7),  # Within [0.01, 0.99] bounds  
-            rho=np.random.uniform(0.1, 0.9),  # Within [0.01, 0.99] bounds
-            omega=np.random.uniform(0, 1, size=self.n_regions)  # omega in [0,1]
-        )
+        # No transformations - direct packing
+        parts.append(S_init.ravel())
+        parts.append(E_init.ravel())
+        parts.append(I_init.ravel())
 
-        # Initial conditions with new bounds: E,I in [1e-6, 0.05], S in [0.1, 1-2e-6]
-        out["E_init"] = np.random.uniform(*ELIM, size=(self.n_seasons, self.n_regions))
-        out["I_init"] = np.random.uniform(*ILIM, size=(self.n_seasons, self.n_regions))
-        out["S_init"] = np.random.uniform(*SLIM, size=(self.n_seasons, self.n_regions))
-        self.verify(out)
+        parts.append([params["beta0"]])
+        parts.append(params["c_vec"])  # c_vec: upper triangular (excluding diagonal) as vector
+        parts.append(params["omega"])  # omega: vector size n_reg
+        parts.append([params["eps"]])  # eps: scalar
+        parts.append([params["rho"]])  # rho: scalar
+
+        flat = np.concatenate(parts)
+        assert flat.shape == (self.n_params,), f"Packed vector shape {flat.shape} != ({self.n_params},)"
+        return flat
+
+    def unpack(self, flat):
+        err = f"Input vector shape {flat.shape} doesnt match expected ({self.n_params},)"
+        assert flat.shape == (self.n_params,), err
+
+        out = {}
+        idx = 0
+
+        # Unpack individual S, E, I values - no transformations
+        M = self.n_seasons * self.n_regions
+
+        s_flat = flat[idx:idx + M]
+        idx += M
+        e_flat = flat[idx:idx + M]
+        idx += M
+        i_flat = flat[idx:idx + M]
+        idx += M
+
+        # No inverse transformations
+        out["S_init"] = s_flat.reshape(self.n_seasons, self.n_regions)
+        out["E_init"] = e_flat.reshape(self.n_seasons, self.n_regions)
+        out["I_init"] = i_flat.reshape(self.n_seasons, self.n_regions)
+
+        out["beta0"] = flat[idx]
+        idx += 1
+
+        c_size = len(self.iu[0])
+        c_vec = flat[idx:idx + c_size]
+        out["c_vec"] = c_vec
+        idx += c_size
+
+        omega = flat[idx:idx + self.n_regions]
+        out["omega"] = omega
+        idx += self.n_regions
+
+        out["eps"] = flat[idx]
+        idx += 1
+
+        out["rho"] = flat[idx]
+        idx += 1
+
         return out
