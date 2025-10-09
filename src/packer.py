@@ -6,9 +6,9 @@ from numpy import exp, log
 
 from src.helper import a2s, fwd, bckwd
 
-EPS = 1e-9
-SLIM = (2e-6, 0.99)
+SLIM = (0.8, 0.99)
 ILIM = (1e-5, 1e-3)
+ELIM = (1e-5, 1e-3)
 
 class Packer:
     def __init__(self,
@@ -29,8 +29,8 @@ class Packer:
         self.iu = np.triu_indices(self.n_regions, k=1)
 
         # compute parameter count directly
-        # Order: S,I init (2*n_regions*n_seasons), beta0, c_vec, eps, omega # , E_init (E_init = I_init), rho (fixed at 0.8)
-        self.n_params = 2 * self.n_regions * self.n_seasons + 1 + len(self.iu[0]) + 1 + 1 # + 1 (omega is now scalar)
+        # Order: S, E. I init (3*n_regions*n_seasons), beta0, c_vec, eps, omega
+        self.n_params = 3 * self.n_regions * self.n_seasons + 1 + len(self.iu[0]) + 1 + 1
 
 
 
@@ -101,12 +101,11 @@ class Packer:
             beta0=np.random.uniform(0.2, 0.4),  # Flu range around 0.28
             c_vec=np.random.uniform(0.1, 0.9, size=len(self.iu[0])),  # Within [0.01, 0.99] bounds
             eps=np.random.uniform(0.3, 0.7),  # Within [0.01, 0.99] bounds  
-            # rho=np.random.uniform(0.1, 0.9),  # Within [0.01, 0.99] bounds - FIXED AT 0.8
             omega=np.random.uniform(0, 1)  # omega scalar in [0,1]
         )
 
-        # Initial conditions with new bounds: I in [1e-6, 0.05], S in [0.1, 1-2e-6]
-        # out["E_init"] = np.random.uniform(*ELIM, size=(self.n_seasons, self.n_regions))  # E_init = I_init
+        # Initial conditions
+        out["E_init"] = np.random.uniform(*ELIM, size=(self.n_seasons, self.n_regions))
         out["I_init"] = np.random.uniform(*ILIM, size=(self.n_seasons, self.n_regions))
         out["S_init"] = np.random.uniform(*SLIM, size=(self.n_seasons, self.n_regions))
         self.verify(out)
@@ -119,13 +118,13 @@ class Trans(Packer):
         parts = []
 
         S_init = params["S_init"]
-        #E_init = params["E_init"]
+        E_init = params["E_init"]
         I_init = params["I_init"]
 
         # Apply individual transformations with specific bounds
         # I: [1e-6, 0.05], S: [0.1, 1-2e-6] # , E: [1e-6, 0.05] (E_init = I_init)
         parts.append(fwd(S_init, *SLIM).ravel())
-        # parts.append(fwd(E_init, *ELIM).ravel())  # E_init = I_init
+        parts.append(fwd(E_init, *ELIM).ravel())
         parts.append(fwd(I_init, *ILIM).ravel())
 
         parts.append([log(params["beta0"])])
@@ -146,20 +145,18 @@ class Trans(Packer):
         idx = 0
 
         # Unpack individual S, I values # , E (E_init = I_init)
-        s_size = self.n_seasons * self.n_regions
-        # e_size = self.n_seasons * self.n_regions  # E_init = I_init
-        i_size = self.n_seasons * self.n_regions
+        M = self.n_seasons * self.n_regions
 
-        s_flat = flat[idx:idx + s_size]
-        idx += s_size
-        # e_flat = flat[idx:idx + e_size]  # E_init = I_init
-        # idx += e_size
-        i_flat = flat[idx:idx + i_size]
-        idx += i_size
+        s_flat = flat[idx:idx + M]
+        idx += M
+        e_flat = flat[idx:idx + M]  # E_init = I_init
+        idx += M
+        i_flat = flat[idx:idx + M]
+        idx += M
 
         # Apply inverse transformations with specific bounds
         out["S_init"] = bckwd(s_flat, *SLIM).reshape(self.n_seasons, self.n_regions)
-        # out["E_init"] = bckwd(e_flat, *ELIM).reshape(self.n_seasons, self.n_regions)  # E_init = I_init
+        out["E_init"] = bckwd(e_flat, *ELIM).reshape(self.n_seasons, self.n_regions)
         out["I_init"] = bckwd(i_flat, *ILIM).reshape(self.n_seasons, self.n_regions)
 
         out["beta0"] = exp(flat[idx])
@@ -190,12 +187,12 @@ class Straight(Packer):
         parts = []
 
         S_init = params["S_init"]
-        #E_init = params["E_init"]
+        E_init = params["E_init"]
         I_init = params["I_init"]
 
         # No transformations - direct packing
         parts.append(S_init.ravel())
-        # parts.append(E_init.ravel())  # E_init = I_init
+        parts.append(E_init.ravel())
         parts.append(I_init.ravel())
 
         parts.append([params["beta0"]])
@@ -220,14 +217,14 @@ class Straight(Packer):
 
         s_flat = flat[idx:idx + M]
         idx += M
-        # e_flat = flat[idx:idx + M]  # E_init = I_init
-        # idx += M
+        e_flat = flat[idx:idx + M]
+        idx += M
         i_flat = flat[idx:idx + M]
         idx += M
 
         # No inverse transformations
         out["S_init"] = s_flat.reshape(self.n_seasons, self.n_regions)
-        # out["E_init"] = e_flat.reshape(self.n_seasons, self.n_regions)  # E_init = I_init
+        out["E_init"] = e_flat.reshape(self.n_seasons, self.n_regions)
         out["I_init"] = i_flat.reshape(self.n_seasons, self.n_regions)
 
         out["beta0"] = flat[idx]

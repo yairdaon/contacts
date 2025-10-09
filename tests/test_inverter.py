@@ -45,7 +45,7 @@ def test_sim(transform):
     # Generate random parameters and run simulation
     for i in range(10):
         params = objective.packer.random_dict()
-        results = objective.sim(params)  # Use RK as primary
+        results = objective.sim(params)  
 
         # Check output format
         assert isinstance(results, pd.DataFrame), f"Simulation result is {type(results)}, expected DataFrame"
@@ -84,7 +84,7 @@ def test_inference(optimizer, difficulty, seed=43):
     print(f"{difficulty} regions {n_regions}, seasons {n_seasons} starts={n0}")
     pop = makepop(n_regions=n_regions, n_seasons=n_seasons)
 
-    objective = Objective(population=pop, n_weeks=NWEEKS, transform=optimizer=='scipy')
+    objective = Objective(population=pop, n_weeks=NWEEKS, transform=optimizer == 'scipy')
     true_params = objective.packer.random_dict(seed=seed)
 
     # Override rho and theta with the parameterized values for testing
@@ -201,5 +201,5 @@ def test_inference(optimizer, difficulty, seed=43):
         ax.tick_params(colors='white')
 
     plt.tight_layout()
-    plt.savefig(f'pix/test_inference_visualization_negbinom_{difficulty}.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'pix/{difficulty}_visualization.png', dpi=300, bbox_inches='tight')
     plt.close()

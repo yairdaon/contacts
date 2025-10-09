@@ -6,9 +6,9 @@ import pandas as pd
 from numba import jit, njit
 from numba.core import types
 from numpy import sin, cos, pi, log, exp, sqrt, ceil
-import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use("MacOSX")
+matplotlib.use("Agg")  # Use non-interactive backend for headless environments
+import matplotlib.pyplot as plt
 
 # Days per year for seasonal forcing
 PSI = 365

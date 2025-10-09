@@ -1,0 +1,12 @@
+numpy
+pandas
+scipy
+matplotlib
+seaborn
+numba
+joblib
+tqdm
+pytest
+nlopt
+statsmodels
+CyRK

@@ -11,7 +11,7 @@ from src.multi import run_euler
 from src.packer import Trans, Straight
 from src.rk import run_rk
 
-matplotlib.use("MacOSX")
+matplotlib.use("Agg")  # Use non-interactive backend for headless environments
 
 
 class Objective:
@@ -66,9 +66,8 @@ class Objective:
         self.packer.verify(params)
 
         S_init = params['S_init']
-        # E_init = params['E_init']  # E_init = I_init
+        E_init = params['E_init']
         I_init = params['I_init']
-        E_init = I_init  # Fixed: E_init = I_init
         beta0 = params['beta0']
         omega = params['omega']
         eps = params['eps']
