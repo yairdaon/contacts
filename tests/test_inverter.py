@@ -74,11 +74,11 @@ def test_inference(optimizer, difficulty, seed=43):
     """
     # Set test parameters based on difficulty
     if difficulty == "easy":
-        n_regions, n_seasons, n0 = 2, 5, 50
+        n_regions, n_seasons, n0 = 2, 5, 250
     elif difficulty == "intermediate":
-        n_regions, n_seasons, n0 = 4, 15, 250
+        n_regions, n_seasons, n0 = 5, 15, 750
     elif difficulty == "hard":
-        n_regions, n_seasons, n0 = 10, 30, 1000
+        n_regions, n_seasons, n0 = 10, 30, 5000
     else:
         raise ValueError(f"Unknown difficulty: {difficulty}")
     print(f"{difficulty} regions {n_regions}, seasons {n_seasons} starts={n0}")
