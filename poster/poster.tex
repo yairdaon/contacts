@@ -1,0 +1,275 @@
+\documentclass[portrait,a0paper]{baposter}
+
+\usepackage{calc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{relsize}
+\usepackage{multirow}
+\usepackage{rotating}
+\usepackage{bm}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{soul} % for strikethrough
+\usepackage{color}
+
+% Custom page size is handled by baposter class options
+% \usepackage[paperwidth=80cm,paperheight=100cm,margin=2cm]{geometry}
+
+\definecolor{darkblue}{rgb}{0.0,0.08,0.45}
+\definecolor{lightblue}{rgb}{0.8,0.85,0.95}
+
+\begin{document}
+
+\begin{poster}%
+{
+  grid=false,
+  headerborder=closed,
+  colspacing=1em,
+  columns=2,
+  bgColorOne=white,
+  bgColorTwo=white,
+  borderColor=darkblue,
+  headerColorOne=lightblue,
+  headerColorTwo=lightblue,
+  headerFontColor=darkblue,
+  boxColorOne=white,
+  textborder=rounded,
+  eyecatcher=true,
+  headershape=rounded,
+  headershade=shadelr,
+  headerfont=\Large\bf\textsc,
+  textfont={\setlength{\parindent}{0em}},
+  boxshade=plain,
+  background=plain,
+  linewidth=2pt
+}
+% Eye Catcher (left of title)
+{}
+% Title
+{\bf\textsc{\st{How} Can We Infer Contact Matrices?}\vspace{0.3em}}
+% Authors
+{\textsc{Michael Klots, Yair Daon}\\[0.3em]
+\textit{Azrieli Faculty of Medicine, Bar-Ilan University, Safed, Israel}}
+% University logo (right of title)
+{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Background}{name=background,column=0,row=0}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Sometimes we want to know how infectious diseases spread. To this end, we need data pertaining to connectivity: flights, commutes, etc.
+
+\vspace{1em}
+
+{\Large\textbf{Question: Wouldn't it be cool if, instead of relying on connectivity data—we could infer connectivity from observations?}}
+
+\vspace{0.5em}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Global Connectivity}{name=map,column=0,below=background}{
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  \begin{center}
+  %% \vspace{1em}
+    
+    \includegraphics[width=0.95\linewidth]{flights.jpg}
+    %% \vspace{1em}
+    
+    {\large Flight connections create spatial coupling between epidemic waves}
+  \end{center}
+  
+  \vspace{0.5em}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Compartmental Models}{name=models,column=0,below=map}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\textbf{SEIR model}
+
+\vspace{0.5em}
+
+Seasonal driver: $\beta(t) = \beta_0 (1+\delta \sin(t))$
+
+\begin{align*}
+\dot{S} &= \mu N - \beta(t) \, I(t) \, S(t) - \mu S(t) \\
+\dot{E} &= \beta(t) \, I(t) \, S(t) - \sigma E(t) - \mu E(t) \\
+\dot{I} &= \sigma E(t) - \gamma I(t) - \mu I(t) \\
+\dot{R} &= \gamma I(t) - \mu R(t)
+\end{align*}
+
+\vspace{1em}
+
+\textbf{Multiple regions:}
+
+$S$ and $I$ are vectors connected via a contact matrix $C$.
+
+\begin{equation*}
+\dot{I}(t) = (1+\delta \sin(t)) \, S(t) \circ C I(t)
+\end{equation*}
+
+where $\circ$ denotes element-wise multiplication.
+
+\vspace{0.5em}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{The Inverse Problem}{name=inverse,column=1,row=0}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Imagine we know $S(t_i), I(t_i)$ for $t_i, i=1,\ldots,n$. We observe incidence:
+\begin{equation*}
+\text{inc}_i \approx \beta(t_i) \, S(t_i) \circ C I(t_i)
+\end{equation*}
+
+So:
+\begin{equation*}
+C I(t_i) \approx \frac{\text{inc}_i}{\beta(t_i) S(t_i)}
+\end{equation*}
+
+\vspace{1em}
+
+Collect $I(t_i)$ into a matrix:
+\begin{equation*}
+I = [I(t_1) \mid I(t_2) \mid \cdots \mid I(t_n)]
+\end{equation*}
+
+\vspace{1em}
+
+{\Large\textbf{Result:}}
+\begin{equation*}
+\boxed{\frac{\text{relative error}(C)}{\text{relative error}(\text{inc}_i)} \leq \kappa(I)}
+\end{equation*}
+
+where $\kappa(I) = \sigma_{\max}(I)/\sigma_{\min}(I)$ is the condition number.
+
+\vspace{1em}
+
+{\Large\textbf{For 2 regions: $\kappa(I) \approx 10^5$}}
+
+\vspace{0.5em}
+
+Extremely bad conditioning even for a small system due to \textbf{epidemic synchrony}.
+
+\vspace{0.5em}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Results}{name=results,column=1,below=inverse}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+When solving the inverse problem with Gaussian noise $\varepsilon_t \sim \mathcal{N}(0, \text{inc}_t)$, we observe that:
+
+\vspace{1em}
+
+\begin{itemize}
+\item The inferred contact matrix entries appear to be distributed as $C_{ij} \sim \mathcal{U}(0,1)$
+\item This uniform distribution suggests complete loss of information about true connectivity
+\item The noise overwhelms any signal due to the extreme ill-conditioning
+\end{itemize}
+
+\vspace{1em}
+
+{\large\textbf{Implication:}} The recovered contact matrix is essentially random, providing no meaningful information about actual epidemic connectivity patterns.
+
+\vspace{0.5em}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Why Is This Hard?}{name=hard,column=1,below=results}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\textbf{Epidemic trajectories are highly correlated}
+
+\vspace{0.5em}
+
+\begin{itemize}
+\item Coupling causes regions to synchronize
+\item Shared seasonal forcing: all regions see $(1+\delta\sin(t))$
+\item Common disease parameters ($\sigma, \gamma$)
+\end{itemize}
+
+\vspace{1em}
+
+This makes the infection matrix $I$ nearly rank-deficient:
+\begin{equation*}
+I \approx \mathbf{1} \cdot [\alpha(t_1), \alpha(t_2), \ldots, \alpha(t_n)]
+\end{equation*}
+
+\vspace{1em}
+
+{\Large When $\kappa(I)$ is large, small measurement errors are amplified catastrophically!}
+
+\vspace{1em}
+
+\textbf{Example:} With $\kappa(I) = 10^5$ and 1\% measurement error:
+\begin{equation*}
+\text{Error in } C \approx 10^5 \times 0.01 = 1000\%
+\end{equation*}
+
+\vspace{0.5em}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Conclusion}{name=conclusion,column=1,below=hard}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{itemize}
+\item \textbf{Inferring contact matrices from epidemic data is extremely ill-conditioned}
+\item Synchrony between regions makes the inverse problem nearly impossible
+\item Traditional connectivity data remains essential
+\item Alternative: Focus on aggregate/averaged quantities rather than full matrix $C$
+\end{itemize}
+
+\vspace{1em}
+
+{\large\textbf{Reference:}} Golub \& Van Loan, \textit{Matrix Computations}, 4th ed., Section 2.7.1
+
+\vspace{0.5em}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{This Project is Under Construction. Your Input is Much Appreciated!}{name=questions,column=0,below=models,span=2}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% \begin{center}
+%% {\Large\textbf{We'd love to hear from you!}}
+%% \end{center}
+
+\vspace{1em}
+
+\begin{multicols}{2}
+\textbf{Questions:}
+\begin{itemize}
+\item \textbf{How known is this?}% Have you seen similar ill-conditioning issues in epidemiological inverse problems?
+\item \textbf{How would you approach this problem?}% What alternative methods or regularization techniques might help?
+%% \item \textbf{Are there domain-specific insights} that could break the symmetry and improve conditioning?
+%% \item \textbf{What about other epidemic models?} Do age-structured or metapopulation models face similar challenges?
+\end{itemize}
+
+\columnbreak
+
+%% \textbf{Practical Questions:}
+%% \begin{itemize}
+%% \item \textbf{Real-world experience:} Have you tried inferring connectivity from epidemic data? What were the results?
+%% \item \textbf{Alternative data sources:} What other observables (besides incidence) might help constrain contact matrices?
+%% \item \textbf{Computational approaches:} Would machine learning or Bayesian methods offer advantages here?
+%% \item \textbf{Applications:} Are there specific scenarios where this approach might actually work?
+%% \end{itemize}
+\end{multicols}
+
+%% \vspace{0.5em}
+
+%% \begin{center}
+%% {\large Come chat with us! We're eager to discuss ideas, challenges, and potential solutions.}
+%% \end{center}
+
+%% \vspace{0.5em}
+}
+
+\end{poster}
+
+\end{document}
