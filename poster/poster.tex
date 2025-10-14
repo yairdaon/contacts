@@ -89,7 +89,7 @@ we need data pertaining to connectivity: flights, commutes, etc.
 \headerbox{Compartmental Models}{name=models,column=0,below=background}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\textbf{Bare bones SIR model}
+\textbf{Seasonaly driven SIR model}
 
 \vspace{0.3em}
 
@@ -110,7 +110,7 @@ Seasonal driver: $\boxed{\beta(t) = \beta_0 (1+\delta \sin(t))}$
 Add an \textbf{Exposed} compartment $\mathbf{E}$ and
 demography. $\mathbf{S}, \mathbf{E}, \mathbf{I}, \mathbf{R} \in
 \mathbb{R}^n$ with $n = \#\text{regions}$. Connectivity given by
-contact matrix $\mathbf{C}$.
+contact matrix $\mathbf{C}, 0\leq c_{ij}\leq 1$.
 
 \begin{align*}
 \dot{\mathbf{S}} &= \mu - \boxed{\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \mu \mathbf{S} \\
@@ -130,10 +130,10 @@ contact matrix $\mathbf{C}$.
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{When contact matrix unknown}{name=inverse,column=0,below=models}{
+\headerbox{Inferring the contact matrix}{name=inverse,column=0,below=models}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 We bound performance. Assume $S(t_i), I(t_i)$ for $t_i, i=1,\ldots,T$
-known (unrealistic). Observed incidence is:
+known (although unrealistic). Observed incidence is:
 \begin{align*}
 \text{inc}_i &\approx \beta(t_i) \, S(t_i) \circ C I(t_i) \\
 \Rightarrow C I(t_i) &\approx \frac{\text{inc}_i}{\beta(t_i) S(t_i)}
@@ -143,7 +143,13 @@ known (unrealistic). Observed incidence is:
 
 Collect $I(t_i)$ into a matrix:
 \begin{equation*}
-M = [I(t_1) \mid I(t_2) \mid \cdots \mid I(t_n)]
+M = \left[
+  \begin{array}{cccc}
+    \vert & \vert &        & \vert \\
+    I(t_1)    & I(t_2)    & \ldots & I(t_T)    \\
+    \vert & \vert &        & \vert 
+  \end{array}
+\right]
 \end{equation*}
 
 \vspace{1em}
@@ -153,60 +159,55 @@ M = [I(t_1) \mid I(t_2) \mid \cdots \mid I(t_n)]
 \boxed{{\text{relative error}(C)} \leq {\text{relative error}(\text{inc}_i)} \kappa(M)}
 \end{equation*}
 
-where $\kappa(M)$ is the condition number of $M$.
+where $\kappa(M) = \sigma_{\max}/\sigma_{\min}$ is the condition number of $M$.
 \vspace{0.5em}
 }
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Pardon our apearance, this oroject under construction.}{name=questions,column=0,below=inverse,span=2}{
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  Any input is much appreciated. Any references to similar studies? Any known literature? Contact: yair.daon@gmail.com
-  \vspace{1em}
-}
-
-
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \headerbox{Results}{name=results,column=1,below=map}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\vspace{0.5em}
+%% \vspace{0.5em}
 
-Assume noise $\varepsilon_t \sim \mathcal{N}(0, \text{inc}_t)$.
-
-\vspace{1em}
+%% \vspace{1em}
 \begin{itemize}
-\item Merely 2 regions ($n=2$): $\kappa(M) \approx 10^5$.
-\item 1\% measurement error $\Rightarrow$ relative error for $C \approx 10^5 \times 0.01 = 1000$.
-\item Inferred off-diagonal of contact matrix $C_{ij} \sim \mathcal{U}(0,1), i\neq j$.
+\item 2 regions: $\kappa(M) \approx 10^5$.
+\item For 2 regions, 1\% measurement error $\Rightarrow$ relative error for $C \approx 10^5 \times 0.01 = 1000$.
+\item 5 regions: $\kappa(M) \approx 10^8$.
+\item 10 regions: $\kappa(M) \approx 10^{11}$.
+\item Solving for contact matrix, entries $C_{ij} \sim \mathcal{U}(0,1), i\neq j$.
 \item Complete loss of information on connectivity.
 \end{itemize}
 
-\vspace{1em}
+%% \vspace{1em}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Why Is This So?}{name=hard,column=1,below=results}{
+\headerbox{Why This Happens?}{name=hard,column=1,below=results}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
-  &\text{seasonal forcing $\beta(t)$} \\
-  &\Rightarrow \text{regions synchronize}\\
-  &\Rightarrow \text{infection matrix $M$ ill-conditioned}
-\end{align*}
+seasonal forcing $\Rightarrow$ regions synchronize $\Rightarrow$ huge $\kappa(M)$.
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \headerbox{Conclusion}{name=conclusion,column=1,below=hard}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{itemize}
-\item \textbf{Inferring contact matrices from epidemic data is extremely ill-conditioned}.
+\item \textbf{Inferring contact matrices from synchronized epidemic data is extremely ill-conditioned}.
 \item Synchrony between regions makes the inverse problem nearly impossible.
 \item Traditional connectivity data remains essential.
 \end{itemize}
 }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Your input is much appreciated.}{name=questions,column=1,below=conclusion,span=1}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  References to similar studies? Known literature? Other ideas? Contact:
+  yair.daon@gmail.com
+  \vspace{1em}
+}
+
+
 \end{poster}
 
 \end{document}

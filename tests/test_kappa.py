@@ -77,12 +77,12 @@ def test_kappa_condition_number(difficulty, seed=43):
         for region_idx in range(len(objective.packer.regions)):
             # Get incidence I(t) and forcing β(t) for this region
             I_values = df[f'C{region_idx}'].values[1:]  # Skip first NaN value
-            beta_values = df[f'F{region_idx}'].values[1:]  # Skip first value
+            #beta_values = df[f'F{region_idx}'].values[1:]  # Skip first value
             
             # Calculate I(t)/β(t) column
-            I_over_beta = I_values / beta_values
+            #I_over_beta = I_values / beta_values
             
-            kappa_matrix_list.append(I_over_beta)
+            kappa_matrix_list.append(I_values)
     
     # Stack columns to form the matrix
     kappa_matrix = np.column_stack(kappa_matrix_list)
@@ -90,7 +90,7 @@ def test_kappa_condition_number(difficulty, seed=43):
     # Calculate condition number
     condition_number = np.linalg.cond(kappa_matrix)
     
-    print(f"Condition number of I(t)/β(t) matrix: {condition_number:.6e}")
+    print(f"Condition number of I(t) matrix: {condition_number:.6e}")
     print(f"Matrix shape: {kappa_matrix.shape}")
     
     # Basic sanity checks

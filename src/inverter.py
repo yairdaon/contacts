@@ -1,3 +1,4 @@
+import copy
 import matplotlib
 import nlopt
 import numpy as np
@@ -58,6 +59,12 @@ class Objective:
         else:
             raise ValueError(f"Method {self.method} not implemented")
 
+        
+    def reset(self):
+        self.x_list = []
+        self.out_list = []
+
+        
     def set_packer(self, packer):
         self.packer = packer(seasons=sorted(self.population.season.unique()),
                              regions=sorted(self.population.region.unique()))
@@ -111,12 +118,12 @@ class Objective:
 
         return res
 
-    def __call__(self, x, grad=None):
+    def __call__(self, xx, grad=None):
         try:
-            assert not np.isnan(x).any(), f"NaN values found in optimization vector: {x[np.isnan(x)]}"
+            assert not np.isnan(xx).any(), f"NaN values found in optimization vector: {xx[np.isnan(xx)]}"
 
             # Unpack and transform parameters
-            params = self.packer.unpack(x)
+            params = self.packer.unpack(xx)
 
             # Run simulation with parameter dictionary
             kk = self.sim(params)
@@ -129,6 +136,8 @@ class Objective:
         except Exception as e:
             #print(e)
             out = np.inf
+        self.x_list.append(copy.deepcopy(xx))
+        self.out_list.append(out)
         return out
 
 
@@ -136,7 +145,8 @@ class Objective:
 class Inverter:
     def __init__(self,
                  objective,
-                 optimizer='scipy'):
+                 optimizer='scipy',
+                 auglag=False):
         self.objective = objective
         self.packer = objective.packer
         self.optimizer = optimizer
@@ -144,9 +154,10 @@ class Inverter:
             assert type(self.objective.packer) == Trans
         elif self.optimizer == 'nlopt':
             assert type(self.objective.packer) == Straight
+        self.auglag = auglag
 
-    def fit(self, seed=None, n0=1):
-
+    def fit(self, seed=None, n0=1, maxeval=None):
+        self.objective.reset()
         np.random.seed(seed)
 
         starts = []
@@ -159,21 +170,23 @@ class Inverter:
                 assert np.all(x0 > 0)
 
         if n0 > 1:
-            results = Parallel(n_jobs=-1)(delayed(self.single_optimization)(x) for x in tqdm(starts))
+            self.results = Parallel(n_jobs=-1)(delayed(self.single_optimization)(x, maxeval) for x in tqdm(starts))
         else:
-            results = [self.single_optimization(starts[0])]
+            self.results = [self.single_optimization(starts[0], maxeval)]
 
-        print(f"successes rate {sum(int(res['success']) for res in results)} / {len(results)}")
-        best = min(results, key=lambda r: r['fun'])
+        print(f"successes rate {sum(int(res['success']) for res in self.results)} / {len(self.results)}")
+        best = min(self.results, key=lambda r: r['fun'])
         self.x = best['x']
         self.success = best['success']
         self.fun = best['fun']
+   
         return self
 
 
-    def single_optimization(self, x0):
+    def single_optimization(self, x0, maxeval=None):
+        objective = copy.deepcopy(self.objective)
         if self.optimizer == 'scipy':
-            best = minimize(self.objective, x0=x0, method="SLSQP")#L-BFGS-B")
+            best = minimize(objective, x0=x0, method="SLSQP")#L-BFGS-B")
             params = dict(x=best.x, fun=best.fun, success=best.success)
 
         elif self.optimizer == 'nlopt':
@@ -181,18 +194,41 @@ class Inverter:
             n_seasons = self .packer.n_seasons
             M = n_regions * n_seasons
             n = self.packer.n_params
-            #opt = nlopt.opt(nlopt.LD_SLSQP, n)
-            opt = nlopt.opt(nlopt.LN_COBYLA, n)
-            opt.set_min_objective(self.objective)
+            
+
+            if self.auglag:
+                opt = nlopt.opt(nlopt.AUGLAG, n)
+                local_opt = nlopt.opt(nlopt.LD_SLSQP, n)  # or LD_SLSQP, LN_BOBYQA, LN_NEWUOA
+                local_opt.set_xtol_rel(1e-6)
+                local_opt.set_ftol_rel(1e-8)
+                if maxeval is not None:
+                    local_opt.set_maxeval(maxeval // 10)  # Limit evaluations per sub-problem
+                opt.set_local_optimizer(local_opt)
+                # Set tolerances for the outer augmented Lagrangian loop
+                opt.set_xtol_rel(1e-4)
+                opt.set_ftol_rel(1e-6)
+                if maxeval is not None:
+                    opt.set_maxeval(maxeval)
+            else:
+                opt = nlopt.opt(nlopt.LN_COBYLA, n)
+                opt.set_xtol_rel(1e-4)
+                if maxeval is not None:
+                    opt.set_maxeval(maxeval)
+
+            opt.set_min_objective(objective)
             opt.set_lower_bounds([0]*(n-1) + [-float('inf')])
             opt.set_upper_bounds([1]*(n-1) + [float('inf')])
+            
+            # Add your simplex constraints
             for idx in range(M):
                 lower = lambda x, grad: -x[idx] - x[idx + M] #- x[idx + 2 * M]
                 upper = lambda x, grad: -1 + x[idx] + x[idx + M] #+ x[idx + 2 * M]
                 opt.add_inequality_constraint(lower, 1e-8)
                 opt.add_inequality_constraint(upper, 1e-8)
-            opt.set_xtol_rel(1e-4)
+                
             x0 = self.packer.random_vector()
             x = opt.optimize(x0)
             params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() == 4)
+        params['x_list'] = copy.deepcopy(objective.x_list)
+        params['out_list'] = copy.deepcopy(objective.out_list)
         return params
