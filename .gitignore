@@ -5,3 +5,14 @@ play.py
 CLAUDE.md
 .idea
 *png
+
+*log
+*pdf
+*fdb_latexmk
+*aux
+*~
+
+.DS_store
+xtra
+*fls
+pix

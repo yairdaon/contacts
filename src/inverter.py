@@ -145,7 +145,7 @@ class Objective:
 class Inverter:
     def __init__(self,
                  objective,
-                 optimizer='scipy',
+                 optimizer='nlopt',
                  auglag=False):
         self.objective = objective
         self.packer = objective.packer

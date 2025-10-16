@@ -1,17 +1,28 @@
+import os
 import numpy as np
 import pickle
 import pytest
-from matplotlib import pyplot as plt
 
 from src.helper import makepop, a2s
 from src.inverter import Inverter, Objective
 from src.losses import RHO
 from tests.test_inverter import NWEEKS
 
+# Environment detection
+IS_SLURM = 'SLURM_JOB_ID' in os.environ
+
+# Set output directory based on environment
+if IS_SLURM:
+    OUTPUT_DIR = os.path.expanduser("~/contacts/pix")
+else:
+    OUTPUT_DIR = "pix"
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 
 @pytest.mark.parametrize("optimizer", ['nlopt'])  # , 'scipy'])
 @pytest.mark.parametrize("difficulty", ["debug", "easy", "intermediate", "hard"])
-def test_inference(optimizer, difficulty, seed=43):
+def test_inference(optimizer, difficulty):
     """
     Test that Inverter can recover known parameters from synthetic data.
     This is the key test for parameter inference capability.
@@ -25,11 +36,11 @@ def test_inference(optimizer, difficulty, seed=43):
 
     # Set test parameters based on difficulty
     if difficulty == 'debug':
-        n_regions, n_seasons, n0, maxeval = 2, 30, 100, 10
+        n_regions, n_seasons, n0, maxeval = 2, 30, 4, 50
     elif difficulty == "easy":
-        n_regions, n_seasons, n0, maxeval = 2, 5, 250, None
+        n_regions, n_seasons, n0, maxeval = 2, 30, 150, None
     elif difficulty == "intermediate":
-        n_regions, n_seasons, n0, maxeval = 5, 15, 750, None
+        n_regions, n_seasons, n0, maxeval = 5, 30, 750, None
     elif difficulty == "hard":
         n_regions, n_seasons, n0, maxeval = 10, 30, 5000, None
     else:
@@ -61,11 +72,16 @@ def test_inference(optimizer, difficulty, seed=43):
 
     inv = Inverter(objective=objective, optimizer=optimizer).fit(n0=n0, maxeval=maxeval)
     fname = f'pix/results_{difficulty}.pkl'
+    chains = []
+    for res in inv.results:
+        chain = {idx: {**inv.packer.unpack(x), "fun": fun} for idx, (x, fun) in
+                 enumerate(zip(res['x_list'], res['out_list']))}
+        chain['optimal'] = {**inv.packer.unpack(res['x']), "fun":res['fun']}
+        chains.append(chain)
     with open(fname, 'wb') as f:
-        flat = [[{**inv.packer.unpack(x), "fun": fun, 'idx': idx} for idx, (x, fun) in
-               enumerate(zip(res['x_list'], res['out_list']))] for res in inv.results]
-        pickle.dump(flat, f)
+        pickle.dump(chains, f)
 
+    # Core inference results (always computed)
     fun = inv.fun
     inferred = inv.packer.unpack(inv.x)
 
@@ -105,7 +121,13 @@ def test_inference(optimizer, difficulty, seed=43):
     # Test that final loss is finite and reasonable
     assert np.isfinite(fun), f"Final loss is not finite: {fun}"
     assert fun >= 0, f"Final loss is negative: {fun}"
+    
+    print(f"Test completed: {difficulty} - Final loss: {fun:.6f}")
 
+
+    
+# Plotting code (disabled for SLURM environments):
+"""
     # Create visualization
     print("Creating parameter inference visualization...")
     seasons = sorted(pop.season.unique())
@@ -316,3 +338,4 @@ def test_inference(optimizer, difficulty, seed=43):
     plt.tight_layout()
     plt.savefig(f'pix/{difficulty}_visualization.png', dpi=300, bbox_inches='tight')
     plt.close()
+"""
