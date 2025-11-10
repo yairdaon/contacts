@@ -1,4 +1,4 @@
-\documentclass[portrait,a0paper, draft]{baposter}
+\documentclass[portrait,a0paper]{baposter}
 
 \usepackage{calc}
 \usepackage{amsmath}
@@ -21,7 +21,7 @@
 
 \begin{document}
 
-\begin{poster}%
+\begin{poster}
 {
   grid=false,
   headerborder=closed,
@@ -54,8 +54,21 @@
 % University logo (right of title)
 {}
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Background}{name=background,column=0,row=0}{
+\headerbox{Global Connectivity}{name=map,column=0,row=0,span=2}{
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  \begin{center}
+    \includegraphics[width=\linewidth,height=0.15\textheight]{../pix/flights.pdf}
+    
+    {\large Flight connections create spatial coupling between epidemic waves.}  {\small Data: (Mao et al., 2015)}
+    
+  \end{center}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Background}{name=background,column=0,below=map}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Sometimes we want to know how infectious diseases spread. To this end,
@@ -69,71 +82,38 @@ we need data pertaining to connectivity: flights, commutes, etc.
 \vspace{0.5em}
 }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Global Connectivity}{name=map,column=1,row=0}{
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  \begin{center}
-  %% \vspace{1em}
-    
-    \includegraphics[width=0.95\linewidth]{flights.jpeg}
-    %% \vspace{1em}
-    
-    {\large Flight connections create spatial coupling between epidemic waves}
-  \end{center}
-  
-  \vspace{0.5em}
-}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Compartmental Models}{name=models,column=0,below=background}{
+\headerbox{Multi-region SEIR with contact matrix}{name=model,column=0,below=background}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\textbf{Seasonaly driven SIR model}
-
-\vspace{0.3em}
-
-\begin{align*}
-\dot{S} &= - \beta(t) \, S \, I \\
-\dot{I} &= \beta(t) \, S \, I - \gamma I \\
-\dot{R} &= \gamma I
-\end{align*}
-
-Seasonal driver: $\boxed{\beta(t) = \beta_0 (1+\delta \sin(t))}$
-
-\vspace{0.8em}
-
-\textbf{Multi-region SEIR with contact matrix}
-
-\vspace{0.3em}
-
-Add an \textbf{Exposed} compartment $\mathbf{E}$ and
-demography. $\mathbf{S}, \mathbf{E}, \mathbf{I}, \mathbf{R} \in
-\mathbb{R}^n$ with $n = \#\text{regions}$. Connectivity given by
-contact matrix $\mathbf{C}, 0\leq c_{ij}\leq 1$.
-
-\begin{align*}
-\dot{\mathbf{S}} &= \mu - \boxed{\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \mu \mathbf{S} \\
-\dot{\mathbf{E}} &= \boxed{\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \sigma \mathbf{E} - \mu \mathbf{E} \\
-\dot{\mathbf{I}} &= \sigma \mathbf{E} - \gamma \mathbf{I} - \mu \mathbf{I} \\
-\dot{\mathbf{R}} &= \gamma \mathbf{I} - \mu \mathbf{R}
-\end{align*}
-
 \vspace{0.3em}
 
 \begin{itemize}
-\item $\circ$ is element-wise multiplication.
-\item $\mathbf{C}\mathbf{I}$ is matrix product.
+  \item $\mathbf{S}, \mathbf{E}, \mathbf{I}, \mathbf{R} \in \mathbb{R}^n$ with
+    $n = \#\text{regions}$.
+  %\item Model:
+    \begin{align*}
+      \dot{\mathbf{S}} &= \mu - \boxed{\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \mu \mathbf{S} \\
+      \dot{\mathbf{E}} &= \boxed{\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \sigma \mathbf{E} - \mu \mathbf{E} \\
+      \dot{\mathbf{I}} &= \sigma \mathbf{E} - \gamma \mathbf{I} - \mu \mathbf{I} \\
+      \dot{\mathbf{R}} &= \gamma \mathbf{I} - \mu \mathbf{R}
+    \end{align*}
+  \item Connectivity given by contact matrix
+    $\mathbf{C}, 0\leq c_{ij}\leq 1$.
+  \item Seasonal driver: $\beta(t) = \beta_0 (1+\delta \sin(t))$ 
+  \item $\gamma^{-1}$ infectiousness period, $\sigma^{-1}$ incubation period. 
+  \item $\circ$ element-wise multiplication, $\mathbf{C}\mathbf{I}$ matrix product.
 \end{itemize}
 
 \vspace{0.3em}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Inferring the contact matrix}{name=inverse,column=0,below=models}{
+\headerbox{Inferring the contact matrix}{name=inverse,column=0, below=model}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-We bound performance. Assume $S(t_i), I(t_i)$ for $t_i, i=1,\ldots,T$
-known (although unrealistic). Observed incidence is:
+%% To bound performance, assume $S(t_i), I(t_i)$ for $t_i, i=1,\ldots,T$
+%% known (although unrealistic).
+Observed incidence is:
 \begin{align*}
 \text{inc}_i &\approx \beta(t_i) \, S(t_i) \circ C I(t_i) \\
 \Rightarrow C I(t_i) &\approx \frac{\text{inc}_i}{\beta(t_i) S(t_i)}
@@ -159,28 +139,32 @@ M = \left[
 \boxed{{\text{relative error}(C)} \leq {\text{relative error}(\text{inc}_i)} \kappa(M)}
 \end{equation*}
 
-where $\kappa(M) = \sigma_{\max}/\sigma_{\min}$ is the condition number of $M$.
-\vspace{0.5em}
+$\kappa(M)$ is the condition number: ratio of maximal and minimal singular values.
+%\vspace{0.5em}
 }
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Results}{name=results,column=1,below=map}{
+\headerbox{Results}{name=results,column=1, below=map}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% \vspace{0.5em}
-
-%% \vspace{1em}
 \begin{itemize}
 \item 2 regions: $\kappa(M) \approx 10^5$.
 \item For 2 regions, 1\% measurement error $\Rightarrow$ relative error for $C \approx 10^5 \times 0.01 = 1000$.
 \item 5 regions: $\kappa(M) \approx 10^8$.
 \item 10 regions: $\kappa(M) \approx 10^{11}$.
 \item Solving for contact matrix, entries $C_{ij} \sim \mathcal{U}(0,1), i\neq j$.
-\item Complete loss of information on connectivity.
+\item All information on connectivity is lost.
 \end{itemize}
 
-%% \vspace{1em}
+\vspace{0.5em}
+
+\textbf{Optimization Path for Contact Matrix:}
+\begin{center}
+\includegraphics[width=0.9\linewidth]{../pix/easy_path_c_vec.png}
+\end{center}
+
+%% {\small Optimization converges to random values regardless of starting point.}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -194,17 +178,17 @@ seasonal forcing $\Rightarrow$ regions synchronize $\Rightarrow$ huge $\kappa(M)
 
 \begin{itemize}
 \item \textbf{Inferring contact matrices from synchronized epidemic data is extremely ill-conditioned}.
-\item Synchrony between regions makes the inverse problem nearly impossible.
+\item Synchrony between regions makes the inverse problem intractable.
 \item Traditional connectivity data remains essential.
 \end{itemize}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Your input is much appreciated.}{name=questions,column=1,below=conclusion,span=1}{
+\headerbox{Preliminary results}{name=questions,column=1,below=conclusion,span=1}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  References to similar studies? Known literature? Other ideas? Contact:
-  yair.daon@gmail.com
-  \vspace{1em}
+ References to similar studies? Known literature? Other ideas? Contact:
+ yair.daon@gmail.com
+ \vspace{1em}
 }
 
 
