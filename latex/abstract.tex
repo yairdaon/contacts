@@ -1,0 +1,22 @@
+\begin{abstract}
+Contact matrices between geographical regions are fundamental to
+epidemiological modeling, yet they are typically inferred from
+external data sources such as flight patterns or commuting data. This
+paper investigates whether connectivity between regions can be
+reliably inferred directly from epidemic surveillance data. Using a
+multi-region SEIR model with seasonal forcing, we demonstrate that the
+inverse problem of contact matrix inference is fundamentally
+ill-conditioned due to epidemic synchronization. Our theoretical
+analysis shows that relative errors in connectivity estimates scale
+with the condition number of the infection matrix, which grows
+exponentially with the number of regions ($\kappa(M) \approx 10^5$ for
+2 regions, $10^{11}$ for 10 regions). We empirically validate these
+findings using 30 years of pneumonia and influenza surveillance data
+across US states through Vector Autoregression (VAR) analysis. Models
+incorporating inter-state connectivity show no significant improvement
+in forecasting performance compared to independent state-level models,
+confirming the theoretical predictions. Our results demonstrate that
+epidemic synchrony, particularly under seasonal forcing, renders
+connectivity inference intractable regardless of data quality or
+analysis method.
+\end{abstract}

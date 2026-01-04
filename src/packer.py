@@ -11,9 +11,28 @@ ILIM = (1e-5, 1e-3)
 ELIM = (1e-5, 1e-3)
 
 class Packer:
+    """
+    Base class for parameter packing/unpacking in SEIR optimization.
+    
+    Handles conversion between epidemiological parameter dictionaries
+    and flat optimization vectors, with support for multi-region and
+    multi-season models.
+    """
+    
     def __init__(self,
                  regions=None,
-                 seasons=None):
+                 seasons=None,
+                 seasonal_driver=True):
+        """
+        Initialize parameter packer.
+        
+        Parameters:
+        -----------
+        regions : list, optional
+            Region names (default: ["HHS1", "HHS2"])
+        seasons : list, optional
+            Season start dates (default: 3 seasons from 1900-2100)
+        """
 
         if regions is None:
             regions = ["HHS1", "HHS2"]
@@ -31,90 +50,115 @@ class Packer:
         # compute parameter count directly
         # Order: S, E. I init (3*n_regions*n_seasons), beta0, c_vec, eps, omega
         self.n_params = 3 * self.n_regions * self.n_seasons + 1 + len(self.iu[0]) + 1 + 1
-
+        self.seasonal_driver = seasonal_driver
 
 
 
     def verify(self, params):
         pass
-        # if type(params) is np.ndarray:
-        #     params = self.unpack(params)
-        #
-        # beta0 = params['beta0']
-        # c_vec = params['c_vec']
-        # eps = params['eps']
-        # rho = params['rho']
-        # # theta = params['theta']
-        # # omega = params['omega']
-        # S_init = params['S_init']
-        # E_init = params['E_init']
-        # I_init = params['I_init']
-        #
-        # assert beta0 >= 0, f"beta0 == {beta0} must be positive"
-        # assert np.all(0 <= c_vec), f"contact matrix {a2s(c_vec)} must be >= 0"
-        # assert np.all(c_vec < 1+EPS), f"contact matrix {a2s(c_vec)} must be <= 1"
-        # assert 0 <= eps < 1, f"eps {eps:.3f} must be in (0,1)"
-        # assert 0 < rho <= 1, f"reporting rate {rho:.3f} must be in (0,1]"
-        # #assert 0 < theta, f"overdispersion {theta:.3f} must be > 0"
-        #
-        # # omega verification for seasonal phase (fraction of year)
-        # # assert np.all(-0.5 <= params['omega']), "omega must be >= -0.5"
-        # # assert np.all(params['omega'] <= 0.5), "omega must be <= 0.5"
-        #
-        # # Compartment fractions must be positive and < 1
-        # assert np.all(-EPS < S_init), f"S_init must be positive. Min: {S_init.min():.6f}, values: {S_init.ravel()[:5]}"
-        # assert np.all(-EPS < E_init), f"E_init must be positive. Min: {E_init.min():.6f}, values: {E_init.ravel()[:5]}"
-        # assert np.all(-EPS < I_init), f"I_init must be positive. Min: {I_init.min():.6f}, values: {I_init.ravel()[:5]}"
-        # assert np.all(S_init < 1+EPS), f"S_init must be < 1. Max: {S_init.max():.6f}, values: {S_init.ravel()[:5]}"
-        # assert np.all(E_init < 1+EPS), f"E_init must be < 1. Max: {E_init.max():.6f}, values: {E_init.ravel()[:5]}"
-        # assert np.all(I_init < 1+EPS), f"I_init must be < 1. Max: {I_init.max():.6f}, values: {I_init.ravel()[:5]}"
-        #
-        # # Total compartments must sum to < 1 (assuming R_init = 1 - S - E - I)
-        # tot = S_init + I_init + E_init
-        # assert np.all(tot < 1+EPS), f"S + E + I must be < 1. Max sum: {tot.max():.6f}, violating indices: {np.where(tot >= 1)}"
-        #
-        # # Shape verification
-        # assert S_init.shape == (self.n_seasons, self.n_regions), f"S_init shape {S_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
-        # assert E_init.shape == (self.n_seasons, self.n_regions), f"E_init shape {E_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
-        # assert I_init.shape == (self.n_seasons, self.n_regions), f"I_init shape {I_init.shape} doesn't match expected ({self.n_seasons}, {self.n_regions})"
-        #
-        # # No NaN values
-        # for key, value in params.items():
-        #     assert not np.any(np.isnan(value)), f"NaN found in {key}"
-
 
     def c_vec_to_mat(self, c_vec):
+        """
+        Convert contact vector to symmetric contact matrix.
+        
+        Parameters:
+        -----------
+        c_vec : array
+            Upper triangular contact coefficients (excluding diagonal)
+            
+        Returns:
+        --------
+        array
+            Symmetric contact matrix with unit diagonal
+        """
         c_mat = np.eye(self.n_regions)
         c_mat[self.iu] = c_vec
         c_mat[(self.iu[1], self.iu[0])] = c_vec  # symmetry
         return c_mat
 
     def random_vector(self, seed=None):
+        """
+        Generate random parameter vector for optimization.
+        
+        Parameters:
+        -----------
+        seed : int, optional
+            Random seed for reproducibility
+            
+        Returns:
+        --------
+        array
+            Random parameter vector
+        """
         params = self.random_dict(seed=seed)
         vec = self.pack(params)
         return vec
 
     def random_dict(self, seed=None):
+        """
+        Generate random parameter dictionary.
+        
+        Parameters:
+        -----------
+        seed : int, optional
+            Random seed for reproducibility
+            
+        Returns:
+        --------
+        dict
+            Random parameter dictionary with epidemiologically reasonable values
+        """
         np.random.seed(seed)
 
         out = dict(
             beta0=np.random.uniform(0.2, 0.4),  # Flu range around 0.28
             c_vec=np.random.uniform(0.1, 0.9, size=len(self.iu[0])),  # Within [0.01, 0.99] bounds
-            eps=np.random.uniform(0.3, 0.7),  # Within [0.01, 0.99] bounds  
-            omega=np.random.uniform(0, 1)  # omega scalar in [0,1]
+            eps=np.random.uniform(0.3, 0.7) * self.seasonal_driver,  # Within [0.01, 0.99] bounds  
+            omega=np.random.uniform(0, 1) * self.seasonal_driver  # omega scalar in [0,1]
         )
 
-        # Initial conditions
-        out["E_init"] = np.random.uniform(*ELIM, size=(self.n_seasons, self.n_regions))
-        out["I_init"] = np.random.uniform(*ILIM, size=(self.n_seasons, self.n_regions))
-        out["S_init"] = np.random.uniform(*SLIM, size=(self.n_seasons, self.n_regions))
+        if self.seasonal_driver:
+            r = np.random.uniform(0,1,size=(4, self.n_seasons, self.n_regions))
+            r = r / r.sum(axis=0)
+            out["S_init"] = r[0, :, :]
+            out["E_init"] = r[1, :, :]
+            out["I_init"] = r[2, :, :]
+            
+        else:
+            # Initial conditions
+            out["E_init"] = np.random.uniform(*ELIM, size=(self.n_seasons, self.n_regions))
+            out["I_init"] = np.random.uniform(*ILIM, size=(self.n_seasons, self.n_regions))
+            out["S_init"] = np.random.uniform(*SLIM, size=(self.n_seasons, self.n_regions))
+            
+
+        
         self.verify(out)
         return out
 
 
 class Trans(Packer):
+    """
+    Parameter packer with transformations for unconstrained optimization.
+    
+    Applies logit and log transformations to ensure parameters stay within
+    valid bounds during optimization, enabling the use of unconstrained
+    optimizers like L-BFGS-B.
+    """
 
     def pack(self, params):
+        """
+        Pack parameters into flat vector with transformations.
+        
+        Parameters:
+        -----------
+        params : dict
+            Parameter dictionary with epidemiological parameters
+            
+        Returns:
+        --------
+        array
+            Flat transformed parameter vector for optimization
+        """
         parts = []
 
         S_init = params["S_init"]
@@ -138,6 +182,19 @@ class Trans(Packer):
         return flat
 
     def unpack(self, flat):
+        """
+        Unpack flat vector into parameter dictionary with inverse transformations.
+        
+        Parameters:
+        -----------
+        flat : array
+            Flat transformed parameter vector
+            
+        Returns:
+        --------
+        dict
+            Parameter dictionary with epidemiological parameters
+        """
         err = f"Input vector shape {flat.shape} doesnt match expected ({self.n_params},)"
         assert flat.shape == (self.n_params,), err
 
@@ -183,7 +240,27 @@ class Trans(Packer):
 
 
 class Straight(Packer):
+    """
+    Parameter packer without transformations for constrained optimization.
+    
+    Direct packing/unpacking without transformations, suitable for
+    constrained optimizers that can handle parameter bounds explicitly.
+    """
+    
     def pack(self, params):
+        """
+        Pack parameters into flat vector without transformations.
+        
+        Parameters:
+        -----------
+        params : dict
+            Parameter dictionary with epidemiological parameters
+            
+        Returns:
+        --------
+        array
+            Flat parameter vector for constrained optimization
+        """
         parts = []
 
         S_init = params["S_init"]
@@ -206,6 +283,19 @@ class Straight(Packer):
         return flat
 
     def unpack(self, flat):
+        """
+        Unpack flat vector into parameter dictionary without transformations.
+        
+        Parameters:
+        -----------
+        flat : array
+            Flat parameter vector
+            
+        Returns:
+        --------
+        dict
+            Parameter dictionary with epidemiological parameters
+        """
         err = f"Input vector shape {flat.shape} doesnt match expected ({self.n_params},)"
         assert flat.shape == (self.n_params,), err
 

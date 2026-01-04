@@ -1,0 +1,94 @@
+\section*{Multi-region SIR Model}
+We consider a system of $n$ interconnected regions (e.g.~$n=50$ if
+regions are states), each following SIR (Susceptible - Infected -
+Recovered) dynamics with seasonal forcing. This way, $S(t), I(t), R(t)
+\in \mathbb{R}^n$ denote the vectors of fractions of Susceptibles,
+Infecteds, and Recovereds in the population at time $t$ across all
+regions. Since $S(t), I(t)$ and $R(t)$ are fractions, we always have
+$S_i(t) + I(_i(t) + R_i(t) = 1$ for $i \in
+\{1,\dots,n\}$. Furthermore, we denote:
+\begin{itemize}
+\item $\mathbf{C} \in \mathbb{R}^{n \times n}$ a contact matrix with
+  entries $C_{ij} \in [0,1]$ representing relative connectivity from
+  region $j$ to region $i$.
+\item $\beta(t)$ time-varying transmission rate with seasonal
+  forcing. Specifically, we take the standard functional form
+  $\beta(t) = \beta_0(1 + \epsilon \sin(2\pi t/365))$, where $t \in
+  [0, 365)$ is the day of year.
+\item $\gamma$ disease clearance rate, $\mu$ birth and death
+  rate.
+\end{itemize}
+
+The system dynamics are governed by the following ODEs\footnote{the
+equation for $\dot{R}$ is redundant since $S_i,I_i$ and $R_i$ are
+fractions, so they sum to $1$.}:
+\begin{align}\label{eq:dynamics}
+  \dot{S_i} &= \mu - \beta(t) S_i(t) \sum_{j=1}^n C_{ij} I_j(t) - \mu  S_i(t) \\
+  \dot{I_i} &= \beta(t)  S_i(t) \sum_{j=1}^n C_{ij} I_j(t) - \gamma I_i(t) - \mu I_i(t) \\
+  \dot{R_i} &= \gamma I_i(t) - \mu R_i(t),
+\end{align}
+
+Focusing on $\dot{I}_i$, the imporntant term is $\beta(t) S_i(t)
+\sum_{j=1}^n C_{ij} I_j(t)$ which gives the rate of at which new
+Infecteds are generated; the term $-\gamma I_i(t)$ represents recovery
+from infection and is less important here.
+
+\section*{Incidence and Observation Model}
+We measure time in days, and count the number of new infecteds every
+week. This number is known as the \emph{incidence} $Y_i(t)$. We
+calculate weekly incidence at times $t_k, k=1,\dots T$.
+
+Since $\beta(t) S_i(t) \sum_{j=1}^n C_{ij} I_j(t)$ is the rate of
+infections, its integral is the incidence --- total new Infecteds
+during some time period:
+\begin{equation}\label{eq:incidence}
+  %Y_i^{(k)} :=
+  Y_i(t_k) = \int_{t_{k-1}}^{t_k} \beta(s) S_i(s) \sum_{j=1}^n C_{ij} I_j(s) ds.
+\end{equation}
+
+\section*{An Idealized Inverse Problem}
+The fundamental question is whether the contact matrix $\mathbf{C}$
+can be reliably inferred from observed incidence data $Y_i^{(k)}$
+across regions and time points.
+
+In reality we only record the incidence $Y_i(t_k)$ after it has been
+corrupted by noise, but lets assume we are lucky enough to record
+$S_i(t_k), I_i(t_k)$ and $Y_i(t_k)$ without any observation noise. Let
+us further assume that the model is correctly specified and we know
+both $\beta(t)$ and $\gamma$, leaving $\mathbf{C}$ as the only
+unknown. If we approximate the integrand in eq.~\eqref{eq:incidence}
+as a constant evaluated at $t_k$ we find that:
+\begin{equation*}
+Y_i(t_k) \approx (t_k-t_{k-1})\beta(t_k) S_i(t_k) \sum_{j=1}^n C_{ij} I_j(t_k), k=1,\dots,T, i=1,\dots,n, 
+\end{equation*}
+which is equivalent to
+\begin{equation}\label{eq:relation}
+  \frac{Y_i(t_k)}{(t_k - t_{k-1})\beta(t_k) S_i(t_k)} \approx \sum_{j=1}^n C_{ij}
+  I_j(t_k), k=1,\dots,T, i=1,\dots,n.
+\end{equation}
+For $j=1,\dots,n, k=1,\dots,T$ we denote
+\begin{align*}
+  X_{jk} &= I_j(t_k)\\
+  B_{ik} &= \frac{Y_i(t_k)}{(t_k - t_{k-1})\beta(t_k)S_i(t_k)}.
+\end{align*}
+We collect $X_{jk}$ and $B_{ik}$ into matrices $X,B$ respectively. We
+now make some simple observations:
+\begin{itemize}
+\item $X$ and $B$ are in $\mathbb{R}^{n\times T}$, with $T \gg n$. So $X$ and $B$ are ``short and wide''.
+\item The $j^{\text{th}}$ row $X$ is the epidemic curve $I_j(t_1), I_j(t_2),\dots, I_j(t_T)$.
+\item Since flu outbreaks are seasonal, we expect rows of $X$ to be strongly correlated.
+\item The incidence $Y_i(t_k)$ is strongly correlated to the seasonal
+  driver $\beta(t_k)$ and they may or may not cancel out. $S_i(t_k)$
+  does not change much on a relative scale and $t_k-t_{k-1}$ is
+  constant --- so it is not clear what structure rows of $B$ have.
+\end{itemize}
+From the above observations we conclude that eq.~\eqref{eq:relation}
+is an overdetermined matrix equation in $\mathbf{C}$ with strongly correlated rows of $X$.
+\begin{equation}\label{eq:matrix}
+  \mathbf{C} X \approx B
+\end{equation}
+
+My question is: how do we show this matrix equation is very
+ill-conditioned and give an estimate of its behavior when e.g.~noise
+is present?
+

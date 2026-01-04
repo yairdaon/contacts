@@ -1,8 +1,31 @@
 import numpy as np
 from scipy.stats import nbinom, poisson
-RHO=0.8
+
+RHO = 0.8  # Default reporting rate
+
 def negbinom(observed, simulated, rho=RHO, theta=10.0):
-    """Negative binomial log-likelihood with reporting rate (return negative for minimization)."""
+    """
+    Negative binomial loss function with reporting rate correction.
+    
+    Models overdispersed count data with under-reporting. Returns negative
+    log-likelihood for minimization in optimization routines.
+    
+    Parameters:
+    -----------
+    observed : DataFrame
+        Observed incidence data with 'incidence' column
+    simulated : DataFrame
+        Simulated incidence data with 'incidence' column
+    rho : float
+        Reporting rate (0 < rho <= 1)
+    theta : float
+        Overdispersion parameter (higher = less overdispersed)
+        
+    Returns:
+    --------
+    float
+        Negative log-likelihood for minimization
+    """
     # Apply reporting rate to simulated mean
     mu = simulated["incidence"].values * rho + 1e-6
     k = theta
@@ -10,7 +33,26 @@ def negbinom(observed, simulated, rho=RHO, theta=10.0):
     return -np.sum(loglik)
 
 def gaussian(observed, simulated, rho=RHO):
-    """Gaussian likelihood with reporting rate (return negative log-likelihood)."""
+    """
+    Gaussian loss function with heteroscedastic error model.
+    
+    Uses reporting rate to adjust both mean and variance of the 
+    observation model. Error variance scales with predicted incidence.
+    
+    Parameters:
+    -----------
+    observed : DataFrame
+        Observed incidence data with 'incidence' column
+    simulated : DataFrame
+        Simulated incidence data with 'incidence' column
+    rho : float
+        Reporting rate (0 < rho <= 1)
+        
+    Returns:
+    --------
+    float
+        Weighted sum of squared errors for minimization
+    """
     obs = observed["incidence"].values
 
     # Apply reporting rate to simulated data
@@ -57,8 +99,9 @@ def poisson(observed, simulated, rho):
     
     return -np.sum(loglik)  # Return negative for minimization
 
+# Dictionary mapping loss function names to implementations
 LOSSES = {
-            "negbinom": negbinom,
-            "gaussian": gaussian,
-            "poisson_reporting": poisson,
-        }
+    "negbinom": negbinom,
+    "gaussian": gaussian, 
+    "poisson_reporting": poisson,
+}

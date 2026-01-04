@@ -1,0 +1,257 @@
+\section{Discrete-Time SIR Parameter Estimation}
+
+\subsection{Cramér-Rao Lower Bound: Theory and Application}
+
+The \emph{Cramér-Rao Lower Bound (CRLB)} provides a fundamental limit on the precision of any unbiased estimator, establishing the minimum achievable variance for parameter estimation from noisy observations.
+
+\subsubsection{General Theory}
+
+Consider a parameter vector $\boldsymbol{\phi} \in \mathbb{R}^p$ to be estimated from observations $\mathbf{Y} \in \mathbb{R}^n$ with probability density $f(\mathbf{Y}|\boldsymbol{\phi})$. The \emph{Fisher Information Matrix} is defined as:
+\begin{equation}
+[\mathbf{J}]_{ij} = -\mathbb{E}\left[\frac{\partial^2 \log f(\mathbf{Y}|\boldsymbol{\phi})}{\partial \phi_i \partial \phi_j}\right] = \mathbb{E}\left[\frac{\partial \log f(\mathbf{Y}|\boldsymbol{\phi})}{\partial \phi_i}\frac{\partial \log f(\mathbf{Y}|\boldsymbol{\phi})}{\partial \phi_j}\right]
+\end{equation}
+
+\emph{CRLB Statement}: For any unbiased estimator $\hat{\boldsymbol{\phi}}$ of $\boldsymbol{\phi}$:
+\begin{equation}
+\text{Cov}(\hat{\boldsymbol{\phi}}) \succeq \mathbf{J}^{-1}
+\end{equation}
+where $\mathbf{A} \succeq \mathbf{B}$ means $\mathbf{A} - \mathbf{B}$ is positive semidefinite.
+
+For Gaussian observations $\mathbf{Y} \sim \mathcal{N}(\boldsymbol{\mu}(\boldsymbol{\phi}), \sigma^2 \mathbf{I})$, the Fisher Information simplifies to:
+\begin{equation}
+\mathbf{J} = \frac{1}{\sigma^2} \mathbf{G}^T \mathbf{G}
+\end{equation}
+where $\mathbf{G} = \frac{\partial \boldsymbol{\mu}}{\partial \boldsymbol{\phi}}$ is the Jacobian of the mean function.
+
+\subsubsection{Application to Epidemic Connectivity Inference}
+
+In epidemic modeling, we seek to estimate \emph{connectivity parameters} $\theta$ that quantify transmission between regions. The fundamental question is: *Can inter-regional connectivity be reliably inferred from epidemic surveillance data?*
+
+The CRLB provides the theoretical foundation to answer this question by establishing the \emph{information-theoretic limits} of connectivity estimation. If the CRLB shows that even optimal unbiased estimators have unacceptably large variance, then connectivity inference is fundamentally impossible regardless of estimation method.
+
+We derive the Cramér-Rao lower bound for estimating connectivity
+parameters from discrete-time epidemic observations using a
+compartmental SIR model.
+
+\subsection{Discrete-Time SIR Dynamics}
+
+The compartments evolve according to the discrete-time SIR model:
+\begin{align}\begin{split}\label{eq:sir}
+S_i(t+1) &= S_i(t) - \beta(t) S_i(t) \sum_j C_{ij} I_j(t) \\
+I_i(t+1) &= I_i(t) + \beta(t) S_i(t) \sum_j C_{ij} I_j(t) - \gamma I_i(t) \\
+R_i(t+1) &= R_i(t) + \gamma I_i(t)
+\end{split}\end{align}
+
+For two regions with connectivity matrix:
+\begin{equation}
+\mathbf{C} = \begin{bmatrix} 1 & \theta \\ \theta & 1 \end{bmatrix}
+\end{equation}
+
+The dynamics become:
+\begin{align}
+S_1(t+1) &= S_1(t) - \beta(t) S_1(t)[I_1(t) + \theta I_2(t)] \\
+S_2(t+1) &= S_2(t) - \beta(t) S_2(t)[\theta I_1(t) + I_2(t)] \\
+I_1(t+1) &= I_1(t) + \beta(t) S_1(t)[I_1(t) + \theta I_2(t)] - \gamma I_1(t) \\
+I_2(t+1) &= I_2(t) + \beta(t) S_2(t)[\theta I_1(t) + I_2(t)] - \gamma I_2(t)
+\end{align}
+
+with initial conditions $S_i(0), I_i(0)$ and $R_i(0) = 1 - S_i(0) - I_i(0)$.
+
+\subsection{Problem Formulation}
+
+Consider two regions observed over $T$ discrete time steps ($t = 0, 1, \ldots, T-1$). The parameter vector to be estimated is:
+\begin{equation}
+\boldsymbol{\phi} = [\theta, S_1(0), I_1(0), S_2(0), I_2(0)]^T \in \mathbb{R}^5
+\end{equation}
+where $\theta$ is the connectivity parameter and $S_i(0), I_i(0)$ are initial conditions.
+
+The observation vector consists of new infections at each time step:
+\begin{equation}
+\mathbf{Y} = \begin{bmatrix} Y_1(0) \\ Y_2(0) \\ \vdots \\ Y_1(T-1) \\ Y_2(T-1) \end{bmatrix} \in \mathbb{R}^{2T}
+\end{equation}
+
+The observations are the new infections with additive noise:
+\begin{equation}
+\begin{bmatrix} Y_1(t) \\ Y_2(t) \end{bmatrix} = \beta(t) \begin{bmatrix} S_1(t)[I_1(t) + \theta I_2(t)] \\ S_2(t)[\theta I_1(t) + I_2(t)] \end{bmatrix} + \begin{bmatrix} \varepsilon_1(t) \\ \varepsilon_2(t) \end{bmatrix}
+\end{equation}
+where $\varepsilon_i(t) \sim \mathcal{N}(0, \sigma^2)$ independently, for $t = 0, 1, \ldots, T$.
+
+\subsection{Mean Vector and Parameter Dependencies}
+
+The mean vector is $\boldsymbol{\mu}(\boldsymbol{\phi}) =
+\mathbb{E}[\mathbf{Y}|\boldsymbol{\phi}]$ where each component depends
+on the discrete-time evolution:
+\begin{equation}
+\boldsymbol{\mu}(\boldsymbol{\phi}) = \begin{bmatrix} 
+\mu_1(0) \\ \mu_2(0) \\ \vdots \\ \mu_1(T-1) \\ \mu_2(T-1) 
+\end{bmatrix} = \begin{bmatrix}
+\beta(0) S_1(0)[I_1(0) + \theta I_2(0)] \\
+\beta(0) S_2(0)[\theta I_1(0) + I_2(0)] \\
+%\beta(t) S_1(1)[I_1(1) + \theta I_2(1)] \\
+%\beta(t) S_2(1)[\theta I_1(1) + I_2(1)] \\
+\vdots \\
+\beta(T) S_1(T)[I_1(T) + \theta I_2(T)] \\
+\beta(T) S_2(T)[\theta I_1(T) + I_2(T)]
+\end{bmatrix}
+\end{equation} The Jacobian matrix is:
+
+\begin{align}
+  \mathbf{G} &= \frac{\partial \boldsymbol{\mu}}{\partial \boldsymbol{\phi}} =
+  \begin{bmatrix}
+    |& |& |& |& |\\
+    \frac{\partial \boldsymbol{\mu}}{\partial \theta} & 
+    \frac{\partial \boldsymbol{\mu}}{\partial S_1(0)} & 
+    \frac{\partial \boldsymbol{\mu}}{\partial I_1(0)} & 
+    \frac{\partial \boldsymbol{\mu}}{\partial S_2(0)} & 
+    \frac{\partial \boldsymbol{\mu}}{\partial I_2(0)}
+    \\|& |& |& |& |
+  \end{bmatrix} \in \mathbb{R}^{2T \times 5}\\
+  G_{kl} &= \frac{\partial \boldsymbol{\mu}_k}{\partial \boldsymbol{\phi}_l}
+\end{align}
+Define
+\begin{equation}
+  \Omega = \frac{\partial C}{\partial \theta} :=
+  \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}.
+\end{equation}
+Letting $y \in \{S_1(0), S_2(0), I_1(0), I_2(0)\}$, the partial
+derivatives are:
+\begin{align}
+\frac{\partial \mu(t)}{\partial \theta} &= \beta(t) S(t) \circ \Omega I(t) \\
+\frac{\partial \mu(t)}{\partial y} &= \beta(t)\left [ \frac{\partial S(t)}{\partial y} \circ C I(t) + S(t) \circ C \frac{\partial I(t)}{\partial y}\right ] 
+\end{align}
+
+We need to find derivatives with respect to initial conditions $y$, i.e.~$\frac{\partial S(t)}{\partial y}$ and $\frac{\partial I(t)}{\partial y}$. These evolve according:
+
+\begin{align}\begin{split}
+  \frac{\partial S(t+1)}{\partial y} &= \frac{\partial S(t)}{\partial y} - \beta(t) \left[ \frac{\partial S(t)}{\partial y} \circ  CI(t) + S(t)\circ C \frac{\partial I(t)}{\partial y} \right] \\
+  & = \frac{\partial S(t)}{\partial y} - \frac{\partial \mu(t)}{\partial y} \\
+  %
+  %
+  %
+  \frac{\partial I(t+1)}{\partial y} &= (1-\gamma) \frac{\partial I(t)}{\partial y} + \frac{\partial \mu(t)}{\partial y}.
+\end{split}\end{align}
+
+%% \begin{align}
+%% \frac{\partial S_i(t+1)}{\partial I_j(0)} &= \frac{\partial S_i(t)}{\partial I_j(0)} - \beta(t) \left[ \frac{\partial S_i(t)}{\partial I_j(0)} \sum_k C_{ik} I_k(t) + S_i(t) \sum_k C_{ik} \frac{\partial I_k(t)}{\partial I_j(0)} \right] \\
+%% \frac{\partial I_i(t+1)}{\partial I_j(0)} &= \frac{\partial I_i(t)}{\partial I_j(0)} + \beta(t) \left[ \frac{\partial S_i(t)}{\partial I_j(0)} \sum_k C_{ik} I_k(t) + S_i(t) \sum_k C_{ik} \frac{\partial I_k(t)}{\partial I_j(0)} \right] - \gamma \frac{\partial I_i(t)}{\partial I_j(0)}
+%% \end{align}
+
+with initial conditions:
+\begin{align}
+\frac{\partial S_i(0)}{\partial S_j(0)} &= \delta_{ij}, \quad \frac{\partial I_i(0)}{\partial S_j(0)} = 0 \\
+\frac{\partial S_i(0)}{\partial I_j(0)} &= 0, \quad \frac{\partial I_i(0)}{\partial I_j(0)} = \delta_{ij}
+\end{align}
+
+\subsubsection{Vectorized Sensitivity Equations}
+
+The above scalar equations can be written compactly using matrix operations. Define the $2 \times 2$ sensitivity matrices:
+\begin{align}
+\frac{\partial \mathbf{S}(t)}{\partial \mathbf{S}(0)} &= \begin{bmatrix} \frac{\partial S_1(t)}{\partial S_1(0)} & \frac{\partial S_1(t)}{\partial S_2(0)} \\ \frac{\partial S_2(t)}{\partial S_1(0)} & \frac{\partial S_2(t)}{\partial S_2(0)} \end{bmatrix}, \quad \frac{\partial \mathbf{I}(t)}{\partial \mathbf{S}(0)} = \begin{bmatrix} \frac{\partial I_1(t)}{\partial S_1(0)} & \frac{\partial I_1(t)}{\partial S_2(0)} \\ \frac{\partial I_2(t)}{\partial S_1(0)} & \frac{\partial I_2(t)}{\partial S_2(0)} \end{bmatrix}
+\end{align}
+
+and similarly for derivatives with respect to $\mathbf{I}(0)$. Let $\mathbf{S}(t) = [S_1(t), S_2(t)]^T$, $\mathbf{I}(t) = [I_1(t), I_2(t)]^T$, and $\mathbf{C} = \begin{bmatrix} 1 & \theta \\ \theta & 1 \end{bmatrix}$.
+
+The vectorized sensitivity equations are:
+
+\begin{align}
+  \frac{\partial \mathbf{S}(t+1)}{\partial \mathbf{S}(0)} &= &&\frac{\partial \mathbf{S}(t)}{\partial \mathbf{S}(0)} - \beta(t) \left[ \mathbf{C} \mathbf{I}(t) \circ \frac{\partial \mathbf{S}(t)}{\partial \mathbf{S}(0)} + \mathbf{S}(t) \circ \mathbf{C} \frac{\partial \mathbf{I}(t)}{\partial \mathbf{S}(0)} \right] \\
+  %
+  %
+  %
+  \frac{\partial \mathbf{I}(t+1)}{\partial \mathbf{S}(0)} &= (1-\gamma) &&\frac{\partial \mathbf{I}(t)}{\partial \mathbf{S}(0)} + \beta(t) \left[ \mathbf{C} \mathbf{I}(t) \circ \frac{\partial \mathbf{S}(t)}{\partial \mathbf{S}(0)} + \mathbf{S}(t) \circ \mathbf{C} \frac{\partial \mathbf{I}(t)}{\partial \mathbf{S}(0)} \right] \\
+  %
+  %
+  %
+  \frac{\partial \mathbf{S}(t+1)}{\partial \mathbf{I}(0)} &= &&\frac{\partial \mathbf{S}(t)}{\partial \mathbf{I}(0)} - \beta(t) \left[ \mathbf{C} \mathbf{I}(t) \circ \frac{\partial \mathbf{S}(t)}{\partial \mathbf{I}(0)} + \mathbf{S}(t) \circ \mathbf{C} \frac{\partial \mathbf{I}(t)}{\partial \mathbf{I}(0)} \right] \\
+  %
+  %
+  %
+  \frac{\partial \mathbf{I}(t+1)}{\partial \mathbf{I}(0)} &= (1-\gamma)&&\frac{\partial \mathbf{I}(t)}{\partial \mathbf{I}(0)} + \beta(t) \left[ \mathbf{C} \mathbf{I}(t) \circ \frac{\partial \mathbf{S}(t)}{\partial \mathbf{I}(0)} + \mathbf{S}(t) \circ \mathbf{C} \frac{\partial \mathbf{I}(t)}{\partial \mathbf{I}(0)} \right]
+\end{align}
+
+where $\circ$ denotes element-wise multiplication with broadcasting: $\mathbf{C} \mathbf{I}(t)$ is broadcast column-wise and $\mathbf{S}(t)$ is broadcast row-wise for element-wise operations with the $2 \times 2$ sensitivity matrices.
+
+\emph{Initial conditions}:
+\begin{align}
+\frac{\partial \mathbf{S}(0)}{\partial \mathbf{S}(0)} &= \mathbf{I}_2, \quad \frac{\partial \mathbf{I}(0)}{\partial \mathbf{S}(0)} = \mathbf{0} \\
+\frac{\partial \mathbf{S}(0)}{\partial \mathbf{I}(0)} &= \mathbf{0}, \quad \frac{\partial \mathbf{I}(0)}{\partial \mathbf{I}(0)} = \mathbf{I}_2
+\end{align}
+The Fisher information matrix is:
+\begin{equation}
+\mathbf{J} = \frac{1}{\sigma^2} \mathbf{G}^T \mathbf{G} \in \mathbb{R}^{5 \times 5}
+\end{equation}
+The diagonal element for connectivity is:
+\begin{align}
+J_{\theta\theta} &= \frac{1}{\sigma^2} \sum_{t=0}^T \sum_{i=1}^2 \left(\frac{\partial \mu_i(t)}{\partial \theta}\right)^2 \\
+&= \frac{1}{\sigma^2} \sum_{t=0}^T \left[ (\beta(t) S_1(t) I_2(t))^2 + (\beta(t) S_2(t) I_1(t))^2 \right] \\
+&= \sigma^{-2} \sum_{t=0}^T \beta(t)^2\left[ S_1^2(t) I_2^2(t) + S_2^2(t) I_1^2(t) \right]
+\end{align}
+
+The covariance matrix of any unbiased estimator $\hat{\boldsymbol{\phi}}$ satisfies:
+\begin{equation}
+\text{Cov}(\hat{\boldsymbol{\phi}}) \succeq \mathbf{J}^{-1}
+\end{equation}
+
+To find the exact variance bound for $\theta$ without assuming independence from initial conditions, we partition the Fisher Information Matrix:
+\begin{equation}
+\mathbf{J} = \begin{bmatrix}
+J_{\theta\theta} & \mathbf{j}^T \\
+\mathbf{j} & \mathbf{J}_{\text{IC}}
+\end{bmatrix}
+\end{equation}
+where:
+\begin{itemize}
+\item $J_{\theta\theta} = \frac{1}{\sigma^2} \sum_{t=0}^T \beta(t)^2[ S_1^2(t) I_2^2(t) + S_2^2(t) I_1^2(t) ]$ is the Fisher information for $\theta$
+\item $\mathbf{j} = \begin{bmatrix} J_{\theta,S_1(0)} & J_{\theta,I_1(0)} & J_{\theta,S_2(0)} & J_{\theta,I_2(0)} \end{bmatrix}^T$ are cross-correlations
+\item $\mathbf{J}_{\text{IC}} \in \mathbb{R}^{4 \times 4}$ is the Fisher information matrix for initial conditions
+\end{itemize}
+
+Using the Schur complement, the exact variance bound for $\theta$ is:
+\begin{equation}
+\text{Var}(\hat{\theta}) \geq [\mathbf{J}^{-1}]_{11} = \frac{1}{J_{\theta\theta} - \mathbf{j}^T \mathbf{J}_{\text{IC}}^{-1} \mathbf{j}}
+\end{equation}
+
+The correlation penalty term $\mathbf{j}^T \mathbf{J}_{\text{IC}}^{-1} \mathbf{j} > 0$ reduces the effective Fisher information, making the variance bound larger (worse) than the diagonal approximation $\frac{1}{J_{\theta\theta}}$.
+
+\subsubsection{Cross-Correlation Analysis}
+
+The cross-correlation terms are:
+\begin{align}
+J_{\theta,S_k(0)} &= \frac{1}{\sigma^2} \sum_{t=0}^T \sum_{i=1}^2 \frac{\partial \mu_i(t)}{\partial \theta} \frac{\partial \mu_i(t)}{\partial S_k(0)} \\
+J_{\theta,I_k(0)} &= \frac{1}{\sigma^2} \sum_{t=0}^T \sum_{i=1}^2 \frac{\partial \mu_i(t)}{\partial \theta} \frac{\partial \mu_i(t)}{\partial I_k(0)}
+\end{align}
+
+\subsubsection{Fisher Information Matrix for Initial Conditions}
+
+The Fisher information matrix for initial conditions $\mathbf{J}_{\text{IC}} \in \mathbb{R}^{4 \times 4}$ has elements:
+\begin{equation}
+[\mathbf{J}_{\text{IC}}]_{kl} = \frac{1}{\sigma^2} \sum_{t=0}^T \sum_{i=1}^2 \frac{\partial \mu_i(t)}{\partial \phi_k} \frac{\partial \mu_i(t)}{\partial \phi_l}
+\end{equation}
+where $\phi_k, \phi_l \in \{S_1(0), I_1(0), S_2(0), I_2(0)\}$.
+
+Explicitly, the $4 \times 4$ matrix is:
+\begin{equation}
+\mathbf{J}_{\text{IC}} = \frac{1}{\sigma^2} \begin{bmatrix}
+\sum_{t,i} \left(\frac{\partial \mu_i(t)}{\partial S_1(0)}\right)^2 & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial S_1(0)} \frac{\partial \mu_i(t)}{\partial I_1(0)} & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial S_1(0)} \frac{\partial \mu_i(t)}{\partial S_2(0)} & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial S_1(0)} \frac{\partial \mu_i(t)}{\partial I_2(0)} \\
+\sum_{t,i} \frac{\partial \mu_i(t)}{\partial I_1(0)} \frac{\partial \mu_i(t)}{\partial S_1(0)} & \sum_{t,i} \left(\frac{\partial \mu_i(t)}{\partial I_1(0)}\right)^2 & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial I_1(0)} \frac{\partial \mu_i(t)}{\partial S_2(0)} & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial I_1(0)} \frac{\partial \mu_i(t)}{\partial I_2(0)} \\
+\sum_{t,i} \frac{\partial \mu_i(t)}{\partial S_2(0)} \frac{\partial \mu_i(t)}{\partial S_1(0)} & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial S_2(0)} \frac{\partial \mu_i(t)}{\partial I_1(0)} & \sum_{t,i} \left(\frac{\partial \mu_i(t)}{\partial S_2(0)}\right)^2 & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial S_2(0)} \frac{\partial \mu_i(t)}{\partial I_2(0)} \\
+\sum_{t,i} \frac{\partial \mu_i(t)}{\partial I_2(0)} \frac{\partial \mu_i(t)}{\partial S_1(0)} & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial I_2(0)} \frac{\partial \mu_i(t)}{\partial I_1(0)} & \sum_{t,i} \frac{\partial \mu_i(t)}{\partial I_2(0)} \frac{\partial \mu_i(t)}{\partial S_2(0)} & \sum_{t,i} \left(\frac{\partial \mu_i(t)}{\partial I_2(0)}\right)^2
+\end{bmatrix}
+\end{equation}
+
+where the summations are over $t \in \{0,1,\ldots,T\}$ and $i \in \{1,2\}$.
+
+Each element involves the sensitivity derivatives $\frac{\partial \mu_i(t)}{\partial \phi_k}$ which depend on:
+\begin{align}
+\frac{\partial \mu_i(t)}{\partial \phi_k} &= \beta(t) \left[ \frac{\partial S_i(t)}{\partial \phi_k} \sum_j C_{ij} I_j(t) + S_i(t) \sum_j C_{ij} \frac{\partial I_j(t)}{\partial \phi_k} \right]
+\end{align}
+
+These partial derivatives $\frac{\partial S_i(t)}{\partial \phi_k}$ and $\frac{\partial I_j(t)}{\partial \phi_k}$ evolve according to the sensitivity equations derived earlier.
+
+The matrix $\mathbf{J}_{\text{IC}}$ captures how informative the epidemic data is about each initial condition and their correlations. Regions with stronger epidemic coupling (higher $\theta$) will have more correlated initial condition information.
+
+These correlations arise because:
+1. \emph{Initial conditions affect epidemic trajectories}: Changes in $S_i(0), I_i(0)$ propagate through the nonlinear dynamics
+2. \emph{Connectivity affects same trajectories}: The parameter $\theta$ also influences how regions interact over time
+3. \emph{Observation overlap}: The same infected populations appear in both connectivity and initial condition signals
+

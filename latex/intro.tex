@@ -1,0 +1,43 @@
+\section*{Introduction}
+Spatial spread of infectious diseases depends critically on
+connectivity patterns between geographical regions. Mathematical
+models of epidemic dynamics typically incorporate contact matrices
+that quantify transmission pathways between locations. %% These
+%% connectivity parameters are fundamental to understanding disease
+%% spread, designing intervention strategies, and predicting outbreak
+%% trajectories across spatial networks.
+
+I want to understand why we cannot infer connectivity from long-time
+series of weekly incidence of (e.g.) influenza.
+
+%% Traditional approaches to parameterizing contact matrices rely on
+%% proxy data sources: airline passenger flows
+%% \citep{hufnagel2004forecast}, commuting patterns
+%% \citep{viboud2006synchrony}, or gravity models based on population and
+%% distance \citep{xia2004measles}. However, these proxies may not
+%% accurately reflect disease transmission pathways, particularly for
+%% respiratory pathogens where transmission mechanisms differ from
+%% mobility patterns.
+
+%% This raises a fundamental question: can connectivity parameters be
+%% inferred directly from epidemic surveillance data? Such an approach
+%% would be attractive as it captures actual disease transmission
+%% patterns rather than relying on potentially misaligned proxy
+%% measures. However, the mathematical feasibility of this inverse
+%% problem remains unclear.
+
+%% In this paper, we demonstrate both theoretically and empirically that
+%% connectivity inference from epidemic data is fundamentally
+%% intractable. Using multi-region SEIR models, we show that seasonal
+%% forcing drives epidemic synchronization across regions, rendering the
+%% infection matrix nearly rank-deficient. This leads to catastrophic
+%% error amplification, where small measurement errors translate to
+%% arbitrarily large errors in connectivity estimates.
+
+%% We validate these theoretical predictions using Vector Autoregression
+%% analysis of 30 years of pneumonia and influenza data across US
+%% states. Models incorporating inter-state connectivity show no
+%% significant improvement over independent state-level models,
+%% confirming that connectivity information cannot be reliably extracted
+%% from epidemic time series.
+

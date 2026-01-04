@@ -65,10 +65,38 @@ def one_step(t,
              contact_matrix,
              population,
              log_betas):
-    """Takes arrays logS, logE, logI and C (cases) at time
-    t_init and modifies them inplace to have values of logS, logE,
-    logI and CC (Cumulative Cases) at time t_init + h
-
+    """
+    Single Euler integration step for multi-region SEIR model.
+    
+    Takes log-transformed compartment sizes at time t and advances them
+    by timestep h using Euler's method. Modifies arrays in-place.
+    
+    Parameters:
+    -----------
+    t : float
+        Current time (days)
+    h : float  
+        Time step size (days)
+    logS, logE, logI : arrays
+        Log-transformed compartment sizes (modified in-place)
+    C : array
+        New cases accumulator (modified in-place)
+    dlogS, dlogE, dlogI, dC : arrays
+        Work arrays for derivatives
+    mu : float
+        Birth/death rate (1/day)
+    sigma : float
+        E→I transition rate (1/day) 
+    nu : float
+        I→R recovery rate (1/day)
+    beta0, eps, omega : arrays
+        Transmission parameters per region
+    contact_matrix : 2D array
+        Inter-region contact mixing matrix
+    population : array
+        Population size per region
+    log_betas : array
+        Work array for transmission rates
     """
 
     calc_log_betas(t, beta0, eps, omega, log_betas)        
@@ -117,9 +145,43 @@ def multi_seir(
         dlogI,
         dC,
         log_betas):
-    """Numba code to run the multi-region SEIR model. First line in
-    all arrays is junk so truncate it.
-
+    """
+    Main Numba-compiled simulation loop for multi-region SEIR model.
+    
+    Integrates the SEIR equations over the specified time range using
+    adaptive timesteps and outputs results at regular intervals.
+    
+    Parameters:
+    -----------
+    dt_euler : float
+        Maximum Euler step size (days)
+    dt_output : float
+        Output interval (days, typically 7 for weekly)
+    logSs, logEs, logIs : 2D arrays
+        Time series of log-compartment sizes (time x region)
+    Cs : 2D array
+        New cases per output interval (time x region)  
+    Ts : array
+        Output times (days)
+    Fs : 2D array
+        Transmission rates β(t) (time x region)
+    mu, nu, sigma : float
+        Demographic and transition rates (1/day)
+    beta0, omega, eps : arrays
+        Transmission parameters per region
+    contact_matrix : 2D array
+        Inter-region mixing matrix
+    population : array
+        Population sizes per region
+    dlogS, dlogE, dlogI, dC : arrays
+        Work arrays for derivatives
+    log_betas : array
+        Work array for transmission rates
+        
+    Notes:
+    ------
+    First row of output arrays contains initial conditions.
+    Arrays are modified in-place.
     """
 
     ## Start at 1 cuz we have the first value as initial condition
