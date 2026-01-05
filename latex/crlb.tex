@@ -74,7 +74,7 @@ The observations are the new infections with additive noise:
 \begin{equation}
 \begin{bmatrix} Y_1(t) \\ Y_2(t) \end{bmatrix} = \beta(t) \begin{bmatrix} S_1(t)[I_1(t) + \theta I_2(t)] \\ S_2(t)[\theta I_1(t) + I_2(t)] \end{bmatrix} + \begin{bmatrix} \varepsilon_1(t) \\ \varepsilon_2(t) \end{bmatrix}
 \end{equation}
-where $\varepsilon_i(t) \sim \mathcal{N}(0, \sigma^2)$ independently, for $t = 0, 1, \ldots, T$.
+where $\varepsilon_i(t) \sim \mathcal{N}(0, \sigma^2)$ independently, for $t = 0, 1, \ldots, T-1$.
 
 \subsection{Mean Vector and Parameter Dependencies}
 
@@ -90,8 +90,8 @@ on the discrete-time evolution:
 %\beta(t) S_1(1)[I_1(1) + \theta I_2(1)] \\
 %\beta(t) S_2(1)[\theta I_1(1) + I_2(1)] \\
 \vdots \\
-\beta(T) S_1(T)[I_1(T) + \theta I_2(T)] \\
-\beta(T) S_2(T)[\theta I_1(T) + I_2(T)]
+\beta(T-1) S_1(T-1)[I_1(T-1) + \theta I_2(T-1)] \\
+\beta(T-1) S_2(T-1)[\theta I_1(T-1) + I_2(T-1)]
 \end{bmatrix}
 \end{equation} The Jacobian matrix is:
 
@@ -116,8 +116,8 @@ Define
 Letting $y \in \{S_1(0), S_2(0), I_1(0), I_2(0)\}$, the partial
 derivatives are:
 \begin{align}
-\frac{\partial \mu(t)}{\partial \theta} &= \beta(t) S(t) \circ \Omega I(t) \\
-\frac{\partial \mu(t)}{\partial y} &= \beta(t)\left [ \frac{\partial S(t)}{\partial y} \circ C I(t) + S(t) \circ C \frac{\partial I(t)}{\partial y}\right ] 
+\frac{\partial \mu(t)}{\partial \theta} &= \beta(t) S(t) \circ \Omega I(t) \in \mathbb{R}^2 \\
+\frac{\partial \mu(t)}{\partial y} &= \beta(t)\left [ \frac{\partial S(t)}{\partial y} \circ C I(t) + S(t) \circ C \frac{\partial I(t)}{\partial y}\right ] \in \mathbb{R}^2
 \end{align}
 
 We need to find derivatives with respect to initial conditions $y$, i.e.~$\frac{\partial S(t)}{\partial y}$ and $\frac{\partial I(t)}{\partial y}$. These evolve according:
@@ -184,7 +184,7 @@ The diagonal element for connectivity is:
 \begin{align}
 J_{\theta\theta} &= \frac{1}{\sigma^2} \sum_{t=0}^T \sum_{i=1}^2 \left(\frac{\partial \mu_i(t)}{\partial \theta}\right)^2 \\
 &= \frac{1}{\sigma^2} \sum_{t=0}^T \left[ (\beta(t) S_1(t) I_2(t))^2 + (\beta(t) S_2(t) I_1(t))^2 \right] \\
-&= \sigma^{-2} \sum_{t=0}^T \beta(t)^2\left[ S_1^2(t) I_2^2(t) + S_2^2(t) I_1^2(t) \right]
+&= \sigma^{-2} \sum_{t=0}^{T-1} \beta(t)^2\left[ S_1^2(t) I_2^2(t) + S_2^2(t) I_1^2(t) \right]
 \end{align}
 
 The covariance matrix of any unbiased estimator $\hat{\boldsymbol{\phi}}$ satisfies:
@@ -217,8 +217,8 @@ The correlation penalty term $\mathbf{j}^T \mathbf{J}_{\text{IC}}^{-1} \mathbf{j
 
 The cross-correlation terms are:
 \begin{align}
-J_{\theta,S_k(0)} &= \frac{1}{\sigma^2} \sum_{t=0}^T \sum_{i=1}^2 \frac{\partial \mu_i(t)}{\partial \theta} \frac{\partial \mu_i(t)}{\partial S_k(0)} \\
-J_{\theta,I_k(0)} &= \frac{1}{\sigma^2} \sum_{t=0}^T \sum_{i=1}^2 \frac{\partial \mu_i(t)}{\partial \theta} \frac{\partial \mu_i(t)}{\partial I_k(0)}
+J_{\theta,S_k(0)} &= \frac{1}{\sigma^2} \sum_{t=0}^{T-1} \sum_{i=1}^2 \frac{\partial \mu_i(t)}{\partial \theta} \frac{\partial \mu_i(t)}{\partial S_k(0)} \\
+J_{\theta,I_k(0)} &= \frac{1}{\sigma^2} \sum_{t=0}^{T-1} \sum_{i=1}^2 \frac{\partial \mu_i(t)}{\partial \theta} \frac{\partial \mu_i(t)}{\partial I_k(0)}
 \end{align}
 
 \subsubsection{Fisher Information Matrix for Initial Conditions}
@@ -239,7 +239,7 @@ Explicitly, the $4 \times 4$ matrix is:
 \end{bmatrix}
 \end{equation}
 
-where the summations are over $t \in \{0,1,\ldots,T\}$ and $i \in \{1,2\}$.
+where the summations are over $t \in \{0,1,\ldots,T-1\}$ and $i \in \{1,2\}$.
 
 Each element involves the sensitivity derivatives $\frac{\partial \mu_i(t)}{\partial \phi_k}$ which depend on:
 \begin{align}
