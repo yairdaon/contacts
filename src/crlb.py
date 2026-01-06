@@ -5,9 +5,10 @@ import sys
 import traceback
 import pdb
 from typing import Callable, Dict, List
+from scipy.linalg import cho_factor, cho_solve
 
-np.set_printoptions(precision=2, suppress=True)
 
+## Important that theta is kept as the first entry.
 JACOBIAN_COLS = ['theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']
 
 
@@ -127,6 +128,7 @@ def compute_G(S1_0: float,
                 'j': j + 1,  # Regions numbered 1,2
                 'S': S[j],   # Current susceptible population
                 'I': I[j],   # Current infected population
+                'mu': mu[j], # Mean observation μⱼ(t)
                 'theta': dmu_dtheta[j],
                 'S1_0': dmu_dS0[j, 0],  # ∂μⱼ(t)/∂S₁(0)
                 'I1_0': dmu_dI0[j, 0],  # ∂μⱼ(t)/∂I₁(0)
@@ -180,10 +182,11 @@ def compute_crlb(S1_0: float,
                  sigma: float,
                  beta0: float,
                  amplitude: float,
-                 period: float              
+                 period: float,
+                 noise: str = "mult"
                  ):
     """
-    Compute Cramér-Rao Lower Bound for connectivity parameter θ.
+    Compute Cramér-Rao Lower Bound for standard deviation of connectivity parameter theta.
     
     Parameters:
     -----------
@@ -197,15 +200,22 @@ def compute_crlb(S1_0: float,
         Number of time steps
     sigma : float
         Observation noise standard deviation
-
+    beta0 : float
+        Base transmission rate
+    amplitude : float
+        Seasonal amplitude
+    period : float
+        Seasonal period
+    noise : str, default="add"
+        Noise model: "add" for additive, "mult" for multiplicative
         
     Returns:
     --------
     float
-        the crlb  
+        the crlb for standard deviation of theta
     """
     
-    # Compute Jacobian matrix G. Shape == (2T, 5)
+    # Compute Jacobian matrix G.
     G = compute_G(
         S1_0=S1_0,
         S2_0=S2_0,
@@ -218,53 +228,44 @@ def compute_crlb(S1_0: float,
         amplitude=amplitude,
         period=period              
     )
-
-    G = G[JACOBIAN_COLS].values     
-    J = G.T @ G / sigma**2 # Fisher Information Matrix
-    j_cross = J[0, 1:]     # Cross terms (theta with ICs)
-    J_IC = J[1:, 1:]       # FIM for initial conditions
     
-    # Precision bound for theta only via Schur complement
-    j_cross_J_IC_inv_j_cross = j_cross.T @ np.linalg.solve(J_IC, j_cross)
-    precision = J[0,0] - j_cross_J_IC_inv_j_cross 
+    mu = G['mu'].values
+    G = G[JACOBIAN_COLS].values  # Shape: (2T, 5)
+    
+    if noise == "add":
+        # Additive noise model: J = G^T G / sigma^2
+        G /= sigma
         
-    return 1 / precision ## This is the CRLB for the variance of theta
-
-def main():
-    """Example usage of compute_crlb function."""
-   
-    beta0 = 1.5
-    amplitude = .3
-    period = 53
-    
-    # Parameters
-    I0 = 10**(-np.random.uniform(1,7, size=2)) # Small initial outbreaks
-    S0 = np.random.uniform(0.90,1-I0)
-    gamma = 0.7
-    theta = 0.025
-    T = 26
-    sigma = 0.05  # Observation noise standard deviation
-    
-    # Compute CRLB
-    crlb = compute_crlb(
-        S1_0=S0[0],
-        S2_0=S0[1],
-        I1_0=I0[0],
-        I2_0=I0[1],
-        gamma=gamma,
-        theta=theta,
-        T=T,
-        sigma=sigma,
-        beta0=beta0,
-        amplitude=amplitude,
-        period=period,
-    )
+    elif noise == "mult":
+        # Multiplicative noise model: J = G^T W G / sigma^2
+        # where W = diag((2*sigma^2 + 1) / (sigma^2 * mu_i(t)^2))
+                
+        # Compute weight matrix diagonal: (2*sigma^2 + 1) / (sigma^2 * mu_i(t)^2)
+        sqrt_W = np.sqrt(2 * sigma**2 + 1) / sigma / mu
         
+        # Apply weights: G_weighted = sqrt_weight * G (broadcasting)
+        G = sqrt_W * G
+                
+        
+    else:
+        raise ValueError(f"Unknown noise model: {noise}. Use 'add' or 'mult'.") 
 
-if __name__ == "__main__":
-    try:
-        main()
-    except:
-        _, _, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+    # Fisher Information Matrix: J = G.T @ G since weights were
+    # incorporated into G for each noise model.
+    J = G.T @ G
+
+    assert np.all(J == J.T), "J not symmetric"
+    
+    # Cholesky factorization LL^t = J
+    L, low = cho_factor(J) 
+
+    # e1 = [1,0,0,0,0] since we have 5 variables. insert 1 where theta
+    # is found in JACOBIAN_COLS
+    e1 = np.zeros(J.shape[0])
+    e1[0] = 1
+
+    # find L^{-t}e1
+    x = cho_solve((L, low), e1)
+
+    ## CRLB for the standard deviation (!) of theta
+    return np.linalg.norm(x)
