@@ -2,13 +2,13 @@ import numpy as np
 import sys
 import traceback
 import pdb
-import pickle
-import uuid
 import os
 import pandas as pd
 import glob
-from joblib import Parallel, delayed
 from tqdm import tqdm
+import seaborn as sns
+from matplotlib import pyplot as plt
+import IPython
 
 from src.crlb import compute_crlb
 
@@ -31,29 +31,32 @@ def runner(theta: float,
            **kwargs):
     """Compute CRLB for given parameters."""
     
-    try:
-        # Compute CRLB
-        crlb = compute_crlb(
-            S1_0=S1_0,
-            S2_0=S2_0,
-            I1_0=I1_0,
-            I2_0=I2_0,
-            gamma=gamma,
-            theta=theta,
-            T=T,
-            sigma=sigma,
-            beta0=beta0,
-            amplitude=amplitude,
-            period=period,
-        )
-        ex = ''
-
+ 
+    # Compute CRLB
+    crlb = compute_crlb(
+        S1_0=S1_0,
+        S2_0=S2_0,
+        I1_0=I1_0,
+        I2_0=I2_0,
+        gamma=gamma,
+        theta=theta,
+        T=T,
+        sigma=sigma,
+        beta0=beta0,
+        amplitude=amplitude,
+        period=period,
+    )
+    ex = ''
+    if theta > 0:
+        years = (1.96*crlb/theta)**2
+    else:
+        years = 0
+    # except Exception as e:
+    #     # If CRLB computation fails, return NaN values
+    #     crlb = np.nan
+    #     ex = str(e)
+    #     assert False
         
-    except Exception as e:
-        # If CRLB computation fails, return NaN values
-        crlb = np.nan
-        ex = str(e)
-
     result = {
         'theta': theta,
         'gamma': gamma,
@@ -68,12 +71,15 @@ def runner(theta: float,
         'period': period,
         'crlb': crlb,
         'exception': ex,
+        'years': years,
         **kwargs
     }
+
     # Save result to pickle with random UUID filename
-    fname = f"{OUTPUT_DIR}/{uuid.uuid4()}.pkl"
-    with open(fname, 'wb') as f:
-        pickle.dump(result, f)
+    # fname = f"{OUTPUT_DIR}/{uuid.uuid4()}.pkl"
+    # with open(fname, 'wb') as f:
+    #     pickle.dump(result, f)
+    return result
 
 
 def main(n_runs=200,
@@ -91,15 +97,16 @@ def main(n_runs=200,
     period = 53
 
     ## Only a single sigma cuz it just scales the CRLB
-    sigma = 0.01 
+    sigma = 0.2
     
     params = []
-    for theta in [0,  0.01]:
-        for amplitude in [0, 0.3, 0.8]:
+    for theta in [0,  0.05]:
+        for amplitude in [0.3]:
             for _ in range(n_runs):
             
                 # Calculate beta0 from R0
-                beta0 = R0 * gamma / (1 + amplitude) / (1 + theta)
+                beta0 = R0 * gamma / (1 + amplitude)
+                #beta0 = np.sqrt(beta0)
 
                 # Random initial conditions
                 I0 = 10**(-np.random.uniform(3, 7, size=2))  # Small initial outbreaks
@@ -127,20 +134,13 @@ def main(n_runs=200,
                 params.append(pp)
     
     
-    # Parallel execution
-    Parallel(n_jobs=-1, verbose=1)(
-        delayed(runner)(**pp) for pp in tqdm(params)
-    )
-       
-    # Load all pickle files and create DataFrame
     
-    results = []
-    for fname in glob.glob(f"{OUTPUT_DIR}/*.pkl"):
-        with open(fname, 'rb') as f:
-            results.append(pickle.load(f))
+    results = [runner(**pp) for pp in tqdm(params)]
     
     df = pd.DataFrame(results)
-    
+    df = df[df.columns[df.nunique() > 1]]
+    IPython.embed()
+
     # Add column for years required for CI to include zero
     # Formula: theta - 1.96 * crlb / sqrt(n) = 0
     # Solving for n: n = (1.96 * crlb / theta)^2
@@ -148,8 +148,8 @@ def main(n_runs=200,
 
     
     # Save to CSV
-    csv_filename = f"{OUTPUT_DIR}/crlb_results.csv"
-    df.to_csv(csv_filename, index=False)
+    #csv_filename = f"{OUTPUT_DIR}/crlb_results.csv"
+    #df.to_csv(csv_filename, index=False)
     
 
 if __name__ == "__main__":
@@ -159,3 +159,4 @@ if __name__ == "__main__":
         _, _, tb = sys.exc_info()
         traceback.print_exc()
         pdb.post_mortem(tb)
+        

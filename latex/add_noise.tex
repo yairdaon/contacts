@@ -1,0 +1,77 @@
+\subsection{Additive Noise Model}
+
+We consider observations with additive Gaussian noise:
+\begin{equation}
+Y_i(t) = \mu_i(t) + \varepsilon_i(t)
+\end{equation}
+where $\mu_i(t) = \beta(t) S_i(t) \sum_j C_{ij} I_j(t)$ is the mean incidence for region $i$ at time $t$, and $\varepsilon_i(t) \sim \mathcal{N}(0, \sigma^2)$ are independent noise terms.
+
+The observation vector is $\mathbf{Y} = [Y_1(0), Y_2(0), \ldots, Y_1(T-1), Y_2(T-1)]^T \in \mathbb{R}^{2T}$, with mean vector:
+\begin{equation}
+\boldsymbol{\mu}(\boldsymbol{\phi}) = [\mu_1(0), \mu_2(0), \ldots, \mu_1(T-1), \mu_2(T-1)]^T
+\end{equation}
+
+Under the additive noise model, the observations are independently distributed:
+\begin{equation}
+Y_i(t) \sim \mathcal{N}(\mu_i(t), \sigma^2)
+\end{equation}
+
+The likelihood function is:
+\begin{equation}
+f(\mathbf{Y}|\boldsymbol{\phi}) = \prod_{t=0}^{T-1} \prod_{i=1}^{2} \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(Y_i(t) - \mu_i(t))^2}{2\sigma^2}\right)
+\end{equation}
+
+Taking the logarithm:
+\begin{align}
+\ell(\boldsymbol{\phi}) &= \log f(\mathbf{Y}|\boldsymbol{\phi}) \\
+&= \sum_{t=0}^{T-1} \sum_{i=1}^{2} \left[-\frac{1}{2}\log(2\pi\sigma^2) - \frac{(Y_i(t) - \mu_i(t))^2}{2\sigma^2}\right] \\
+&= -T\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum_{t=0}^{T-1}\sum_{i=1}^{2} (Y_i(t) - \mu_i(t))^2
+\end{align}
+
+Taking the partial derivative with respect to parameter $\phi_k \in
+\{\theta, S_1(0), I_1(0), S_2(0), I_2(0)\}$:
+\begin{align*}
+\frac{\partial \ell}{\partial \phi_k} &= -\frac{1}{2\sigma^2} \frac{\partial}{\partial \phi_k}\sum_{t=0}^{T-1}\sum_{i=1}^{2} (Y_i(t) - \mu_i(t))^2 \\
+&= -\frac{1}{2\sigma^2} \sum_{t=0}^{T-1}\sum_{i=1}^{2} 2(Y_i(t) - \mu_i(t)) \cdot \left(-\frac{\partial \mu_i(t)}{\partial \phi_k}\right) \\
+&= \frac{1}{\sigma^2} \sum_{t=0}^{T-1}\sum_{i=1}^{2} (Y_i(t) - \mu_i(t)) \frac{\partial \mu_i(t)}{\partial \phi_k}
+\end{align*}
+
+The Fisher information matrix is:
+\begin{align*}
+  [\mathbf{J}]_{kl} &= \mathbb{E}\left[\frac{\partial \ell}{\partial \phi_k}\frac{\partial \ell}{\partial \phi_l}\right] \\
+  &= \mathbb{E}\left[\frac{1}{\sigma^4} \sum_{t,i} \sum_{s,j} (Y_i(t) - \mu_i(t))(Y_j(s) - \mu_j(s)) \frac{\partial \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_j(s)}{\partial \phi_l}\right] \\
+  &= \frac{1}{\sigma^4} \sum_{t,i} \sum_{s,j} \mathbb{E}[(Y_i(t) - \mu_i(t))(Y_j(s) - \mu_j(s))] \frac{\partial \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_j(s)}{\partial \phi_l}
+\end{align*}
+
+Since the noise terms are independent:
+\begin{equation*}
+\mathbb{E}[(Y_i(t) - \mu_i(t))(Y_j(s) - \mu_j(s))] = \mathbb{E}[\varepsilon_i(t)\varepsilon_j(s)] = \begin{cases}
+\sigma^2 & \text{if } (i,t) = (j,s) \\
+0 & \text{if } (i,t) \neq (j,s)
+\end{cases}
+\end{equation*}
+
+Therefore:
+\begin{align*}
+[\mathbf{J}]_{kl} &= \frac{1}{\sigma^4} \sum_{t=0}^{T-1}\sum_{i=1}^{2} \sigma^2 \frac{\partial \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_i(t)}{\partial \phi_l} \\
+&= \frac{1}{\sigma^2} \sum_{t=0}^{T-1}\sum_{i=1}^{2} \frac{\partial \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_i(t)}{\partial \phi_l}
+\end{align*}
+
+\subsubsection{Matrix Form}
+
+Define the Jacobian matrix:
+\begin{equation}
+\mathbf{G} = \frac{\partial \boldsymbol{\mu}}{\partial \boldsymbol{\phi}} = \begin{bmatrix}
+\frac{\partial \mu_1(0)}{\partial \theta} & \frac{\partial \mu_1(0)}{\partial S_1(0)} & \cdots & \frac{\partial \mu_1(0)}{\partial I_2(0)} \\
+\frac{\partial \mu_2(0)}{\partial \theta} & \frac{\partial \mu_2(0)}{\partial S_1(0)} & \cdots & \frac{\partial \mu_2(0)}{\partial I_2(0)} \\
+\vdots & \vdots & \ddots & \vdots \\
+\frac{\partial \mu_2(T-1)}{\partial \theta} & \frac{\partial \mu_2(T-1)}{\partial S_1(0)} & \cdots & \frac{\partial \mu_2(T-1)}{\partial I_2(0)}
+\end{bmatrix} \in \mathbb{R}^{2T \times 5}
+\end{equation}
+
+Then the Fisher Information Matrix can be written compactly as:
+\begin{equation}
+\mathbf{J} = \frac{1}{\sigma^2} \mathbf{G}^T \mathbf{G}
+\end{equation}
+
+The CRLB can be computed numerically using Cholesky factorization as detailed above.

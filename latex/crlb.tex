@@ -42,20 +42,20 @@ I_i(t+1) &= I_i(t) + \beta(t) S_i(t) \sum_j C_{ij} I_j(t) - \gamma I_i(t) \\
 R_i(t+1) &= R_i(t) + \gamma I_i(t)
 \end{split}\end{align}
 
-For two regions with connectivity matrix:
+We consider two regions with connectivity matrix:
 \begin{equation}
-\mathbf{C} = \begin{bmatrix} 1 & \theta \\ \theta & 1 \end{bmatrix}
+\mathbf{C} = \begin{bmatrix} 1-\theta & \theta \\ \theta & 1-\theta \end{bmatrix}
 \end{equation}
 
-The dynamics become:
-\begin{align}
-S_1(t+1) &= S_1(t) - \beta(t) S_1(t)[I_1(t) + \theta I_2(t)] \\
-S_2(t+1) &= S_2(t) - \beta(t) S_2(t)[\theta I_1(t) + I_2(t)] \\
-I_1(t+1) &= I_1(t) + \beta(t) S_1(t)[I_1(t) + \theta I_2(t)] - \gamma I_1(t) \\
-I_2(t+1) &= I_2(t) + \beta(t) S_2(t)[\theta I_1(t) + I_2(t)] - \gamma I_2(t)
-\end{align}
+%% The dynamics become:
+%% \begin{align}
+%% S_1(t+1) &= S_1(t) - \beta(t) S_1(t)[(1-\theta) I_1(t) + \theta I_2(t)] \\
+%% S_2(t+1) &= S_2(t) - \beta(t) S_2(t)[\theta I_1(t) + (1-\theta) I_2(t)] \\
+%% I_1(t+1) &= I_1(t) + \beta(t) S_1(t)[(1-\theta) I_1(t) + \theta I_2(t)] - \gamma I_1(t) \\
+%% I_2(t+1) &= I_2(t) + \beta(t) S_2(t)[\theta I_1(t) + (1-\theta) I_2(t)] - \gamma I_2(t)
+%% \end{align}
 
-with initial conditions $S_i(0), I_i(0)$ and $R_i(0) = 1 - S_i(0) - I_i(0)$.
+Initial conditions are $S_i(0), I_i(0)$ and $R_i(0) = 1 - S_i(0) - I_i(0)$.
 
 \subsection{Problem Formulation}
 
@@ -72,7 +72,7 @@ The observation vector consists of new infections at each time step:
 
 The observations are the new infections with additive noise:
 \begin{equation}
-\begin{bmatrix} Y_1(t) \\ Y_2(t) \end{bmatrix} = \beta(t) \begin{bmatrix} S_1(t)[I_1(t) + \theta I_2(t)] \\ S_2(t)[\theta I_1(t) + I_2(t)] \end{bmatrix} + \begin{bmatrix} \varepsilon_1(t) \\ \varepsilon_2(t) \end{bmatrix}
+\begin{bmatrix} Y_1(t) \\ Y_2(t) \end{bmatrix} = \beta(t) \begin{bmatrix} S_1(t)[(1-\theta) I_1(t) + \theta I_2(t)] \\ S_2(t)[\theta I_1(t) + (1-\theta) I_2(t)] \end{bmatrix} + \begin{bmatrix} \varepsilon_1(t) \\ \varepsilon_2(t) \end{bmatrix}
 \end{equation}
 where $\varepsilon_i(t) \sim \mathcal{N}(0, \sigma^2)$ independently, for $t = 0, 1, \ldots, T-1$.
 
@@ -85,13 +85,13 @@ on the discrete-time evolution:
 \boldsymbol{\mu}(\boldsymbol{\phi}) = \begin{bmatrix} 
 \mu_1(0) \\ \mu_2(0) \\ \vdots \\ \mu_1(T-1) \\ \mu_2(T-1) 
 \end{bmatrix} = \begin{bmatrix}
-\beta(0) S_1(0)[I_1(0) + \theta I_2(0)] \\
-\beta(0) S_2(0)[\theta I_1(0) + I_2(0)] \\
-%\beta(t) S_1(1)[I_1(1) + \theta I_2(1)] \\
-%\beta(t) S_2(1)[\theta I_1(1) + I_2(1)] \\
+\beta(0) S_1(0)[(1-\theta) I_1(0) + \theta I_2(0)] \\
+\beta(0) S_2(0)[\theta I_1(0) + (1-\theta) I_2(0)] \\
+%\beta(t) S_1(1)[(1-\theta) I_1(1) + \theta I_2(1)] \\
+%\beta(t) S_2(1)[\theta I_1(1) + (1-\theta) I_2(1)] \\
 \vdots \\
-\beta(T-1) S_1(T-1)[I_1(T-1) + \theta I_2(T-1)] \\
-\beta(T-1) S_2(T-1)[\theta I_1(T-1) + I_2(T-1)]
+\beta(T-1) S_1(T-1)[(1-\theta) I_1(T-1) + \theta I_2(T-1)] \\
+\beta(T-1) S_2(T-1)[\theta I_1(T-1) + (1-\theta) I_2(T-1)]
 \end{bmatrix}
 \end{equation} The Jacobian matrix is:
 
@@ -111,7 +111,7 @@ on the discrete-time evolution:
 Define
 \begin{equation}
   \Omega = \frac{\partial C}{\partial \theta} :=
-  \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}.
+  \begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix}.
 \end{equation}
 Letting $y \in \{S_1(0), S_2(0), I_1(0), I_2(0)\}$, the partial
 derivatives are:
@@ -183,8 +183,8 @@ The Fisher information matrix is:
 The diagonal element for connectivity is:
 \begin{align}
 J_{\theta\theta} &= \frac{1}{\sigma^2} \sum_{t=0}^T \sum_{i=1}^2 \left(\frac{\partial \mu_i(t)}{\partial \theta}\right)^2 \\
-&= \frac{1}{\sigma^2} \sum_{t=0}^T \left[ (\beta(t) S_1(t) I_2(t))^2 + (\beta(t) S_2(t) I_1(t))^2 \right] \\
-&= \sigma^{-2} \sum_{t=0}^{T-1} \beta(t)^2\left[ S_1^2(t) I_2^2(t) + S_2^2(t) I_1^2(t) \right]
+&= \frac{1}{\sigma^2} \sum_{t=0}^T \left[ (\beta(t) S_1(t) (-I_1(t) + I_2(t)))^2 + (\beta(t) S_2(t) (I_1(t) - I_2(t)))^2 \right] \\
+&= \sigma^{-2} \sum_{t=0}^{T-1} \beta(t)^2 (I_1(t) - I_2(t))^2 \left[ S_1^2(t) + S_2^2(t) \right]
 \end{align}
 
 The covariance matrix of any unbiased estimator $\hat{\boldsymbol{\phi}}$ satisfies:
@@ -201,7 +201,7 @@ J_{\theta\theta} & \mathbf{j}^T \\
 \end{equation}
 where:
 \begin{itemize}
-\item $J_{\theta\theta} = \frac{1}{\sigma^2} \sum_{t=0}^T \beta(t)^2[ S_1^2(t) I_2^2(t) + S_2^2(t) I_1^2(t) ]$ is the Fisher information for $\theta$
+\item $J_{\theta\theta} = \frac{1}{\sigma^2} \sum_{t=0}^T \beta(t)^2 (I_1(t) - I_2(t))^2 [ S_1^2(t) + S_2^2(t) ]$ is the Fisher information for $\theta$
 \item $\mathbf{j} = \begin{bmatrix} J_{\theta,S_1(0)} & J_{\theta,I_1(0)} & J_{\theta,S_2(0)} & J_{\theta,I_2(0)} \end{bmatrix}^T$ are cross-correlations
 \item $\mathbf{J}_{\text{IC}} \in \mathbb{R}^{4 \times 4}$ is the Fisher information matrix for initial conditions
 \end{itemize}

@@ -69,15 +69,76 @@ $$
 \beta_0 = \frac{R_0 \gamma}{1+\epsilon} = \frac{3.65 (1-\exp\left (-\frac{7}{2.2} \right))}{1+0.3} \approx 2.7
 $$
 
+Let: $\mu_i(t) = \beta(t) S_i(t) \sum_j C_{ij} I_j(t)$ the mean
+incidence for region $i$ at time $t$, and $\varepsilon_i(t) \sim
+\mathcal{N}(0, \sigma^2)$ are independent noise terms. The parameters
+we try to infer are $\mathbf{\phi} = (\theta, S_1(0), I_1(0), S_2(0),
+I_2(0))$ --- we assume $\sigma^2$ is known.
+
+
+We will later need to caclulate partials of the state at time $t$ with
+respect to initial conditions $y \in \{S_1(0), I_1(0), S_2(0),
+I_2(0)\}$, i.e.~$\frac{\partial S(t)}{\partial y}$ and $\frac{\partial
+  I(t)}{\partial y}$. We record these below and find them by taking
+partials in the original dynamics:
+
+\begin{align}\begin{split}
+  \frac{\partial S(t+1)}{\partial y} &= \frac{\partial S(t)}{\partial
+  y} - \beta(t) \left[ \frac{\partial S(t)}{\partial y} \circ CI(t) +
+  S(t)\circ C \frac{\partial I(t)}{\partial y} \right] \\
+  %
+  %
+  %
+  & = \frac{\partial S(t)}{\partial y} - \frac{\partial \mu(t)}{\partial y} \\
+  %
+  %
+  %
+  \frac{\partial I(t+1)}{\partial y} &= (1-\gamma) \frac{\partial
+  I(t)}{\partial y} + \frac{\partial \mu(t)}{\partial y}.\\
+  %
+  %
+  %
+\end{split}\end{align}        
+with initial conditions:
+\begin{align}\begin{split}
+\frac{\partial S_i(0)}{\partial S_j(0)} &= \delta_{ij}, \quad \frac{\partial I_i(0)}{\partial S_j(0)} = 0 \\
+%
+%
+%
+\frac{\partial S_i(0)}{\partial I_j(0)} &= 0, \quad \frac{\partial I_i(0)}{\partial I_j(0)} = \delta_{ij}
+\end{split}\end{align}
 
 
 
+\subsection{Cramér-Rao Lower Bound Approach}
+Our goal is to establish fundamental limits on the precision of any
+unbiased estimator $\hat{\theta}$ for the connectivity parameter
+$\theta$.
 
+The \emph{Cramér-Rao Lower Bound (CRLB)} provides such fundamental
+limits by establishing that for any unbiased estimator:
+\begin{equation}
+\text{Cov}(\hat{\boldsymbol{\phi}}) \succeq \mathbf{J}^{-1}
+\end{equation}
+where $\mathbf{J}$ is the \emph{Fisher Information Matrix} and $\mathbf{A} \succeq \mathbf{B}$ means $\mathbf{A} - \mathbf{B}$ is positive semidefinite.
 
+For observations $\mathbf{Y}$ with likelihood
+$f(\mathbf{Y}|\boldsymbol{\phi})$, the Fisher Information Matrix can
+be computed as:
 
+\begin{equation}
+[\mathbf{J}]_{kl} = -\mathbb{E}\left[\frac{\partial^2 \log
+    f(\mathbf{Y}|\boldsymbol{\phi})}{\partial \phi_k \partial
+    \phi_l}\right] = \mathbb{E}\left[\frac{\partial \log
+    f(\mathbf{Y}|\boldsymbol{\phi})}{\partial \phi_k}\frac{\partial
+    \log f(\mathbf{Y}|\boldsymbol{\phi})}{\partial \phi_l}\right]
+\end{equation}
 
-
-
-
-
-
+We will employ the latter approach since it seemed easier. For the
+connectivity parameter $\theta$, the Cramér-Rao lower bound on its
+variance is found numerically using the Cholesky factorization
+$\mathbf{J} = LL^t$:
+\begin{equation*}
+\text{Var}(\hat{\theta}) \geq [\mathbf{J}^{-1}]_{11} = \|L^{-1}\mathbf{e}_1\|^2.
+\end{equation*}
+where $\mathbf{e}_1 = [1, 0, 0, 0, 0]^T$ is the first standard basis vector.

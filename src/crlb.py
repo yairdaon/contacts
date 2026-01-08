@@ -49,6 +49,7 @@ def plot_G(G):
     plt.tight_layout()
     plt.show()
     
+    
 def compute_G(S1_0: float,
               S2_0: float,
               I1_0: float,
@@ -95,8 +96,8 @@ def compute_G(S1_0: float,
     I = np.array([I1_0, I2_0])  # [I1(0), I2(0)]
     
     # Connectivity matrix and its derivative
-    C = np.array([[1.0, theta], [theta, 1.0]])
-    Omega = np.array([[0.0, 1.0], [1.0, 0.0]])  # ∂C/∂θ
+    C = np.array([[1-theta, theta], [theta, 1-theta]])
+    Omega = np.array([[-1.0, 1.0], [1.0, -1.0]])  # ∂C/∂θ
     
     # Initialize sensitivity matrices (2x2 each) at t=0
     dS_dS0 = np.eye(2)        # ∂S(t)/∂S(0) = Id
@@ -216,7 +217,7 @@ def compute_crlb(S1_0: float,
     """
     
     # Compute Jacobian matrix G.
-    G = compute_G(
+    df = compute_G(
         S1_0=S1_0,
         S2_0=S2_0,
         I1_0=I1_0,
@@ -229,8 +230,8 @@ def compute_crlb(S1_0: float,
         period=period              
     )
     
-    mu = G['mu'].values
-    G = G[JACOBIAN_COLS].values  # Shape: (2T, 5)
+    
+    G = df[JACOBIAN_COLS].values  # Shape: (2T, 5)
     
     if noise == "add":
         # Additive noise model: J = G^T G / sigma^2
@@ -239,12 +240,13 @@ def compute_crlb(S1_0: float,
     elif noise == "mult":
         # Multiplicative noise model: J = G^T W G / sigma^2
         # where W = diag((2*sigma^2 + 1) / (sigma^2 * mu_i(t)^2))
-                
+
+        mu = df['mu'].values
         # Compute weight matrix diagonal: (2*sigma^2 + 1) / (sigma^2 * mu_i(t)^2)
         sqrt_W = np.sqrt(2 * sigma**2 + 1) / sigma / mu
         
         # Apply weights: G_weighted = sqrt_weight * G (broadcasting)
-        G = sqrt_W * G
+        G = np.einsum('i, ij -> ij', sqrt_W, G)
                 
         
     else:
