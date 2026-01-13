@@ -1,0 +1,214 @@
+Define the force of infection in region $i$ at time $t$:
+\begin{equation*}
+\lambda(t) = \beta(t) \mathbf{C}I(t)
+\end{equation*}
+
+Over one time step, the probability that a susceptible individual in
+region $i$ does \emph{not} become infected is:
+\begin{equation*}
+\exp(-\lambda_i(t))
+\end{equation*}
+
+and the probability of infection is:
+\begin{equation*}
+p_i(t) = 1 - \exp(-\lambda_i(t))
+\end{equation*}
+
+The expected incidence:
+\begin{equation*}
+\mu_i(t) = S_i(t) \cdot p_i(t) = S_i(t) \left[1 - \exp(-\lambda_i(t))\right]
+\end{equation*}
+
+The susceptible population evolves as:
+\begin{equation*}
+S_i(t+1) = S_i(t) - \mu_i(t) = S_i(t) [1 - p_i(t)] = S_i(t) \exp(-\lambda_i(t))
+\end{equation*}
+
+
+The probability an infected individual remains infected over one time
+step is:
+\begin{equation*}
+\exp(-\gamma)
+\end{equation*}
+
+The probability of recovery is:
+\begin{equation*}
+q = 1 - \exp(-\gamma)
+\end{equation*}
+
+Recalling the incidence is $\mu(t) = S(t) [1 - \exp(-\lambda(t))]$:
+\begin{align}\begin{split}\label{eq:exp_sir_compact}
+S(t+1) &= S(t) \exp(-\lambda(t)) \\
+I(t+1) &= I(t) \exp(-\gamma) + \mu(t) \\
+R(t+1) &= R(t) + I(t) [1 - \exp(-\gamma)]
+\end{split}\end{align}
+
+%% Taking logarithms:
+%% \begin{align}\begin{split}\label{eq:log_I}
+%% \log S(t+1) &= \log S(t) - \lambda(t) \\
+%% \log I(t+1) &= \log\left[I(t) \exp(-\gamma) + \mu(t)\right]\\
+%% &= \log I(t) - \gamma + \log\left[1 + \frac{\mu(t)}{I(t) \exp(-\gamma)}\right] \\
+%% &= \log I(t) + \log\left[\exp(-\gamma) + \frac{\mu(t)}{I(t)}\right],
+%% \end{split}\end{align}
+%% where all operations are understood to be elementwise.
+
+
+Taking partials:
+\begin{align*}
+  \frac{\partial \lambda(t)}{\partial \phi_k} &= \beta(t) \left
+  (\frac{\partial \mathbf{C}}{\partial \phi_k}I(t) + \mathbf{C}
+  \frac{\partial I(t)}{\partial \phi_k} \right ) \\
+  %
+  %
+  %
+  \frac{\partial \mu(t)}{\partial \phi_k} &= \frac{\partial
+    S(t)}{\partial \phi_k} \left[1 - \exp(-\lambda(t))\right] + S(t)
+  \exp(-\lambda(t)) \frac{\partial \lambda(t)}{\partial \phi_k}
+\end{align*}
+%
+%
+where
+%
+%
+\begin{equation*}
+\frac{\partial \mathbf{C}}{\partial \phi_k} = \begin{cases}
+\begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix} & \phi_k = \theta \\
+0 &  \text{o.w.}
+\end{cases}
+\end{equation*}
+%
+%
+Taking partials of the dynamics:
+%
+%
+\begin{align}\begin{split}
+    \frac{\partial S(t+1)}{\partial \phi_k}
+    %
+    %
+    %
+    &= \exp(-\lambda(t)) \frac{\partial S(t)}{\partial \phi_k} -
+    S(t) \exp(-\lambda(t)) \frac{\partial \lambda(t)}{\partial
+      \phi_k} \\
+    %
+    %
+    %
+    %% &= \exp(-\lambda_i(t)) \frac{\partial S_i(t)}{\partial \phi_k} -
+    %% S_i(t) \exp(-\lambda_i(t)) \frac{\partial \lambda_i(t)}{\partial
+    %%   \phi_k}\\
+    %
+    %
+    %
+    \frac{\partial I(t+1)}{\partial \phi_k} &= \exp(-\gamma)
+    \frac{\partial I(t)}{\partial \phi_k} + \frac{\partial
+      \mu(t)}{\partial \phi_k}
+\end{split}\end{align}
+
+
+We assume a constant reporting rate $\rho$. Observations are binomial
+\begin{align}\begin{split}
+Y_i(t) &\sim Bin(\mu_i(t), \rho) \\
+\mathbb{E}[Y_i(t)] &= \rho \mu_i(t) \\
+\mathbb{V}ar[Y_i(t)] &= \rho(1-\rho) \mu_i(t) \\
+\end{split}\end{align}
+
+We can approximate this using the central limit theorem as a gaussian
+\begin{align*}
+  Y_i(t) &= \rho \mu_i(t) + \epsilon_i(t) \\
+  \epsilon_i(t) &\sim \mathcal{N}(0, \rho(1-\rho)\mu_i(t))
+\end{align*}
+
+The log-likelihood for independent Gaussian observations is:
+\begin{equation*}
+\ell(\boldsymbol{\phi}) = -\frac{1}{2}\sum_{t=0}^{T-1}\sum_{i=1}^{2} \left[\log(2\pi \rho(1-\rho)\mu_i(t)) + \frac{(Y_i(t) - \rho\mu_i(t))^2}{\rho(1-\rho)\mu_i(t)}\right]
+\end{equation*}
+
+Taking the partial derivative with respect to parameter $\phi_k$:
+\begin{align*}
+\frac{\partial \ell}{\partial \phi_k} &= -\frac{1}{2}\sum_{t,i} \left[\frac{1}{\mu_i(t)} - \frac{2\rho(Y_i(t) - \rho\mu_i(t))}{\rho(1-\rho)\mu_i(t)} - \frac{(Y_i(t) - \rho\mu_i(t))^2}{\rho(1-\rho)\mu_i(t)^2}\right] \frac{\partial \mu_i(t)}{\partial \phi_k}
+\end{align*}
+
+We can write this as:
+\begin{equation*}
+\frac{\partial \ell}{\partial \phi_k} = \sum_{t,i} A_i(t) \frac{\partial \mu_i(t)}{\partial \phi_k}
+\end{equation*}
+where
+\begin{equation*}
+A_i(t) = -\frac{1}{2\mu_i(t)} + \frac{Y_i(t) - \rho\mu_i(t)}{(1-\rho)\mu_i(t)} + \frac{(Y_i(t) - \rho\mu_i(t))^2}{2\rho(1-\rho)\mu_i(t)^2}
+\end{equation*}
+
+The Fisher Information Matrix is:
+\begin{equation*}
+[\mathbf{J}]_{kl} = \mathbb{E}\left[\frac{\partial \ell}{\partial \phi_k}\frac{\partial \ell}{\partial \phi_l}\right] = \sum_{t,i}\sum_{s,j} \mathbb{E}[A_i(t) A_j(s)] \frac{\partial \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_j(s)}{\partial \phi_l}
+\end{equation*}
+
+Since observations are independent across time and regions, $\mathbb{E}[A_i(t) A_j(s)] = 0$ when $(i,t) \neq (j,s)$. For $(i,t) = (j,s)$, we need $\mathbb{E}[A_i(t)^2]$.
+
+Recalling that $Y_i(t) - \rho\mu_i(t) = \epsilon_i(t)$, we can write:
+\begin{equation*}
+A_i(t) = -\frac{1}{2\mu_i(t)} + \frac{\epsilon_i(t)}{(1-\rho)\mu_i(t)} + \frac{\epsilon_i(t)^2}{2\rho(1-\rho)\mu_i(t)^2}
+\end{equation*}
+
+Expanding $A_i(t)^2$:
+\begin{align*}
+A_i(t)^2 &= \frac{1}{4\mu_i(t)^2} - \frac{\epsilon_i(t)}{(1-\rho)\mu_i(t)^2} - \frac{\epsilon_i(t)^2}{2\rho(1-\rho)\mu_i(t)^3} \\
+&\quad + \frac{\epsilon_i(t)^2}{(1-\rho)^2\mu_i(t)^2} + \frac{\epsilon_i(t)^3}{\rho(1-\rho)^2\mu_i(t)^3} + \frac{\epsilon_i(t)^4}{4\rho^2(1-\rho)^2\mu_i(t)^4}
+\end{align*}
+
+Using the moments of $\epsilon_i(t) \sim \mathcal{N}(0, \rho(1-\rho)\mu_i(t))$:
+\begin{itemize}
+\item $\mathbb{E}[\epsilon_i(t)] = 0$
+\item $\mathbb{E}[\epsilon_i(t)^2] = \rho(1-\rho)\mu_i(t)$
+\item $\mathbb{E}[\epsilon_i(t)^3] = 0$ (third moment of centered Gaussian)
+\item $\mathbb{E}[\epsilon_i(t)^4] = 3[\rho(1-\rho)\mu_i(t)]^2$ (fourth moment of Gaussian)
+\end{itemize}
+
+Taking expectations:
+\begin{align*}
+\mathbb{E}[A_i(t)^2] &= \frac{1}{4\mu_i(t)^2} - \frac{\rho(1-\rho)\mu_i(t)}{2\rho(1-\rho)\mu_i(t)^3} + \frac{\rho(1-\rho)\mu_i(t)}{(1-\rho)^2\mu_i(t)^2} \\
+&\quad + \frac{3[\rho(1-\rho)\mu_i(t)]^2}{4\rho^2(1-\rho)^2\mu_i(t)^4} \\
+&= \frac{1}{4\mu_i(t)^2} - \frac{1}{2\mu_i(t)^2} + \frac{\rho}{(1-\rho)\mu_i(t)^2} + \frac{3}{4\mu_i(t)^2} \\
+&= \frac{1}{2\mu_i(t)^2} + \frac{\rho}{(1-\rho)\mu_i(t)^2}\\
+%
+%
+%
+&= \frac{1+\rho}{2(1-\rho)\mu_i(t)^2}
+\end{align*}
+
+Therefore:
+\begin{equation*}
+[\mathbf{J}]_{kl} = \frac{1+\rho}{2(1-\rho)}\sum_{t=0}^{T-1}\sum_{i=1}^{2} \frac{1}{\mu_i(t)^2} \frac{\partial \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_i(t)}{\partial \phi_l}
+\end{equation*}
+
+In matrix form, define the Jacobian matrix:
+\begin{equation*}
+\mathbf{G} = \frac{\partial \boldsymbol{\mu}}{\partial \boldsymbol{\phi}} \in \mathbb{R}^{2T \times 5}
+\end{equation*}
+where $G_{(t,i),k} = \frac{\partial \mu_i(t)}{\partial \phi_k}$.
+
+Define the diagonal weight matrix:
+\begin{equation*}
+\mathbf{W} = (\frac{1+\rho}{2(1-\rho)} \text{diag}\left( \mu_1(0)^{-2}, \ldots, \mu_2(T-1)^{-2}\right) \in \mathbb{R}^{2T \times 2T}
+\end{equation*}
+
+Then the Fisher Information Matrix is:
+\begin{equation*}
+\mathbf{J} = \mathbf{G}^T \mathbf{W} \mathbf{G}
+\end{equation*}
+
+\subsubsection{Cramér-Rao Lower Bound}
+
+The Cramér-Rao lower bound for the connectivity parameter $\theta$ is:
+\begin{equation*}
+\text{Var}(\hat{\theta}) \geq [\mathbf{J}^{-1}]_{11}
+\end{equation*}
+
+This can be computed efficiently using Cholesky factorization. Let $\mathbf{J} = \mathbf{L}\mathbf{L}^T$, then:
+\begin{equation*}
+[\mathbf{J}^{-1}]_{11} = \|\mathbf{L}^{-T}\mathbf{e}_1\|^2
+\end{equation*}
+where $\mathbf{e}_1 = [1, 0, 0, 0, 0]^T$ is the first standard basis vector.
+
+The CRLB for the standard deviation of $\hat{\theta}$ is:
+\begin{equation*}
+\text{SD}(\hat{\theta}) \geq \sqrt{[\mathbf{J}^{-1}]_{11}} = \|\mathbf{L}^{-T}\mathbf{e}_1\|
+\end{equation*}

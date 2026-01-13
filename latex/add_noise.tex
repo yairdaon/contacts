@@ -53,20 +53,43 @@ Since the noise terms are independent:
 
 Therefore:
 \begin{align*}
-[\mathbf{J}]_{kl} &= \frac{1}{\sigma^4} \sum_{t=0}^{T-1}\sum_{i=1}^{2} \sigma^2 \frac{\partial \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_i(t)}{\partial \phi_l} \\
-&= \frac{1}{\sigma^2} \sum_{t=0}^{T-1}\sum_{i=1}^{2} \frac{\partial \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_i(t)}{\partial \phi_l}
+  [\mathbf{J}]_{kl} &= \frac{1}{\sigma^4}
+  \sum_{t=0}^{T-1}\sum_{i=1}^{2} \sigma^2 \frac{\partial
+    \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_i(t)}{\partial
+    \phi_l} \\
+  %
+  %
+  %
+  &= \frac{1}{\sigma^2} \sum_{t=0}^{T-1}\sum_{i=1}^{2} \frac{\partial
+    \mu_i(t)}{\partial \phi_k}\frac{\partial \mu_i(t)}{\partial
+    \phi_l}
 \end{align*}
+Lacking a closed form expression for the partials above, we find them
+using the sensitivity equations.
 
-\subsubsection{Matrix Form}
-
-Define the Jacobian matrix:
+If we define the Jacobian matrix:
 \begin{equation}
-\mathbf{G} = \frac{\partial \boldsymbol{\mu}}{\partial \boldsymbol{\phi}} = \begin{bmatrix}
-\frac{\partial \mu_1(0)}{\partial \theta} & \frac{\partial \mu_1(0)}{\partial S_1(0)} & \cdots & \frac{\partial \mu_1(0)}{\partial I_2(0)} \\
-\frac{\partial \mu_2(0)}{\partial \theta} & \frac{\partial \mu_2(0)}{\partial S_1(0)} & \cdots & \frac{\partial \mu_2(0)}{\partial I_2(0)} \\
-\vdots & \vdots & \ddots & \vdots \\
-\frac{\partial \mu_2(T-1)}{\partial \theta} & \frac{\partial \mu_2(T-1)}{\partial S_1(0)} & \cdots & \frac{\partial \mu_2(T-1)}{\partial I_2(0)}
-\end{bmatrix} \in \mathbb{R}^{2T \times 5}
+  \mathbf{G} = \frac{\partial \boldsymbol{\mu}}{\partial
+    \boldsymbol{\phi}} = \begin{bmatrix} \frac{\partial
+      \mu_1(0)}{\partial \theta} & \frac{\partial \mu_1(0)}{\partial
+      S_1(0)} & \cdots & \frac{\partial \mu_1(0)}{\partial I_2(0)} \\
+    %
+    %
+    %
+    \frac{\partial \mu_2(0)}{\partial \theta} & \frac{\partial
+      \mu_2(0)}{\partial S_1(0)} & \cdots & \frac{\partial
+      \mu_2(0)}{\partial I_2(0)} \\
+    %
+    %
+    %   
+    \vdots & \vdots & \ddots & \vdots \\
+    %
+    %
+    %
+    \frac{\partial \mu_2(T-1)}{\partial \theta} & \frac{\partial
+      \mu_2(T-1)}{\partial S_1(0)} & \cdots & \frac{\partial
+      \mu_2(T-1)}{\partial I_2(0)}
+  \end{bmatrix} \in \mathbb{R}^{2T \times 5}
 \end{equation}
 
 Then the Fisher Information Matrix can be written compactly as:
