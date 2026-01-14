@@ -9,7 +9,7 @@ import uuid
 from typing import Callable, Dict, List
 from scipy.linalg import cho_factor, cho_solve
 
-from src.helpers import JACOBIAN_COLS, plot_G
+from src.helper import JACOBIAN_COLS, plot_G
    
 def old_compute_G(S1_0: float,
                   S2_0: float,
@@ -135,16 +135,16 @@ def old_compute_G(S1_0: float,
 
 
     
-def compute_G(S1_0: float,
-              S2_0: float,
-              I1_0: float,
-              I2_0: float,
+def compute_G(S0: np.ndarray,
+              I0: np.ndarray,
               gamma: float,
               theta: float,
               T: int,
               beta0: float,
               amplitude: float,
-              period: float
+              period: float,
+              phase: float = 0.0,
+              phase2: float = None
               ) -> pd.DataFrame:
     """
     Compute the Jacobian matrix G = ∂μ/∂φ for the exponential discretization SIR model.
@@ -156,8 +156,10 @@ def compute_G(S1_0: float,
 
     Parameters:
     -----------
-    S1_0, S2_0, I1_0, I2_0 : float
-        Initial conditions for susceptible and infected populations in regions 1 and 2
+    S0 : np.ndarray
+        Initial susceptible populations (shape: n_regions)
+    I0 : np.ndarray
+        Initial infected populations (shape: n_regions)
     gamma : float
         Recovery rate parameter (not probability - can exceed 1)
     theta : float
@@ -170,6 +172,13 @@ def compute_G(S1_0: float,
         Seasonal amplitude
     period : float
         Seasonal period
+    phase : float, default=0.0
+        Phase offset for seasonal forcing (in radians). Applied to both regions if phase2 is None.
+    phase2 : float, optional
+        Phase offset for region 2 (in radians).
+        If None, region 2 uses the same phase as region 1.
+        β₁(t) = β₀(1 + A·sin(2πt/P + φ))
+        β₂(t) = β₀(1 + A·sin(2πt/P + φ₂)) if phase2 is not None
 
     Returns:
     --------
@@ -185,10 +194,11 @@ def compute_G(S1_0: float,
     G = []
 
     # Current state vectors
-    S = np.array([S1_0, S2_0])  # [S1(0), S2(0)]
-    I = np.array([I1_0, I2_0])  # [I1(0), I2(0)]
+    S = S0.copy()  # [S1(0), S2(0), ...]
+    I = I0.copy()  # [I1(0), I2(0), ...]
+    n_regions = len(S)
 
-    # Connectivity matrix and its derivative
+    # Connectivity matrix and its derivative (2 regions only)
     C = np.array([[1-theta, theta], [theta, 1-theta]])
     Omega = np.array([[-1.0, 1.0], [1.0, -1.0]])  # ∂C/∂θ
 
@@ -202,12 +212,19 @@ def compute_G(S1_0: float,
     dS_dtheta = np.zeros(2)   # ∂S(t)/∂θ = 0 at t=0
     dI_dtheta = np.zeros(2)   # ∂I(t)/∂θ = 0 at t=0
 
+    # Determine phase for region 2
+    phase2 = phase if phase2 is None else phase2
+
     # Compute observations for T time steps (t = 0, 1, ..., T-1)
     for t in range(T):
-        # Seasonal transmission rate
-        beta_t = beta0 * (1 + amplitude * np.sin(2 * np.pi * t / period))
-
-        # Force of infection: λ(t) = β(t) C I(t)
+        # Seasonal transmission rate (vector for each region)
+        # β₁(t) = β₀(1 + A·sin(2πt/P + φ))
+        # β₂(t) = β₀(1 + A·sin(2πt/P + φ₂))
+        phase_vec = np.array([phase, phase2])
+        beta_t = beta0 * (1 + amplitude * np.sin(2 * np.pi * t / period + phase_vec))
+       
+        # Force of infection: λ(t) = β(t) ∘ (C I(t))
+        # Element-wise multiplication of beta_t with contact-weighted infections
         lambda_t = beta_t * (C @ I)
 
         # Mean incidence: μ(t) = S(t) [1 - exp(-λ(t))]
@@ -221,16 +238,18 @@ def compute_G(S1_0: float,
         dmu_dtheta = dS_dtheta * (1 - np.exp(-lambda_t)) + S * np.exp(-lambda_t) * dlambda_dtheta
 
         # === Compute ∂μ(t)/∂S(0) ===
-        # ∂λ(t)/∂S(0) = β(t) C ∂I(t)/∂S(0)
-        dlambda_dS0 = beta_t * (C @ dI_dS0)  # Shape (2, 2)
+        # ∂λ(t)/∂S(0) = β(t) ∘ C ∂I(t)/∂S(0)
+        # Broadcasting: beta_t[:, None] has shape (2, 1), (C @ dI_dS0) has shape (2, 2)
+        dlambda_dS0 = beta_t[:, None] * (C @ dI_dS0)  # Shape (2, 2)
 
         # ∂μ(t)/∂S(0) = ∂S(t)/∂S(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂S(0)
         # Broadcasting: (2,2) * (2,) -> each row gets multiplied
         dmu_dS0 = dS_dS0 * (1 - np.exp(-lambda_t)) + (S * np.exp(-lambda_t))[:, None] * dlambda_dS0
 
         # === Compute ∂μ(t)/∂I(0) ===
-        # ∂λ(t)/∂I(0) = β(t) C ∂I(t)/∂I(0)
-        dlambda_dI0 = beta_t * (C @ dI_dI0)  # Shape (2, 2)
+        # ∂λ(t)/∂I(0) = β(t) ∘ C ∂I(t)/∂I(0)
+        # Broadcasting: beta_t[:, None] has shape (2, 1), (C @ dI_dI0) has shape (2, 2)
+        dlambda_dI0 = beta_t[:, None] * (C @ dI_dI0)  # Shape (2, 2)
 
         # ∂μ(t)/∂I(0) = ∂S(t)/∂I(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂I(0)
         dmu_dI0 = dS_dI0 * (1 - np.exp(-lambda_t)) + (S * np.exp(-lambda_t))[:, None] * dlambda_dI0
@@ -302,10 +321,8 @@ def compute_G(S1_0: float,
 
 
 
-def compute_crlb(S1_0: float,
-                 S2_0: float,
-                 I1_0: float,
-                 I2_0: float,
+def compute_crlb(S0,
+                 I0,
                  gamma: float,
                  theta: float,
                  T: int,
@@ -314,11 +331,13 @@ def compute_crlb(S1_0: float,
                  amplitude: float,
                  period: float,
                  noise: str = "mult",
-                 pop_size: int = 1
+                 pop_size: int = 1,
+                 phase: float = 0.0,
+                 phase2: float = None
                  ):
     """
     Compute Cramér-Rao Lower Bound for standard deviation of connectivity parameter theta.
-    
+
     Parameters:
     -----------
     S1_0, S2_0, I1_0, I2_0 : float
@@ -341,28 +360,33 @@ def compute_crlb(S1_0: float,
         Noise model: "add" for additive, "mult" for multiplicative, "poisson" for Poisson
     pop_size : int, default=1
         Population scaling factor for Poisson model
-        
+    phase : float, default=0.0
+        Phase offset for seasonal forcing (in radians).
+        If phase2 is None, both regions use this phase.
+    phase2 : float, optional
+        Phase offset for region 2 (in radians).
+        If None, region 2 uses the same phase as region 1.
+
     Returns:
     --------
     float
         the crlb for standard deviation of theta
     """
     
-    # Compute Jacobian matrix G.
     df = compute_G(
-        S1_0=S1_0,
-        S2_0=S2_0,
-        I1_0=I1_0,
-        I2_0=I2_0,
+        S0=S0,
+        I0=I0,
         gamma=gamma,
         theta=theta,
         T=T,
         beta0=beta0,
         amplitude=amplitude,
-        period=period              
+        period=period,
+        phase=phase,
+        phase2=phase2
     )
     
-    
+    mu = df['mu'].values
     G = df[JACOBIAN_COLS].values  # Shape: (2T, 5)
     
     if noise == "add":
@@ -373,7 +397,6 @@ def compute_crlb(S1_0: float,
         # Multiplicative noise model: J = G^T W G / sigma^2
         # where W = diag((2*sigma^2 + 1) / (sigma^2 * mu_i(t)^2))
 
-        mu = df['mu'].values
         # Compute weight matrix diagonal: (2*sigma^2 + 1) / (sigma^2 * mu_i(t)^2)
         sqrt_W = np.sqrt(2 * sigma**2 + 1) / sigma / mu
         
@@ -384,14 +407,16 @@ def compute_crlb(S1_0: float,
         # Poisson noise model: J = G^T W G
         # where W = diag(pop_size / mu_i(t))
 
-        mu = df['mu'].values
-
         # Compute weight matrix diagonal: N / mu_i(t)
         sqrt_W = np.sqrt(pop_size / mu)
         
         # Apply weights: G_weighted = sqrt_weight * G (broadcasting)
         G = np.einsum('i, ij -> ij', sqrt_W, G)
-                
+
+    elif noise == 'bin':
+        sqrt_W = 1 /  mu  
+        G = np.einsum('i, ij -> ij', sqrt_W, G)
+        
     else:
         raise ValueError(f"Unknown noise model: {noise}. Use 'add', 'mult', or 'poisson'.") 
 
@@ -427,8 +452,8 @@ def compute_crlb(S1_0: float,
         # Generate unique filename
         filename = os.path.join(debug_dir, f'{noise}_{uuid.uuid4().hex}.png')
 
-        # Create and save plot
-        fig = plot_G(df)
+        # Create and save plot with parameter information
+        fig = plot_G(df, theta=theta, phase=phase, amplitude=amplitude, phase2=phase2)
         fig.savefig(filename, dpi=150, bbox_inches='tight')
         plt.close(fig)
 

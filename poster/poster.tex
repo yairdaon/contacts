@@ -49,147 +49,116 @@
 % Title
 {\bf\textsc{\st{How} Can We Infer Contact Matrices?}\vspace{0.3em}}
 % Authors
-{\textsc{Michael Klots, Yair Daon}\\[0.3em]
-\textit{Azrieli Faculty of Medicine, Bar-Ilan University, Safed, Israel}}
-% University logo (right of title)
+{\textsc{Michael Klots, Yair Daon$^\star$}\\[0.3em]
+  \textit{Azrieli Faculty of Medicine, Bar-Ilan University, Safed, Israel}\\[0.5em]
+$^\star$yair.daon@gmail.com}
 {}
 
+\headerbox{Background}{name=map,column=0,row=0,span=2}{
+  When studying spatial spread of infectious diseases we need data
+  on connectivity e.g.~flights, commutes (Daon et al.
+  2020).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Global Connectivity}{name=map,column=0,row=0,span=2}{
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \textbf{Problem: Instead of relying on connectivity data, we want to infer it from seasonal outbreak patterns, e.g.~flu.}
   
   \begin{center}
     \includegraphics[width=\linewidth,height=0.15\textheight]{../pix/flights.pdf}
-    
-    {\large Flight connections create spatial coupling between epidemic waves.}  {\small Data: (Mao et al., 2015)}
-    
+                    {\small Data: (Mao et al., 2015)}
   \end{center}
 }
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Background}{name=background,column=0,below=map}{
+\headerbox{Seasonally forced multi-region model}{name=model,column=0,below=map}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace{-0.5em}
+  \begin{align*}
+    \dot{\mathbf{S}} &= \mu - {\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \mu \mathbf{S} \\
+    \dot{\mathbf{I}} &= {\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \gamma \mathbf{I} - \mu \mathbf{I} \\
+    %% \dot{\mathbf{I}} &= \sigma \mathbf{E} - \gamma \mathbf{I} - \mu \mathbf{I} \\
+    \dot{\mathbf{R}} &= \gamma \mathbf{I} - \mu \mathbf{R}
+  \end{align*}
+  Contact matrix $\mathbf{C}$ has entries in $[0,1]$.%; seasonal driver $\beta(t)$.
+%% \vspace{0.1em}
+}
 
-Sometimes we want to know how infectious diseases spread. To this end,
-we need data pertaining to connectivity: flights, commutes, etc.
-
-\vspace{1em}
-
-{\Large\textbf{Q: Wouldn't it be cool if, instead of relying on
-    connectivity data—we could infer connectivity from observations?}}
-
-\vspace{0.5em}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\headerbox{Inference for contact matrix}{name=inverse, column=0, below=model}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \vspace{-0.5em}
+  %Incidence satisfies:%Assume $S(t_i), I(t_i)$ for $t_i, i=1,\ldots,T$ known (unrealistic). 
+  \begin{align*}
+    \text{incidence}_i \approx \beta(t_i) \, \mathbf{S}(t_i) \circ \mathbf{C} \mathbf{I}(t_i)
+    \Longrightarrow \mathbf{C} \mathbf{I}(t_i) \approx \frac{\text{incidence}_i}{\beta(t_i) \mathbf{S}(t_i)}
+  \end{align*}
+  
+  %Define:%Collect $\mathbf{I}(t_i)$ into a matrix:
+  \begin{equation*}
+    M := \left[
+      \begin{array}{cccc}
+        \vert & \vert &        & \vert \\
+        \mathbf{I}(t_1)    & \mathbf{I}(t_2)    & \ldots & \mathbf{I}(t_T)    \\
+        \vert & \vert &        & \vert 
+      \end{array}
+      \right]
+  \end{equation*}
+  
+  %\vspace{1em}
+  \begin{equation*}
+    {\Large\textbf{Then:}\ } \boxed{\color{red}\text{relative error}(\textbf{C}) \leq \text{relative error}(\text{incidence}) \kappa(M)}
+  \end{equation*}
+  
+  $\kappa(M)$ condition number: ratio of max \& min singular values.
+  %%\vspace{0.5em}
 }
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Multi-region SEIR with contact matrix}{name=model,column=0,below=background}{
+\headerbox{Inference Fails. Why?}{name=results,column=1, below=map}{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\vspace{0.3em}
-
+  Condition numbers:
+  \begin{itemize}
+  \item 2 regions: $\kappa(M) \approx {\color{red}10^5}$.
+  \item 5 regions: $\kappa(M) \approx {\color{red}10^8}$.
+  \item 10 regions: $\kappa(M) \approx {\color{red}10^{11}}$.
+  \end{itemize}
+  For two regions with 1\% relative error in incidence:
+  \begin{equation*}
+    \text{relative error}(\textbf{C}) \approx 0.01 \cdot 10^5 = 1000.
+  \end{equation*}
+  Solving the inverse problem for $\mathbf{C}$ (lower box) fails miserably. What is going on?
 \begin{itemize}
-  \item $\mathbf{S}, \mathbf{E}, \mathbf{I}, \mathbf{R} \in \mathbb{R}^n$ with
-    $n = \#\text{regions}$.
-  %\item Model:
-    \begin{align*}
-      \dot{\mathbf{S}} &= \mu - \boxed{\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \mu \mathbf{S} \\
-      \dot{\mathbf{E}} &= \boxed{\beta(t) \, \mathbf{S} \circ \mathbf{C} \mathbf{I}} - \sigma \mathbf{E} - \mu \mathbf{E} \\
-      \dot{\mathbf{I}} &= \sigma \mathbf{E} - \gamma \mathbf{I} - \mu \mathbf{I} \\
-      \dot{\mathbf{R}} &= \gamma \mathbf{I} - \mu \mathbf{R}
-    \end{align*}
-  \item Connectivity given by contact matrix
-    $\mathbf{C}, 0\leq c_{ij}\leq 1$.
-  \item Seasonal driver: $\beta(t) = \beta_0 (1+\delta \sin(t))$ 
-  \item $\gamma^{-1}$ infectiousness period, $\sigma^{-1}$ incubation period. 
-  \item $\circ$ element-wise multiplication, $\mathbf{C}\mathbf{I}$ matrix product.
-\end{itemize}
-
-\vspace{0.3em}
-}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Inferring the contact matrix}{name=inverse,column=0, below=model}{
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% To bound performance, assume $S(t_i), I(t_i)$ for $t_i, i=1,\ldots,T$
-%% known (although unrealistic).
-Observed incidence is:
-\begin{align*}
-\text{inc}_i &\approx \beta(t_i) \, S(t_i) \circ C I(t_i) \\
-\Rightarrow C I(t_i) &\approx \frac{\text{inc}_i}{\beta(t_i) S(t_i)}
-\end{align*}
-
-\vspace{1em}
-
-Collect $I(t_i)$ into a matrix:
-\begin{equation*}
-M = \left[
-  \begin{array}{cccc}
-    \vert & \vert &        & \vert \\
-    I(t_1)    & I(t_2)    & \ldots & I(t_T)    \\
-    \vert & \vert &        & \vert 
-  \end{array}
-\right]
-\end{equation*}
-
-\vspace{1em}
-
-{\Large\textbf{Then:}}
-\begin{equation*}
-\boxed{{\text{relative error}(C)} \leq {\text{relative error}(\text{inc}_i)} \kappa(M)}
-\end{equation*}
-
-$\kappa(M)$ is the condition number: ratio of maximal and minimal singular values.
-%\vspace{0.5em}
-}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Results}{name=results,column=1, below=map}{
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{itemize}
-\item 2 regions: $\kappa(M) \approx 10^5$.
-\item For 2 regions, 1\% measurement error $\Rightarrow$ relative error for $C \approx 10^5 \times 0.01 = 1000$.
-\item 5 regions: $\kappa(M) \approx 10^8$.
-\item 10 regions: $\kappa(M) \approx 10^{11}$.
-\item Solving for contact matrix, entries $C_{ij} \sim \mathcal{U}(0,1), i\neq j$.
-\item All information on connectivity is lost.
-\end{itemize}
-
-\vspace{0.5em}
-
-\textbf{Optimization Path for Contact Matrix:}
-\begin{center}
-\includegraphics[width=0.9\linewidth]{../pix/easy_path_c_vec.png}
-\end{center}
-
-%% {\small Optimization converges to random values regardless of starting point.}
-}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Why This Happens?}{name=hard,column=1,below=results}{
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-seasonal forcing $\Rightarrow$ regions synchronize $\Rightarrow$ huge $\kappa(M)$.
-}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Conclusion}{name=conclusion,column=1,below=hard}{
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{itemize}
+\item seasonal forcing $\Rightarrow$ synchronized epidemics $\Rightarrow$ huge $\kappa(M)$.
 \item \textbf{Inferring contact matrices from synchronized epidemic data is extremely ill-conditioned}.
 \item Synchrony between regions makes the inverse problem intractable.
 \item Traditional connectivity data remains essential.
 \end{itemize}
+%\vspace{0.25em}
+}
+
+
+\headerbox{Optimization Paths}{name=res2, below=inverse, span=2}{
+  %%
+  We try to solve the inverse problem for $\textbf{C}$ with standard
+  methods. When seasonal driver is present (left) optimization does not
+  converge. Without seasonal driver (right) true connectivity is
+  found.
+  \begin{center}
+    \includegraphics[width=0.75\linewidth, height=0.36\linewidth]{../pix/poster.jpg}
+  \end{center}
+  \vspace{-0.1em}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\headerbox{Preliminary results}{name=questions,column=1,below=conclusion,span=1}{
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- References to similar studies? Known literature? Other ideas? Contact:
- yair.daon@gmail.com
- \vspace{1em}
-}
+%% \headerbox{References}{name=refs,column=1,below=conclusion,span=1}{
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% \small
+%% \begin{thebibliography}{9}
+%% \bibitem{mao2015} Mao et al. \textit{Journal of Transport Geography} (2015)
+%% \bibitem{daon2020} Daon et al. \textit{Journal of Travel Medicine} (2020)  
+%% \bibitem{trefethen} Trefethen \& Bau. Numerical Linear Algebra (1997)
+%% \end{thebibliography}
+%% }
 
 
 \end{poster}

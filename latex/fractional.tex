@@ -43,16 +43,61 @@ I(t+1) &= I(t) \exp(-\gamma) + \mu(t) \\
 R(t+1) &= R(t) + I(t) [1 - \exp(-\gamma)]
 \end{split}\end{align}
 
-%% Taking logarithms:
-%% \begin{align}\begin{split}\label{eq:log_I}
-%% \log S(t+1) &= \log S(t) - \lambda(t) \\
-%% \log I(t+1) &= \log\left[I(t) \exp(-\gamma) + \mu(t)\right]\\
-%% &= \log I(t) - \gamma + \log\left[1 + \frac{\mu(t)}{I(t) \exp(-\gamma)}\right] \\
-%% &= \log I(t) + \log\left[\exp(-\gamma) + \frac{\mu(t)}{I(t)}\right],
-%% \end{split}\end{align}
-%% where all operations are understood to be elementwise.
+
+\subsection{Parameters}
+
+\textbf{Derivation of $\gamma$:} We aim to match a continuous model
+with infectious period $2.2$ days using a discrete weekly time step
+model. We match the \emph{decay rate} over one time step. In the continuous
+model with recovery rate $\gamma_{\text{cont}} = 1/2.2$ per day, the
+infected fraction after 7 days is $\exp(-7/2.2)$. In our discrete
+model, after 1 week it is $\exp(-\gamma)$. Matching these:
+$$
+\gamma = \frac{7}{2.2} \approx 3.18
+$$
+Mean infectious duration is $1/q \approx 1.04$ weeks.
+
+\textbf{Derivation of $R_0$ and $\beta$:} Consider population size $N$ (large) with one infected individual initially. Ignoring seasonality and contact structure:
+$$\lambda_i(t) = \frac{\beta}{N}$$
+
+The infection probability per timestep:
+$$p_i(t) = 1 - \exp(-\lambda_i(t)) = 1 - \exp(-\beta/N)$$
+
+For large $N$, using $\exp(-x) \approx 1-x$ for small $x$:
+$$p_i(t) \approx 1 - (1 - \beta/N) = \frac{\beta}{N}$$
+
+Incidence per timestep:
+$$\mu_i(t) = S_i(t) \cdot p_i(t) = (N-1) \cdot \frac{\beta}{N} \to \beta$$
+as $N \to \infty$.
+
+The infected individual recovers with probability $q = 1-\exp(-\gamma)$ per timestep. Mean infectious duration is $1/q$ timesteps. Total secondary infections:
+$$R_0 = \beta \times \frac{1}{q} = \frac{\beta}{1-\exp(-\gamma)}$$
+
+With seasonal forcing, transmission varies as:
+$$\beta(t) = \beta_0\left(1 + A\cos\left(\frac{2\pi t}{P}\right)\right)$$
+where $A$ is the amplitude and $P$ is the period.
+
+The measured $R_0 = 3.65$ corresponds to peak transmission when $\cos(2\pi t/P) = 1$:
+$$R_0 = \frac{\beta_0(1 + A)}{1-\exp(-\gamma)}$$
+
+Therefore:
+$$\beta_0 = \frac{R_0 \left(1 - \exp(-\gamma)\right)}{1 + A}$$
+
+For example, with $R_0 = 3.65$, $\gamma = 7/2.2$, and amplitude $A = 0.5$:
+$$\beta_0 = \frac{3.65 \times 0.958}{1.5} \approx 2.33$$
+
+%% However, attempting to match mean durations directly is
+%% \emph{mathematically impossible}.
+
+%% To see why: if we try to match the mean duration $1/(1-\exp(-\gamma)) = 2.2/7 \approx 0.314$ weeks, this would require:
+%% $$1 - \exp(-\gamma) = 7/2.2 \approx 3.18$$
+%% $$\exp(-\gamma) = -2.18$$
+
+%% This is impossible since $\exp(-\gamma) > 0$ always. The fundamental problem is that with weekly time steps, we cannot accurately represent a $2.2$-day infectious period ($< 1$ week).
 
 
+
+\subsection{Sensitivities etc.}
 Taking partials:
 \begin{align*}
   \frac{\partial \lambda(t)}{\partial \phi_k} &= \beta(t) \left

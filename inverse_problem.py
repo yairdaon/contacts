@@ -39,7 +39,8 @@ def main(seasonal_driver=False,
         n_regions, n_seasons, n0, maxeval = 2, 20, 15, None
     else:
         raise ValueError(f"Unknown difficulty: {difficulty}")
-    print(f"{difficulty} regions {n_regions}, seasons {n_seasons} starts={n0} seasonal_driver {seasonal_driver}")
+    print(f"{difficulty} regions {n_regions}, seasons {n_seasons}
+    starts={n0} seasonal_driver {seasonal_driver}")
 
 
 
