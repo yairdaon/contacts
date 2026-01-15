@@ -5,6 +5,7 @@ import pytest
 import pandas as pd
 import plac
 import socket
+from pprint import pprint
 
 from src.helper import makepop, a2s
 from src.inverter import Inverter, Objective
@@ -24,13 +25,13 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 )
 
 
-def main(seasonal_driver=False,
+def main(seasonal_driver,
          optimizer='nlopt',
          difficulty='debug',
          seed=None):
 
     if difficulty == 'debug':
-        n_regions, n_seasons, n0, maxeval = 2, 10, 4, 100
+        n_regions, n_seasons, n0, maxeval = 2, 3, 10, 1000
     elif difficulty == "easy":
         n_regions, n_seasons, n0, maxeval = 2, 10, 10, 500
     elif difficulty == "inter":
@@ -39,22 +40,23 @@ def main(seasonal_driver=False,
         n_regions, n_seasons, n0, maxeval = 2, 20, 15, None
     else:
         raise ValueError(f"Unknown difficulty: {difficulty}")
-    print(f"{difficulty} regions {n_regions}, seasons {n_seasons}
-    starts={n0} seasonal_driver {seasonal_driver}")
+    
+    print(f"{difficulty} regions {n_regions}, seasons {n_seasons} starts={n0} seasonal_driver {seasonal_driver}")
 
 
 
-    pop = makepop(n_regions=n_regions, n_seasons=n_seasons)
+    pop = makepop(n_regions=n_regions,
+                  n_seasons=n_seasons)
     objective = Objective(population=pop,
                           n_weeks=NWEEKS,
+                          gamma=7/2.2,  
                           transform=optimizer == 'scipy',
                           seasonal_driver=seasonal_driver)
     true_params = objective.packer.random_dict(seed=seed)
-    true_params['c_vec'][0] = 0.5
+    true_params['theta'] = 0.05
     true_params['beta0'] = 0.5
-    print(true_params['c_vec'])
+    print(true_params['theta'])
     print(true_params['beta0'])
-    import pdb;pdb.set_trace()
     
     # Pack true parameters
     x_true = objective.packer.pack(true_params)
@@ -152,6 +154,14 @@ def main(seasonal_driver=False,
     assert fun >= 0, f"Final loss is negative: {fun}"
 
 
-if __name__ == '__main__':
-    plac.call(main)
- 
+if __name__ == "__main__":
+    try:
+        main(seasonal_driver=True)
+        main(seasonal_driver=False)
+        # plac.call(main)
+    except:
+        import sys, traceback, pdb
+        _, _, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
+

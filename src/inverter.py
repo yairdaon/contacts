@@ -3,22 +3,24 @@ import matplotlib
 import nlopt
 import numpy as np
 import pandas as pd
+from datetime import timedelta
 from joblib import delayed, Parallel
 from scipy.optimize import minimize
 from tqdm import tqdm
+from pprint import pprint
 
 from src.losses import LOSSES
-from src.multi import run_euler
-from src.packer import Trans, Straight
-from src.rk import run_rk
+from src.packer import Straight
+from src.crlb import compute_G
 
 matplotlib.use("Agg")  # Use non-interactive backend for headless environments
 
 
 class Objective:
     """
-    Objective function for SEIR parameter inference.
-    
+    Objective function for discrete SIR parameter inference.
+
+    Uses compute_G (discrete weekly SIR model with exponential formulation).
     Encapsulates the forward simulation model, parameter packing/unpacking,
     and loss computation for optimization-based parameter estimation.
     """
@@ -26,17 +28,13 @@ class Objective:
     def __init__(self,
                  population,
                  transform,
-                 method='rk',
-                 loss='gaussian',
+                 # beta0,
+                 gamma,
                  n_weeks=26,
-                 sigma=0.5,
-                 dt_output=7,
-                 mu=0 / (30 * 365),
-                 nu=0.2,
                  seasonal_driver=True):
         """
         Initialize objective function for parameter inference.
-        
+
         Parameters:
         -----------
         population : DataFrame
@@ -44,31 +42,27 @@ class Objective:
         transform : bool
             Whether to use parameter transformations (Trans vs Straight packer)
         method : str
-            Integration method ('rk' or 'euler')
+            Integration method (kept for compatibility, always uses compute_G)
         loss : str
             Loss function name (see losses.py)
         n_weeks : int
             Simulation duration in weeks
-        sigma : float
-            E→I transition rate (1/day)
         dt_output : float
-            Output timestep (days)
+            Output timestep - kept for compatibility, discrete model uses weekly steps
         mu : float
-            Birth/death rate (1/day)
-        nu : float
-            I→R recovery rate (1/day)
+            Birth/death rate - kept for compatibility, not used in discrete SIR
+        gamma : float
+            Recovery rate parameter (gamma in discrete model)
         seasonal_driver : bool
             Whether to include seasonal forcing (default: True)
         """
-        pack = Trans if transform else Straight
-        self.packer = pack(seasons=population['season'].unique(),
-                           regions=population['region'].unique(),
-                           seasonal_driver=seasonal_driver)
+        # pack = Trans if transform else Straight
+        self.packer = Straight(seasons=population['season'].unique(),
+                               regions=population['region'].unique(),
+                               seasonal_driver=seasonal_driver)
         self.n_weeks = n_weeks
-        self.sigma = sigma
-        self.dt_output = dt_output
-        self.mu = mu
-        self.nu = nu
+        self.gamma = gamma
+        self.dt_step = timedelta(weeks=1)
         self.pops = {}
         for season in self.packer.seasons:
             pop = (population
@@ -79,19 +73,11 @@ class Objective:
             self.pops[season] = pop
         self.population = population
 
-        assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3), f"Population DataFrame shape {population.shape} doesn't match expected ({self.packer.n_seasons * self.packer.n_regions}, 3)"
-        self.loss = LOSSES[loss]
+        msg =  f"Population DataFrame shape {population.shape} doesn't match expected"
+        msg += f" ({self.packer.n_seasons * self.packer.n_regions}, 3)"
+        assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3), msg
+        self.loss = LOSSES['gaussian']
         self.run_time = 0
-
-        self.method = method
-        if self.method == 'euler':
-            self.run = run_euler
-            self.dt_step = 0.05
-        elif self.method == 'rk':
-            self.run = run_rk
-            self.dt_step = 1
-        else:
-            raise ValueError(f"Method {self.method} not implemented")
 
         
     def reset(self):
@@ -119,48 +105,37 @@ class Objective:
         DataFrame
             Simulated incidence data with columns [time, region, season, incidence]
         """
-        self.packer.verify(params)
 
         S_init = params['S_init']
-        E_init = params['E_init']
         I_init = params['I_init']
         beta0 = params['beta0']
-        omega = params['omega']
+        phase = params['omega']
         eps = params['eps']
-        c_mat = self.packer.c_vec_to_mat(params["c_vec"])
+        theta = params["theta"]
 
         results = []
         for season_idx, season in enumerate(self.packer.seasons):
             pop = self.pops[season]
             S = S_init[season_idx, :]
-            E = E_init[season_idx, :]
             I = I_init[season_idx, :]
 
-            df = self.run(S_init=S,
-                        E_init=E,
-                        I_init=I,
-                        dt_step=self.dt_step,
-                        dt_output=self.dt_output,
-                        n_weeks=self.n_weeks,
-                        beta0=beta0,
-                        sigma=self.sigma,
-                        mu=self.mu,
-                        nu=self.nu,
-                        omega=omega,
-                        eps=eps,
-                        contact_matrix=c_mat,
-                        population=pop,
-                        start_date=season)
+            df = compute_G(S0=S,
+                           I0=I,
+                           gamma=self.gamma,  # Recovery rate
+                           theta=theta,
+                           T=self.n_weeks,
+                           beta0=beta0,
+                           amplitude=eps,
+                           period=53,  # 53 weeks per year
+                           phase=phase) #phase2=phase2)  # Same phase for both regions
 
-            df = df[[col for col in df.columns if "C" in col]].reset_index(drop=False)
-            assert np.all(df.drop("time", axis=1) >= 0), f"Negative values in simulation output: {df[df < 0].dropna(how='all')}"
-            df_long = df.melt(id_vars=["time"], var_name="region", value_name="incidence")
-            df_long["region"] = (df_long["region"]
-                                 .str.replace("C", "")
-                                 .astype(int)
-                                 .replace(self.packer.region_dict)
-                                 )
+            # compute_G returns DataFrame with MultiIndex (t, j) and column 'mu' for incidence
+            df = df.reset_index()
+            df['time'] = df['t'] * self.dt_step  # Convert week index to time
+            df_long = df[['time', 'j', 'mu']].rename(columns={'j': 'region', 'mu': 'incidence'})
+            df_long["region"] = df_long["region"].astype(int).replace(self.packer.region_dict)
             df_long["season"] = season
+            assert np.all(df_long['incidence'] >= 0), f"Negative incidence values in simulation output"
             results.append(df_long)
 
         res = pd.concat(results, ignore_index=True)
@@ -183,23 +158,33 @@ class Objective:
         float
             Loss value (np.inf if simulation fails)
         """
-        try:
-            assert not np.isnan(xx).any(), f"NaN values found in optimization vector: {xx[np.isnan(xx)]}"
+        #try:
+        assert not np.isnan(xx).any(), f"NaN values found in optimization vector: {xx[np.isnan(xx)]}"
+        
+        # Unpack and transform parameters
+        params = self.packer.unpack(xx)
+            
+        # Run simulation with parameter dictionary
+        kk = self.sim(params)
+            
+        msg = f"Simulation and observation indices don't match. Sim: {len(kk)}, Obs: {len(self.obs)}"
+        assert np.all(kk.index == self.obs.index), msg
 
-            # Unpack and transform parameters
-            params = self.packer.unpack(xx)
+        msg = f"Nulls dont match. Sim: {kk.isnull().sum().sum()}, Obs: {self.obs.isnull().sum().sum()}"
+        assert np.all(kk.isnull() == self.obs.isnull()), msg 
 
-            # Run simulation with parameter dictionary
-            kk = self.sim(params)
-            assert np.all(
-                kk.index == self.obs.index), f"Simulation and observation indices don't match. Sim: {len(kk)}, Obs: {len(self.obs)}"
-            assert np.all(
-                kk.isnull() == self.obs.isnull()), f"Nulls dont match. Sim: {kk.isnull().sum().sum()}, Obs: {self.obs.isnull().sum().sum()}"
-            out = self.loss(self.obs.dropna(), kk.dropna())  # Fixed rho, params.pop('rho'))  # , theta=params.pop('theta'))
-            assert not np.isnan(out), f"Loss function returned NaN. Loss value: {out}"
-        except Exception as e:
-            #print(e)
-            out = np.inf
+        out = self.loss(self.obs.dropna(), kk.dropna())
+        # Fixed rho, params.pop('rho'))  # , theta=params.pop('theta'))
+        assert not np.isnan(out), f"Loss function returned NaN. Loss value: {out}"
+
+        #except Exception as e:
+            # print('\n\n')
+            # #print(e)
+            # #pprint(params)
+            # print('\n\n')
+            # pprint(kk)
+            # print('\n\n')
+            #out = np.inf
         self.x_list.append(copy.deepcopy(xx))
         self.out_list.append(out)
         return out
@@ -233,10 +218,10 @@ class Inverter:
         self.objective = objective
         self.packer = objective.packer
         self.optimizer = optimizer
-        if self.optimizer == 'scipy':
-            assert type(self.objective.packer) == Trans
-        elif self.optimizer == 'nlopt':
-            assert type(self.objective.packer) == Straight
+        # if self.optimizer == 'scipy':
+        #     assert type(self.objective.packer) == Trans
+        # elif self.optimizer == 'nlopt':
+        assert type(self.objective.packer) == Straight
         self.auglag = auglag
 
     def fit(self, seed=None, n0=1, maxeval=None):
@@ -270,7 +255,8 @@ class Inverter:
                 assert np.all(x0 >= 0)
 
         if n0 > 1:
-            self.results = Parallel(n_jobs=-1)(delayed(self.single_optimization)(x, maxeval) for x in tqdm(starts))
+            it = tqdm(starts)
+            self.results = Parallel(n_jobs=-1)(delayed(self.single_optimization)(x, maxeval) for x in it) 
         else:
             self.results = [self.single_optimization(starts[0], maxeval)]
 
