@@ -11,58 +11,44 @@ from src.helper import makepop, a2s
 from src.inverter import Inverter, Objective
 from src.losses import RHO
 from tests.test_inverter import NWEEKS
-
+from src import flu
 
 OUTPUT_DIR = os.path.expanduser("~/contacts/res")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 @plac.annotations(
-    seasonal_driver=('Enable seasonal driver', 'flag', 's'),
-    #optimizer=('Optimizer to use: nlopt or scipy', 'option', 'o', str, ['nlopt', 'scipy']),
-    difficulty=('Difficulty level', 'option', 'd', str, ['local', 'easy', 'inter', 'hard']),
-    seed=('Random seed', 'option', 'r', int)
+    sync=('Synchronized seasonal driver', 'flag', 's'),
+    full=('FULL HARD RUN', 'flag', 'f')
 )
 
 
-def main(seasonal_driver,
-         optimizer='nlopt',
-         difficulty='debug',
-         seed=None):
+def main(sync,
+         full):
 
-    if difficulty == 'debug':
-        n_regions, n_seasons, n0, maxeval = 2, 3, 10, None
-    elif difficulty == "easy":
-        n_regions, n_seasons, n0, maxeval = 2, 10, 10, 500
-    elif difficulty == "inter":
-        n_regions, n_seasons, n0, maxeval = 2, 15, 15, 1000
-    elif difficulty == "hard":
+    theta = 0.05
+    phase = np.zeros(2)
+    if not sync:
+        phase[1] = np.pi
+    
+
+    if full:
         n_regions, n_seasons, n0, maxeval = 2, 20, 15, None
     else:
-        raise ValueError(f"Unknown difficulty: {difficulty}")
-    
-    print(f"{difficulty} regions {n_regions}, seasons {n_seasons} starts={n0} seasonal_driver {seasonal_driver}")
-
-
+        n_regions, n_seasons, n0, maxeval = 2, 3, 1, 10
 
     pop = makepop(n_regions=n_regions,
                   n_seasons=n_seasons)
     objective = Objective(population=pop,
                           n_weeks=NWEEKS,
-                          gamma=7/2.2,  
-                          transform=optimizer == 'scipy',
-                          seasonal_driver=seasonal_driver)
-    true_params = objective.packer.random_dict(seed=seed)
-    true_params['theta'] = 0.05
-    true_params['beta0'] = 0.5
-    print(true_params['theta'])
-    print(true_params['beta0'])
+                          gamma=flu.gamma,
+                          beta0 = flu.beta0,
+                          amplitude=flu.amplitude,
+                          phase=phase)
     
-    # Pack true parameters
-    x_true = objective.packer.pack(true_params)
-   
-    # Generate "observed" data using true parameters (not initial guess)
-    true_trajectory = objective.sim(true_params)
+    true = objective.packer.random_dict()
+    true['theta'] = theta
+    true_trajectory = objective.sim(true)
 
     # Generate observed data
     obs = true_trajectory.copy()
@@ -73,22 +59,23 @@ def main(seasonal_driver,
     objective.obs = obs
 
     ## Solve inverse problem
-    inv = Inverter(objective=objective, optimizer=optimizer).fit(n0=n0, maxeval=maxeval)
+    inv = Inverter(objective=objective).fit(n0=n0, maxeval=maxeval)
 
     ## Create CSV dataframe with optimization results
     hostname = socket.gethostname().split('.')[0]  # short server name (e.g. dml12)
-    flag = "" if seasonal_driver else "_not" 
-    fname = f'{OUTPUT_DIR}/{difficulty}{flag}_seasonal_{hostname}.csv'
+    flag = "" if sync else "un"
+    difficulty = 'full' if full else 'debug'
+    fname = f'{OUTPUT_DIR}/{difficulty}_{flag}sync_{hostname}.csv'
     
     # Prepare data list for DataFrame
     data_rows = []
     
     # Add true parameters row (chain_number = -1, step_number = 0)
     true_row = {'chain_number': -1, 'step_number': 0, 'fun': np.nan}
-    true_row.update(true_params)
+    true_row.update(true)
     
     # Flatten arrays in true_params for CSV storage
-    for key, value in true_params.items():
+    for key, value in true.items():
         if isinstance(value, np.ndarray):
             if value.ndim == 1:  # 1D array (like c_vec)
                 for i, v in enumerate(value):
