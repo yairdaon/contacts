@@ -56,7 +56,6 @@ class Objective:
         seasonal_driver : bool
             Whether to include seasonal forcing (default: True)
         """
-        # pack = Trans if transform else Straight
         self.packer = Straight(seasons=population['season'].unique(),
                                regions=population['region'].unique(),
                                seasonal_driver=seasonal_driver)
@@ -72,12 +71,11 @@ class Objective:
                    .values)
             self.pops[season] = pop
         self.population = population
+        self.loss = LOSSES['gaussian']
 
         msg =  f"Population DataFrame shape {population.shape} doesn't match expected"
         msg += f" ({self.packer.n_seasons * self.packer.n_regions}, 3)"
         assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3), msg
-        self.loss = LOSSES['gaussian']
-        self.run_time = 0
 
         
     def reset(self):
@@ -86,10 +84,10 @@ class Objective:
         self.out_list = []
 
         
-    def set_packer(self, packer):
-        """Set parameter packer (Trans or Straight)."""
-        self.packer = packer(seasons=sorted(self.population.season.unique()),
-                             regions=sorted(self.population.region.unique()))
+    # def set_packer(self, packer):
+    #     """Set parameter packer (Trans or Straight)."""
+    #     self.packer = packer(seasons=sorted(self.population.season.unique()),
+    #                          regions=sorted(self.population.region.unique()))
 
     def sim(self, params):
         """
@@ -112,7 +110,8 @@ class Objective:
         phase = params['omega']
         eps = params['eps']
         theta = params["theta"]
-
+        phase2 = np.pi * int(self.packer.seasonal_driver)
+        
         results = []
         for season_idx, season in enumerate(self.packer.seasons):
             pop = self.pops[season]
@@ -127,7 +126,8 @@ class Objective:
                            beta0=beta0,
                            amplitude=eps,
                            period=53,  # 53 weeks per year
-                           phase=phase) #phase2=phase2)  # Same phase for both regions
+                           phase=phase,
+                           phase2=phase2)  # Same phase for both regions
 
             # compute_G returns DataFrame with MultiIndex (t, j) and column 'mu' for incidence
             df = df.reset_index()
@@ -242,7 +242,8 @@ class Inverter:
         self : Inverter
             Fitted inverter with optimal parameters in self.x
         """
-        self.objective.reset()
+        objective.x_list = []
+        objective.out_list = []
         np.random.seed(seed)
 
         starts = []
@@ -320,7 +321,7 @@ class Inverter:
             opt.set_lower_bounds([0]*(n-1) + [-float('inf')])
             opt.set_upper_bounds([1]*(n-1) + [float('inf')])
             
-            # Add your simplex constraints
+            # Add simplex constraints
             for idx in range(M):
                 lower = lambda x, grad: -x[idx] - x[idx + M] #- x[idx + 2 * M]
                 upper = lambda x, grad: -1 + x[idx] + x[idx + M] #+ x[idx + 2 * M]

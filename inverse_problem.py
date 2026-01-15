@@ -20,7 +20,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 @plac.annotations(
     seasonal_driver=('Enable seasonal driver', 'flag', 's'),
     #optimizer=('Optimizer to use: nlopt or scipy', 'option', 'o', str, ['nlopt', 'scipy']),
-    difficulty=('Difficulty level', 'option', 'd', str, ['debug', 'easy', 'inter', 'hard']),
+    difficulty=('Difficulty level', 'option', 'd', str, ['local', 'easy', 'inter', 'hard']),
     seed=('Random seed', 'option', 'r', int)
 )
 
@@ -31,7 +31,7 @@ def main(seasonal_driver,
          seed=None):
 
     if difficulty == 'debug':
-        n_regions, n_seasons, n0, maxeval = 2, 3, 10, 1000
+        n_regions, n_seasons, n0, maxeval = 2, 3, 10, None
     elif difficulty == "easy":
         n_regions, n_seasons, n0, maxeval = 2, 10, 10, 500
     elif difficulty == "inter":
@@ -156,9 +156,7 @@ def main(seasonal_driver,
 
 if __name__ == "__main__":
     try:
-        main(seasonal_driver=True)
-        main(seasonal_driver=False)
-        # plac.call(main)
+        plac.call(main)
     except:
         import sys, traceback, pdb
         _, _, tb = sys.exc_info()

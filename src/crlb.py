@@ -10,7 +10,8 @@ from typing import Callable, Dict, List
 from scipy.linalg import cho_factor, cho_solve
 
 from src.helper import JACOBIAN_COLS, plot_G
-    
+
+
 def compute_G(S0: np.ndarray,
               I0: np.ndarray,
               gamma: float,
