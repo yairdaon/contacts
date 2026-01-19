@@ -67,6 +67,19 @@ def compute_G(S0: np.ndarray,
         Entry (t,j,param) = ∂μⱼ(t)/∂param
     """
 
+    # Validate inputs
+    # assert gamma > 0, f"gamma must be strictly positive, got {gamma}"
+    # assert beta0 > 0, f"beta0 must be strictly positive, got {beta0}"
+    # assert amplitude > 0, f"amplitude must be strictly positive, got {amplitude}"
+    # assert period > 0, f"period must be strictly positive, got {period}"
+    # assert T > 0, f"T must be strictly positive, got {T}"
+    # assert 0 <= theta <= 0.5, f"theta must be in [0, 0.5], got {theta}"
+    # assert np.all(S0 > 0), f"S0 must be strictly positive, got {S0}"
+    # assert np.all(I0 > 0), f"I0 must be strictly positive, got {I0}"
+    # assert np.all(S0 <= 1), f"S0 must be <= 1, got {S0}"
+    # assert np.all(I0 <= 1), f"I0 must be <= 1, got {I0}"
+    # assert np.all(S0 + I0 <= 1), f"S0 + I0 must be <= 1, got S0={S0}, I0={I0}, sum={S0+I0}"
+
     # Initialize arrays to store results
     G = []
 

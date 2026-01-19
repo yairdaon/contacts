@@ -19,7 +19,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 @plac.annotations(
     sync=('Synchronized seasonal driver', 'flag', 's'),
-    full=('FULL HARD RUN', 'flag', 'f')
+    full=('FULL, HARD (!!!) RUN', 'flag', 'f')
 )
 
 
@@ -32,10 +32,15 @@ def main(sync,
         phase[1] = np.pi
     
 
+    n_regions = 2
     if full:
-        n_regions, n_seasons, n0, maxeval = 2, 20, 15, None
+        n_seasons = 20
+        n0 = 20
+        maxeval =  None
     else:
-        n_regions, n_seasons, n0, maxeval = 2, 3, 1, 10
+        n_seasons = 4
+        n0 = 1  # No parallelization in debug mode
+        maxeval = None#5000
 
     pop = makepop(n_regions=n_regions,
                   n_seasons=n_seasons)

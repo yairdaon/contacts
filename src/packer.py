@@ -18,7 +18,7 @@ class Packer:
         self.n_seasons = len(self.seasons)
         assert self.n_regions == 2 ## For this branch only
         self.region_dict = dict(zip(range(self.n_regions), self.regions))
-
+         
         # Count parameters: S, I init (2*n_regions*n_seasons), theta,
         self.n_params = 2 * self.n_regions * self.n_seasons + 1 
         self.seasonal_driver = seasonal_driver
@@ -34,13 +34,21 @@ class Packer:
         np.random.seed(seed)
 
         out = dict(
-            theta=np.random.uniform(0.1, 0.9),  # Within [0.01, 0.99] bounds
+            theta=np.random.uniform(0.0, 0.5),  # Within [0, 0.5] bounds (max half population commuting)
         )
         out["I_init"] = np.random.uniform(*ILIM, size=(self.n_seasons, self.n_regions))
         out["S_init"] = np.random.uniform(*SLIM, size=(self.n_seasons, self.n_regions))
         return out
-   
-    
+
+    def verify(self, flat):
+        success = True
+        success = success and flat.shape == (self.n_params,)#, f"Packed vector shape {flat.shape} != ({self.n_params},)"
+        success = success and np.all(flat >= 0)   
+        tot = flat[:-1].reshape(2,-1).sum(axis=0)
+        success = success and np.all(tot <= 1)
+        #assert success
+
+        
     def pack(self, params):
         parts = []
 
@@ -51,12 +59,10 @@ class Packer:
         parts.append([params["theta"]]) 
 
         flat = np.concatenate(parts)
-        assert flat.shape == (self.n_params,), f"Packed vector shape {flat.shape} != ({self.n_params},)"
+        self.verify(flat)
         return flat
 
     def unpack(self, flat):
-        assert flat.shape == (self.n_params,)
-
         out = {}
         idx = 0
 
@@ -76,4 +82,5 @@ class Packer:
         idx += 1
 
         assert idx == flat.size
+        self.verify(flat)
         return out

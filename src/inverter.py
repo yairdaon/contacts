@@ -55,7 +55,7 @@ class Objective:
         S_init = params['S_init']
         I_init = params['I_init']
         theta = params["theta"]
-                
+
         results = []
         for season_idx, season in enumerate(self.packer.seasons):
             pop = self.pops[season]
@@ -83,9 +83,9 @@ class Objective:
             results.append(df_long)
 
         res = pd.concat(results, ignore_index=True)
-
         return res
 
+    
     def __call__(self, xx, grad=None):
         assert not np.isnan(xx).any()
         
@@ -144,30 +144,30 @@ class Inverter:
         objective = copy.deepcopy(self.objective)
 
         n_regions = self.packer.n_regions
-        n_seasons = self .packer.n_seasons
+        n_seasons = self.packer.n_seasons
         M = n_regions * n_seasons
         n = self.packer.n_params
             
-
         opt = nlopt.opt(nlopt.LN_COBYLA, n)
         opt.set_xtol_rel(1e-4)
         if maxeval is not None:
             opt.set_maxeval(maxeval)
                 
         opt.set_min_objective(objective)
-        opt.set_lower_bounds([0]*(n-1) + [-float('inf')])
-        opt.set_upper_bounds([1]*(n-1) + [float('inf')])
+        # S_init and I_init bounded by [0, 1], theta bounded by [0, 0.5]
+        opt.set_lower_bounds([0]*n)
+        opt.set_upper_bounds([1]*(n-1) + [0.5])  # theta (last param) bounded by 0.5
             
-        # Add simplex constraints
+        # Add simplex constraints: S[i] + I[i] <= 1 for each region-season combination
+        # nlopt inequality constraint h(x) >= 0, so for S + I <= 1, we need 1 - S - I >= 0
+        # Must use default argument (idx=idx) to capture value, not reference
         for idx in range(M):
-            lower = lambda x, grad: -x[idx] - x[idx + M] #- x[idx + 2 * M]
-            upper = lambda x, grad: -1 + x[idx] + x[idx + M] #+ x[idx + 2 * M]
-            opt.add_inequality_constraint(lower, 1e-8)
-            opt.add_inequality_constraint(upper, 1e-8)
-            
+            opt.add_inequality_constraint(lambda x, grad: x[idx] + x[idx + M] - 1, 1e-8)
+
         x0 = self.packer.random_vector()
         x = opt.optimize(x0)
         params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() == 4)
         params['x_list'] = copy.deepcopy(self.objective.x_list)
         params['out_list'] = copy.deepcopy(self.objective.out_list)
         return params
+
