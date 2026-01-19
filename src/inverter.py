@@ -11,7 +11,7 @@ from pprint import pprint
 
 from src.losses import LOSSES
 from src.packer import Packer
-from src.crlb import compute_G
+from src import compute_g
 
 matplotlib.use("Agg")  # Use non-interactive backend for headless environments
 
@@ -62,17 +62,17 @@ class Objective:
             S = S_init[season_idx, :]
             I = I_init[season_idx, :]
 
-            df = compute_G(S0=S,
-                           I0=I,
-                           gamma=self.gamma,  # Recovery rate
-                           theta=theta,
-                           T=self.n_weeks,
-                           beta0=self.beta0,
-                           amplitude=self.amplitude,
-                           period=53,  # 53 weeks per year
-                           phase=self.phase[0],
-                           phase2=self.phase[1])  # Same phase for both regions
-
+            df = compute_g.slow(S0=S,
+                                I0=I,
+                                gamma=self.gamma,  # Recovery rate
+                                theta=theta,
+                                T=self.n_weeks,
+                                beta0=self.beta0,
+                                amplitude=self.amplitude,
+                                period=53,  # 53 weeks per year
+                                phase=self.phase[0],
+                                phase2=self.phase[1])  # Same phase for both regions
+            
             # compute_G returns DataFrame with MultiIndex (t, j) and column 'mu' for incidence
             df = df.reset_index()
             df['time'] = df['t'] * timedelta(weeks=1) # Convert week index to time
