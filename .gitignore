@@ -20,3 +20,11 @@ pix
 *dvi
 *~
 *out
+
+.Rhistory
+.ipynb_checkpoints/
+.virtual_documents/
+RESEARCH_PLAN.md
+crlb.csv
+data/
+res/

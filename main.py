@@ -86,7 +86,7 @@ def compute_one_crlb(noise, theta, amplitude, gamma, R0, T, period,
     seed=('Random seed', 'option', 's', int, None, 'Random seed'),
     n_jobs=('Number of parallel jobs', 'option', 'j', int, -1, 'Number of jobs')
 )
-def main(n_runs=3000, seed=None, n_jobs=-1):
+def main(n_runs=20000, seed=None, n_jobs=-1):
     """CRLB analysis for epidemic connectivity."""
 
     np.random.seed(seed)
@@ -107,10 +107,10 @@ def main(n_runs=3000, seed=None, n_jobs=-1):
 
     tasks = []
     task_idx = 0
-    for noise in ['bin']:#, 'mult',  'add', 'poisson']:
-        for theta in [0, 5e-2]:
-            for amplitude in [0, 0.7]:
-                for phase in [0, np.pi]:
+    for noise in ['bin']:
+        for theta in [1e-4, 1e-3, 1e-2, 1e-1]:
+            for amplitude in [0.1, 0.3, 0.7, 0.7]:
+                for phase2 in [0, np.pi]:
                     for run_idx in range(n_runs):
                         # Create unique seed for each task
                         seed_offset = seed + task_idx if seed is not None else None
@@ -126,8 +126,8 @@ def main(n_runs=3000, seed=None, n_jobs=-1):
                             'sigma': sigma,
                             'pop_size': pop_size,
                             'seed': seed_offset,
-                            'phase': phase,
-                            'phase2': None  # Set to None for synchronized regions
+                            'phase': 0,
+                            'phase2': phase2  # Set to None for synchronized regions
                         })
                         task_idx += 1
 

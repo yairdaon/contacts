@@ -38,7 +38,7 @@ def main(sync,
         n0 = 20
         maxeval =  None
     else:
-        n_seasons = 10
+        n_seasons = 30
         n0 = 1  # No parallelization in debug mode
         maxeval = None#5000
 
