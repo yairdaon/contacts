@@ -41,12 +41,11 @@ class Packer:
         return out
 
     def verify(self, flat):
-        success = True
-        success = success and flat.shape == (self.n_params,)#, f"Packed vector shape {flat.shape} != ({self.n_params},)"
-        success = success and np.all(flat >= 0)   
+        assert flat.shape == (self.n_params,), f"Packed vector shape {flat.shape} != ({self.n_params},)"
+        assert np.all(flat >= 0)   
         tot = flat[:-1].reshape(2,-1).sum(axis=0)
-        success = success and np.all(tot <= 1)
-        #assert success
+        assert np.all(tot <= 1)
+        
 
         
     def pack(self, params):
@@ -59,7 +58,7 @@ class Packer:
         parts.append([params["theta"]]) 
 
         flat = np.concatenate(parts)
-        self.verify(flat)
+        #self.verify(flat)
         return flat
 
     def unpack(self, flat):
@@ -82,5 +81,5 @@ class Packer:
         idx += 1
 
         assert idx == flat.size
-        self.verify(flat)
+        #self.verify(flat)
         return out

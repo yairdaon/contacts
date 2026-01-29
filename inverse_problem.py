@@ -7,48 +7,56 @@ import plac
 import socket
 from pprint import pprint
 
+import nlopt
+
 from src.helper import makepop, a2s
 from src.inverter import Inverter, Objective
-from src.losses import RHO
-from tests.test_inverter import NWEEKS
+from src import flu 
 from src import flu
 
 OUTPUT_DIR = os.path.expanduser("~/contacts/res")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-@plac.annotations(
-    sync=('Synchronized seasonal driver', 'flag', 's'),
-    full=('FULL, HARD (!!!) RUN', 'flag', 'f')
-)
-
-
 def main(sync,
-         full):
-
+         method='slsqp'):
+    
     theta = 0.05
     phase = np.zeros(2)
+    grad = True
     if not sync:
         phase[1] = np.pi
     
 
     n_regions = 2
-    if full:
-        n_seasons = 20
-        n0 = 20
-        maxeval =  None
+    n_seasons = 20
+    n0 = 500  # No parallelization in debug mode
+    maxeval = None
+    if method == 'slsqp':
+        optimizer = nlopt.LD_SLSQP
+    elif method == 'mma':
+        optimizer = nlopt.LD_MMA
+    elif method == 'ccsaq':
+        optimizer =  nlopt.LD_CCSAQ
+    elif method == 'cobyla':
+        optimizer = nlopt.LN_COBYLA
     else:
-        n_seasons = 30
-        n0 = 1  # No parallelization in debug mode
-        maxeval = None#5000
+        raise ValueError("Invalid optimizer")
+
+    
+    #run = 'full' if full else 'debug'
+    #oo = '' if grad else 'out'
+    un = 'S' if sync else 'Uns' 
+    print(f"\n\n{un}ynchronized with {method}")
 
     pop = makepop(n_regions=n_regions,
                   n_seasons=n_seasons)
     objective = Objective(population=pop,
-                          n_weeks=NWEEKS,
+                          n_weeks=flu.nweeks,
                           gamma=flu.gamma,
                           beta0 = flu.beta0,
                           amplitude=flu.amplitude,
+                          rho=flu.rho,
                           phase=phase)
     
     true = objective.packer.random_dict()
@@ -57,20 +65,21 @@ def main(sync,
 
     # Generate observed data
     obs = true_trajectory.copy()
-    true_counts = true_trajectory['incidence'] * RHO  # Fixed rho value
-    scale = np.sqrt(RHO * (1 - RHO) * true_counts)
+    true_counts = true_trajectory['incidence'] * flu.rho  # Fixed rho value
+    scale = np.sqrt(flu.rho * (1 - flu.rho) * true_counts)
     obs['incidence'] = true_counts + np.random.randn(true_counts.size) * scale
     obs['incidence'] = np.maximum(1e-6, obs['incidence'])  # Ensure non-negative
     objective.obs = obs
 
     ## Solve inverse problem
-    inv = Inverter(objective=objective).fit(n0=n0, maxeval=maxeval)
+    inv = Inverter(objective=objective, optimizer=optimizer).fit(n0=n0, maxeval=maxeval)
 
     ## Create CSV dataframe with optimization results
-    hostname = socket.gethostname().split('.')[0]  # short server name (e.g. dml12)
+    # hostname = socket.gethostname().split('.')[0]  # short server name (e.g. dml12)
     flag = "" if sync else "un"
-    difficulty = 'full' if full else 'debug'
-    fname = f'{OUTPUT_DIR}/{difficulty}_{flag}sync_{hostname}.csv'
+    #difficulty = 'full' if full else 'debug'
+    #opt_type = 'grad' if grad else 'cobyla'
+    fname = f'{OUTPUT_DIR}/{flag}sync_{method}.csv'
     
     # Prepare data list for DataFrame
     data_rows = []
@@ -135,20 +144,29 @@ def main(sync,
         data_rows.append(opt_row)
     
     # Create DataFrame and save to CSV
-    df = pd.DataFrame(data_rows)
-    df['hostname'] = hostname
+    df = pd.DataFrame(data_rows)#.query("0 < chain_number <=14")
+    df = df.assign(sync=sync, optimizer=method)#, likelihood=np.exp(-df.fun))
+    # import seaborn as sns
+    # from matplotlib import pyplot as plt
+    # sns.relplot(hue='chain_number', x='fun', y='theta', data=df, kind='line')                                              
+    # plt.show()
+
+
+    # df['hostname'] = hostname
     df.to_csv(fname, index=False)
     print(f"Saved optimization results to {fname} with {len(df)} rows")
 
     
-    fun = inv.fun
-    assert np.isfinite(fun), f"Final loss is not finite: {fun}"
-    assert fun >= 0, f"Final loss is negative: {fun}"
-
+    # ll = -inv.fun ## Resulting log-likelihood
+    # assert np.isfinite(ll), f"Log likelihood is not finite: {ll}"
+    # assert ll >= 0, f"Final log-likelihood is negative: {ll}"
+    
 
 if __name__ == "__main__":
     try:
-        plac.call(main)
+        for method in ['slsqp']:#, 'mma', 'ccsaq']:
+            for sync in [True, False]:
+                main(sync=sync, method=method)
     except:
         import sys, traceback, pdb
         _, _, tb = sys.exc_info()

@@ -1,0 +1,79 @@
+\section*{Discussion}
+
+We have shown that phase synchronization between coupled epidemic
+systems fundamentally limits the identifiability of connectivity
+parameters. Using the Cram\'er-Rao Lower Bound, we quantified this
+limitation precisely: when epidemics rise and fall together, the
+Fisher Information for coupling parameters approaches zero, making
+reliable inference impossible regardless of the statistical method
+employed. Multi-start optimization on synthetic data confirmed these
+theoretical predictions.
+
+\subsection*{Implications for Global Influenza Surveillance}
+
+Our results have direct implications for inferring influenza
+transmission between geographical regions.
+\href{https://www.pnas.org/content/113/46/13081}{Deyle et al.\ (2016)}
+demonstrated that influenza dynamics differ fundamentally between
+temperate and tropical regions: in temperate countries like Germany,
+the seasonal climate cycle explains over 90\% of the variance in
+absolute humidity, driving tightly synchronized winter epidemics. In
+tropical countries like Singapore, seasonality explains less than 30\%
+of climate variance, resulting in irregular, weakly synchronized
+outbreaks.
+
+This dichotomy maps directly onto our identifiability framework.
+\textbf{In temperate regions}---North America, Europe, northern
+Asia---influenza epidemics are strongly synchronized by shared winter
+forcing. Our analysis predicts that connectivity between such regions
+cannot be reliably inferred from case data alone, explaining why
+studies of influenza spread in these regions have relied on external
+mobility
+data~\href{https://www.science.org/doi/10.1126/science.1125237}{[Viboud
+    et al., 2006]},
+\href{https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005382}{[Charu
+    et al., 2017]}. \textbf{In tropical regions}---sub-Saharan Africa,
+South America, Southeast Asia, Polynesia---the weaker and less
+coherent seasonal forcing produces asynchronous epidemic patterns.
+Here, our framework predicts that connectivity inference may be
+feasible, as the differential timing of outbreaks provides the
+information needed to distinguish coupled from uncoupled dynamics.
+
+This suggests a strategic reorientation of inference efforts: rather
+than attempting to infer connectivity from synchronized temperate
+epidemics, researchers should focus on tropical and subtropical
+regions where asynchrony provides identifiability, or on pandemic
+emergence phases when regional epidemics are naturally out of phase.
+
+\subsection*{Limitations}
+
+Several limitations warrant discussion. First, our analysis assumes a
+specific observation model (binomial reporting with Gaussian
+approximation); other noise structures may yield different CRLB
+expressions. Second, we focused on a two-region model with symmetric
+coupling; extensions to asymmetric coupling or larger networks may
+reveal additional identifiability challenges. Third, our synthetic
+data validation used the same model for generation and inference;
+model misspecification in real applications could introduce additional
+biases.
+
+\subsection*{Broader Implications}
+
+The mathematical structure underlying our results---coupled
+oscillators with shared periodic forcing---extends beyond
+epidemiology. Neural circuits receiving common input exhibit
+synchronization that may similarly obscure functional connectivity.
+Metapopulations driven by shared environmental cycles face analogous
+challenges when researchers attempt to infer dispersal rates from
+abundance time series. In each case, the core insight applies:
+synchronization induced by common forcing destroys the information
+needed to identify coupling, creating a fundamental confound between
+``connected but synchronized'' and ``unconnected but similarly
+driven.''
+
+Our discrete-time CRLB framework provides a computationally efficient
+tool for assessing inference feasibility before committing to costly
+estimation procedures. We advocate a ``look before you leap''
+approach: compute the CRLB for parameters of interest, and only
+proceed with inference when the bound indicates that meaningful
+precision is achievable.

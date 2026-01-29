@@ -1,4 +1,6 @@
 import math
+rho = 0.3 
+
 R0 = 3.65
 
 # Recovery rate from calibration to continuous model
@@ -9,3 +11,5 @@ amplitude = 0.7
 # beta0 = R0 * (1 - exp(-gamma)) / (1 + amplitude)
 # where (1 - exp(-gamma)) is the recovery probability per week
 beta0 = R0 * (1 - math.exp(-gamma)) / (1 + amplitude)
+
+nweeks = 25

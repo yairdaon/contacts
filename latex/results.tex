@@ -1,0 +1,150 @@
+\section*{Results}
+
+\subsection*{Statistical Power Depends on Synchronization}
+
+Figure~\ref{fig:power} shows the statistical power for detecting
+non-zero connectivity $\theta$ as a function of the true connectivity
+and seasonal amplitude, comparing synchronized (in-phase) and
+asynchronous (out-of-phase) epidemics.
+
+\begin{figure}%[h]
+\centering
+\includegraphics[width=\textwidth]{../pix/power.pdf}
+\caption{Statistical power for detecting connectivity $\theta > 0$ at
+  5\% significance level. Left: synchronized epidemics (both regions
+  in-phase). Right: asynchronous epidemics (regions out-of-phase by
+  $\pi$). Rows correspond to $\log_{10}(\theta)$; columns to seasonal
+  amplitude. Power is computed from the CRLB assuming an efficient
+  estimator achieves the theoretical bound. Darker shading indicates
+  higher power. When epidemics are synchronized, power remains low
+  even for large $\theta$, indicating that connectivity cannot be
+  reliably detected regardless of estimation method.}
+\label{fig:power}
+\end{figure}
+
+The contrast is striking. For asynchronous epidemics (right panel),
+power increases rapidly with $\theta$: connectivity values above
+$\theta \approx 0.01$ can be reliably detected across all seasonal
+amplitudes. In contrast, synchronized epidemics (left panel) show
+uniformly low power across the entire parameter space. Even large
+connectivity values ($\theta = 0.1$) cannot be reliably distinguished
+from zero when both regions experience epidemics in phase.
+
+\subsection*{CRLB Ratio}
+
+To quantify the effect of synchronization on estimation precision, we
+computed the ratio of median CRLB values between synchronized
+(in-phase) and reverse-phase epidemics across all combinations of
+connectivity $\theta$ and seasonal amplitude. Since the CRLB bounds
+the variance of any unbiased estimator, this ratio directly indicates
+how many times more samples would be required under synchronization to
+achieve the same estimation precision as the reverse-phase case.
+
+\begin{figure}%[h]
+\centering
+\includegraphics[width=0.75\textwidth]{../pix/crlb_ratio.pdf}
+\caption{Ratio of median CRLB (in-phase / reverse-phase) as a function
+  of connectivity $\theta$ and seasonal forcing amplitude. The color
+  scale is truncated at the 90th percentile to improve visibility.
+  The red contour marks the boundary where the ratio equals 1. Values
+  greater than 1 indicate that synchronized epidemics require more
+  data to achieve the same estimation precision. Throughout nearly all
+  of the parameter space, the ratio substantially exceeds 1,
+  demonstrating that synchronization consistently degrades
+  identifiability.}
+\label{fig:crlb}
+\end{figure}
+
+Figure~\ref{fig:crlb} reveals that across nearly the entire parameter
+space, the CRLB ratio substantially exceeds 1. This means that
+estimating connectivity from synchronized epidemics would require
+correspondingly more data to match the precision achievable with
+asynchronous epidemics. The effect is robust: regardless of the true
+connectivity or seasonal amplitude, synchronization consistently
+inflates the theoretical lower bound on estimation variance.
+
+\subsection*{Epidemic Dynamics}
+% HAVE: Simulated incidence curves from compute_g.py
+% Show: Two-panel figure - synchronized (curves overlap) vs asynchronous (curves offset)
+
+%% \subsection*{Optimization Trajectories}
+
+%% To validate the theoretical CRLB predictions, we performed multi-start
+%% optimization on synthetic data with known connectivity $\theta = 0.05$.
+%% Figure~\ref{fig:optimization} shows the optimization trajectories for
+%% multiple independent runs, plotting the objective function value against
+%% the current estimate of $\theta$.
+
+%% \begin{figure}%[h]
+%% \centering
+%% \includegraphics[width=\textwidth]{../pix/poster.jpg}
+%% \caption{Optimization trajectories for parameter inference with
+%%   (left) and without (right) synchronized seasonal forcing. Each
+%%   colored line represents an independent optimization run starting
+%%   from a random initial point. Stars indicate the final optimum for
+%%   each run. The vertical dashed red line marks the true connectivity
+%%   $\theta = 0.05$. With synchronized forcing (left), optimization runs
+%%   converge to widely scattered estimates across the parameter space,
+%%   failing to recover the true value. Without synchronization (right),
+%%   runs consistently converge near the true $\theta$, confirming that
+%%   the parameter is identifiable when epidemics are out of phase.}
+%% \label{fig:optimization}
+%% \end{figure}
+
+%% The optimization results confirm the CRLB predictions. When epidemics
+%% are synchronized, the objective function landscape is nearly flat with
+%% respect to $\theta$: multiple local minima exist across the parameter
+%% space, and different optimization runs converge to vastly different
+%% estimates. The true value $\theta = 0.05$ cannot be distinguished from
+%% other values based on the objective function alone. In contrast, when
+%% epidemics are out of phase, the objective function exhibits a clear
+%% minimum near the true parameter value, and optimization runs
+%% consistently recover accurate estimates regardless of initialization.
+
+\subsection*{Likelihood Surface}
+
+Figure~\ref{fig:likelihood} provides direct visualization of the
+log-likelihood surface as a function of the connectivity parameter
+$\theta$. Each curve represents a profile likelihood from a single
+optimization chain: for each value of $\theta$ visited during
+optimization, the likelihood shown is the result of maximizing over
+all nuisance parameters---the initial conditions $(S_i(0), I_i(0))$
+for each region and season. The ruggedness of these curves reflects
+the high-dimensional nature of this joint optimization.
+
+\begin{figure}%[h]
+\centering
+\includegraphics[width=0.8\textwidth]{../pix/likelihood_surface.pdf}
+\caption{Profile log-likelihood as a function of connectivity
+  $\theta$ for synchronized (left) and unsynchronized (right)
+  epidemics. Each line traces the likelihood along an optimization
+  trajectory, where for each $\theta$ the likelihood has been
+  maximized over all initial conditions $(S_i(0), I_i(0))$. The
+  vertical dashed line indicates the true value $\theta = 0.05$. For
+  synchronized epidemics, the profile likelihood is essentially flat
+  across the entire range of $\theta$, explaining why optimization
+  fails to recover the true parameter. For unsynchronized epidemics,
+  despite the rugged landscape, the likelihood clearly peaks near the
+  true value $\theta = 0.05$.}
+\label{fig:likelihood}
+\end{figure}
+
+The contrast between the two panels is striking. For synchronized
+epidemics (left), the likelihood surface is nearly flat: changing
+$\theta$ from 0 to 0.5 produces negligible change in likelihood. This
+flatness directly reflects the vanishing Fisher Information predicted
+by the CRLB---when epidemics rise and fall together, the data contain
+essentially no information about connectivity. For unsynchronized
+epidemics (right), a clear peak emerges near the true value $\theta =
+0.05$. Although the surface is rugged due to the high-dimensional
+optimization over initial conditions, the global structure
+unambiguously identifies the correct connectivity, confirming that
+phase asynchrony restores parameter identifiability.
+
+\subsection*{CRLB Predicts Inference Success}
+% HAVE: Can compare empirical variance to theoretical CRLB
+% Show: Scatter plot or table - empirical var vs CRLB; confirm var ≥ CRLB
+
+\subsection*{Sensitivity to Phase Difference}
+% MAYBE HAVE: Can run main.py with varying phase differences
+% Show: CRLB(θ) as function of phase difference from 0 to π; identifies transition point

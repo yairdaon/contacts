@@ -67,19 +67,6 @@ def slow(S0: np.ndarray,
         Entry (t,j,param) = ∂μⱼ(t)/∂param
     """
 
-    # Validate inputs
-    # assert gamma > 0, f"gamma must be strictly positive, got {gamma}"
-    # assert beta0 > 0, f"beta0 must be strictly positive, got {beta0}"
-    # assert amplitude > 0, f"amplitude must be strictly positive, got {amplitude}"
-    # assert period > 0, f"period must be strictly positive, got {period}"
-    # assert T > 0, f"T must be strictly positive, got {T}"
-    # assert 0 <= theta <= 0.5, f"theta must be in [0, 0.5], got {theta}"
-    # assert np.all(S0 > 0), f"S0 must be strictly positive, got {S0}"
-    # assert np.all(I0 > 0), f"I0 must be strictly positive, got {I0}"
-    # assert np.all(S0 <= 1), f"S0 must be <= 1, got {S0}"
-    # assert np.all(I0 <= 1), f"I0 must be <= 1, got {I0}"
-    # assert np.all(S0 + I0 <= 1), f"S0 + I0 must be <= 1, got S0={S0}, I0={I0}, sum={S0+I0}"
-
     # Initialize arrays to store results
     G = []
 
@@ -134,15 +121,15 @@ def slow(S0: np.ndarray,
 
         # ∂μ(t)/∂S(0) = ∂S(t)/∂S(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂S(0)
         # Broadcasting: (2,2) * (2,) -> each row gets multiplied
-        dmu_dS0 = dS_dS0 * (1 - np.exp(-lambda_t)) + (S * np.exp(-lambda_t))[:, None] * dlambda_dS0
-
+        dmu_dS0 = dS_dS0 * (1 - np.exp(-lambda_t))[:, None] + (S * np.exp(-lambda_t))[:, None] * dlambda_dS0
+        
         # === Compute ∂μ(t)/∂I(0) ===
         # ∂λ(t)/∂I(0) = β(t) ∘ C ∂I(t)/∂I(0)
         # Broadcasting: beta_t[:, None] has shape (2, 1), (C @ dI_dI0) has shape (2, 2)
         dlambda_dI0 = beta_t[:, None] * (C @ dI_dI0)  # Shape (2, 2)
 
         # ∂μ(t)/∂I(0) = ∂S(t)/∂I(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂I(0)
-        dmu_dI0 = dS_dI0 * (1 - np.exp(-lambda_t)) + (S * np.exp(-lambda_t))[:, None] * dlambda_dI0
+        dmu_dI0 = dS_dI0 * (1 - np.exp(-lambda_t))[:, None] + (S * np.exp(-lambda_t))[:, None] * dlambda_dI0
 
         # Store results for both regions (j=1,2)
         for j in range(2):
@@ -279,11 +266,11 @@ def _compute_G_numba(S0, I0, gamma, theta, T, beta0, amplitude, period, phase, p
 
         # === Compute ∂μ(t)/∂S(0) ===
         dlambda_dS0 = beta_t[:, np.newaxis] * (C @ dI_dS0)
-        dmu_dS0 = dS_dS0 * (1 - np.exp(-lambda_t)) + (S * np.exp(-lambda_t))[:, np.newaxis] * dlambda_dS0
+        dmu_dS0 = dS_dS0 * (1 - np.exp(-lambda_t))[:, np.newaxis] + (S * np.exp(-lambda_t))[:, np.newaxis] * dlambda_dS0
 
         # === Compute ∂μ(t)/∂I(0) ===
         dlambda_dI0 = beta_t[:, np.newaxis] * (C @ dI_dI0)
-        dmu_dI0 = dS_dI0 * (1 - np.exp(-lambda_t)) + (S * np.exp(-lambda_t))[:, np.newaxis] * dlambda_dI0
+        dmu_dI0 = dS_dI0 * (1 - np.exp(-lambda_t))[:, np.newaxis] + (S * np.exp(-lambda_t))[:, np.newaxis] * dlambda_dI0
 
         # Store results for both regions
         for j in range(2):

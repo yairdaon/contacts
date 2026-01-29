@@ -13,6 +13,7 @@ import plac
 from joblib import Parallel, delayed
 
 from src.crlb import compute_crlb
+from src import flu
 
 crlb_res_dir = "crlb_res"
 if os.path.exists(crlb_res_dir):
@@ -24,12 +25,16 @@ else:
     print(f"Created directory {crlb_res_dir}")
     
 
-def compute_one_crlb(noise, theta, amplitude, gamma, R0, T, period,
-                     sigma, pop_size, seed, phase=0.0, phase2=None):
+def compute_one_crlb(theta,
+                     amplitude,
+                     gamma,
+                     R0,
+                     T,
+                     period,
+                     pop_size,
+                     phase=0.0,
+                     phase2=None):
     """Compute CRLB for one parameter combination."""
-    # Set seed for reproducibility (unique per job)
-    if seed is not None:
-        np.random.seed(seed)
 
     # Calculate beta0 from R0 (measured at peak transmission)
     # beta0 = R0 * (1 - exp(-gamma)) / (1 + amplitude)
@@ -37,8 +42,10 @@ def compute_one_crlb(noise, theta, amplitude, gamma, R0, T, period,
     beta0 = R0 * (1 - np.exp(-gamma)) / (1 + amplitude)
 
     # Random initial conditions
-    I0 = 10**(-np.random.uniform(3, 4, size=2))  # Small initial outbreaks
-    S0 = np.random.uniform(0.90, 1-I0)
+    log_base = np.random.uniform(3, 6)
+    diffs = np.random.uniform(-0.5, 0.5, size=2)
+    I0 = 10**(-log_base + diffs)
+    S0 = 1-I0#np.random.uniform(0.90, 1-I0)
 
     # Compute CRLB
     crlb = compute_crlb(
@@ -47,11 +54,9 @@ def compute_one_crlb(noise, theta, amplitude, gamma, R0, T, period,
         gamma=gamma,
         theta=theta,
         T=T,
-        sigma=sigma,
         beta0=beta0,
         amplitude=amplitude,
         period=period,
-        noise=noise,
         pop_size=pop_size,
         phase=phase,
         phase2=phase2
@@ -68,10 +73,8 @@ def compute_one_crlb(noise, theta, amplitude, gamma, R0, T, period,
         'I1_0': I0[0],
         'I2_0': I0[1],
         'T': T,
-        'sigma': sigma,
         'period': period,
         'crlb': crlb,
-        'noise': noise,
         'pop_size': pop_size,
         'R0': R0,
         'phase': phase,
@@ -83,53 +86,41 @@ def compute_one_crlb(noise, theta, amplitude, gamma, R0, T, period,
 
 @plac.annotations(
     n_runs=('Number of runs per parameter combination', 'option', 'r', int, None, 'Number of runs'),
-    seed=('Random seed', 'option', 's', int, None, 'Random seed'),
     n_jobs=('Number of parallel jobs', 'option', 'j', int, -1, 'Number of jobs')
 )
-def main(n_runs=20000, seed=None, n_jobs=-1):
+def main(n_runs=1000, n_jobs=-1):
     """CRLB analysis for epidemic connectivity."""
 
-    np.random.seed(seed)
-
     # From keeling and rohani's boarding school influenza example
-    R0 = 3.65
+    R0 = flu.R0
 
     # Recovery rate from calibration to continuous model
-    gamma = 7/2.2 # 7 days == one week
+    gamma = flu.gamma # 7 days == one week
 
     T = 25
     period = 53
-
-    ## Only a single sigma cuz it just scales the CRLB
-    sigma = 0.01
-
-    pop_size = 10**3   
-
+    pop_size = 2e7
+    N = 20
+    thetas = 10 ** np.linspace(-4, -1, N, endpoint=True)
+    amplitudes = np.linspace(0, 1, N, endpoint=False)
     tasks = []
-    task_idx = 0
-    for noise in ['bin']:
-        for theta in [1e-4, 1e-3, 1e-2, 1e-1]:
-            for amplitude in [0.1, 0.3, 0.7, 0.7]:
-                for phase2 in [0, np.pi]:
-                    for run_idx in range(n_runs):
-                        # Create unique seed for each task
-                        seed_offset = seed + task_idx if seed is not None else None
+    for theta in thetas: #[1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1]:
+        for amplitude in amplitudes:#np.arange(11) * 0.1:
+            for phase2 in [0, np.pi]:
+                for run_idx in range(n_runs):
 
-                        tasks.append({
-                            'noise': noise,
-                            'theta': theta,
-                            'amplitude': amplitude,
-                            'gamma': gamma,
-                            'R0': R0,
-                            'T': T,
-                            'period': period,
-                            'sigma': sigma,
-                            'pop_size': pop_size,
-                            'seed': seed_offset,
-                            'phase': 0,
-                            'phase2': phase2  # Set to None for synchronized regions
-                        })
-                        task_idx += 1
+                    tasks.append({
+                        'theta': theta,
+                        'amplitude': amplitude,
+                        'gamma': gamma,
+                        'R0': R0,
+                        'T': T,
+                        'period': period,
+                        'pop_size': pop_size,
+                        'phase': 0,
+                        'phase2': phase2  # Set to None for synchronized regions
+                    })
+                    #task_idx += 1
 
 
     results = Parallel(n_jobs=n_jobs)(
