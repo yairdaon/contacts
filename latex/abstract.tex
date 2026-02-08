@@ -1,22 +1,24 @@
 \begin{abstract}
-Contact matrices between geographical regions are fundamental to
-epidemiological modeling, yet they are typically inferred from
-external data sources such as flight patterns or commuting data. This
-paper investigates whether connectivity between regions can be
-reliably inferred directly from epidemic surveillance data. Using a
-multi-region SEIR model with seasonal forcing, we demonstrate that the
-inverse problem of contact matrix inference is fundamentally
-ill-conditioned due to epidemic synchronization. Our theoretical
-analysis shows that relative errors in connectivity estimates scale
-with the condition number of the infection matrix, which grows
-exponentially with the number of regions ($\kappa(M) \approx 10^5$ for
-2 regions, $10^{11}$ for 10 regions). We empirically validate these
-findings using 30 years of pneumonia and influenza surveillance data
-across US states through Vector Autoregression (VAR) analysis. Models
-incorporating inter-state connectivity show no significant improvement
-in forecasting performance compared to independent state-level models,
-confirming the theoretical predictions. Our results demonstrate that
-epidemic synchrony, particularly under seasonal forcing, renders
-connectivity inference intractable regardless of data quality or
-analysis method.
+Inferring connectivity between coupled dynamical systems is a
+fundamental challenge when shared forcing synchronizes their dynamics.
+We address this problem in the context of spatial epidemiology, asking:
+can regional connectivity be inferred from epidemic surveillance data?
+Using a discrete-time two-region SIR model with seasonal forcing, we
+derive exact sensitivity equations and compute the Cram\'er-Rao Lower
+Bound (CRLB) for the connectivity parameter. Our analysis reveals that
+identifiability depends critically on epidemic synchrony. When regions
+experience epidemics in phase---rising and falling together due to
+shared seasonal forcing---the Fisher Information for connectivity
+approaches zero, making reliable inference impossible regardless of
+estimation method. In contrast, when epidemics are out of phase, the
+differential dynamics reveal the connectivity signal. We validate these
+theoretical predictions with multi-start optimization on synthetic data:
+the likelihood surface is flat for synchronized epidemics but shows a
+clear peak at the true connectivity for asynchronous epidemics. Our
+results explain why previous studies have struggled to infer
+connectivity from case data alone, and suggest that inference efforts
+should focus on settings where regional epidemics are naturally
+asynchronous. The discrete-time CRLB framework provides a
+computationally efficient tool for assessing parameter identifiability
+before attempting costly estimation.
 \end{abstract}

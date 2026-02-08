@@ -39,8 +39,7 @@ inference in nonlinear systems~\citep{sugihara2012}, was applied to
 epidemiological settings to identify environmental drivers of
 influenza~\citep{deyle2016} and climatic modulation of
 dengue~\citep{rypdal2019}.
-However,~\href{https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0169050}{Cobey
-  \& Baskerville (2016)} found the method ``extremely sensitive to
+However,\cite{cobey2016} found the method ``extremely sensitive to
 periodic fluctuations, inferring interactions between independent
 strains that oscillate with similar frequencies.'' In response, the developers of CCM noted that such
 results may reflect ``mistaking synchrony for
@@ -56,79 +55,58 @@ A similar challenge arises in spatial epidemiology, where researchers
 attempt to infer connectivity between regions from case data. If
 connectivity could be reliably estimated from surveillance data alone,
 it would obviate the need for external mobility data sources. Several
-studies have attempted such inference, with mixed
-results~\href{https://www.nature.com/articles/s41598-020-75558-9}{[Holme
-    \& Rosvall, 2020]},
-\href{https://link.springer.com/article/10.1007/s11538-023-01235-3}{[KhudaBukhsh
-    et al., 2023]}. A recurring finding is that transmission rate and
-network connectivity are fundamentally confounded: ``the product
-$p\beta$ can always be estimated but the individual factors may be
-unidentifiable, making it difficult to distinguish between a mildly
-transmissible disease on a highly connected network from a highly
-transmissible infection on a sparse
-network''~\href{https://pmc.ncbi.nlm.nih.gov/articles/PMC3090691/}{[Britton
-    \& O'Neill, 2011]}. More recent work confirms that ``contact patterns
-and the transmission of the disease across a link are strongly related
-and often are difficult to
-disentangle''~\href{https://pmc.ncbi.nlm.nih.gov/articles/PMC9880946/}{[Kiss
-    \& Simon, 2023]}.
+studies have attempted such inference, with mixed results
+\cite{kiss2024towards, kiss2023parameter}. A recurring finding is that transmission
+rate and network connectivity are fundamentally confounded: ``the
+product $p\beta$ can always be estimated but the individual factors
+may be unidentifiable, making it difficult to distinguish between a
+mildly transmissible disease on a highly connected network from a
+highly transmissible infection on a sparse
+network''\cite{welch2011}.
 
-These identifiability challenges have led most spatial epidemic studies
-to rely on external mobility data---from commuting
-surveys~\href{https://www.science.org/doi/10.1126/science.1125237}{[Viboud
-    et al., 2006]}, gravity
-models~\href{https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005382}{[Charu
-    et al., 2017]}, or mobile phone
-records~\href{https://www.science.org/doi/10.1126/science.abb4218}{[Kraemer
-    et al., 2020]}---rather than attempting to infer connectivity from
-case data. Yet such proxy measures may not accurately reflect disease
-transmission pathways, and are not always
-available~\href{https://pmc.ncbi.nlm.nih.gov/articles/PMC3730677/}{[Wu
-    et al., 2013]}. The fundamental question remains: under what
-conditions, if any, can connectivity be inferred directly from epidemic
-surveillance data?
+These identifiability challenges have led most spatial epidemic
+studies to rely on external mobility data---from commuting surveys
+\cite{viboud2006}, gravity models \cite{charu2017} or mobile phone
+records~\cite{kraemer2020}---rather than attempting to infer
+connectivity from case data. Yet such proxy measures may not
+accurately reflect disease transmission pathways, and are not always
+available~\cite{wu2013sensitivity}. The fundamental question remains:
+under what conditions, if any, can connectivity be inferred directly
+from epidemic surveillance data?
 
 What determines whether interactions---be they between pathogens or
 between regions---can be reliably inferred? Structural identifiability
-analysis can determine whether parameters are theoretically recoverable
-from ideal
-data~\href{https://www.sciencedirect.com/science/article/abs/pii/S0025556417303164}{[Tuncer
-    \& Le, 2018]},
-\href{https://arxiv.org/abs/2209.12821}{[Villaverde, 2022]}. However,
+analysis can determine whether parameters are theoretically
+recoverable from ideal data~\cite{tuncer2018, chowell2023structural}
+(!!!!!!!chowell was originally cited as villaverde WTF???). However,
 structural identifiability is a binary classification that does not
 quantify estimation precision. The \emph{Cram\'er-Rao Lower Bound}
-(CRLB) provides exactly this: a theoretical lower bound on the variance
-of any unbiased estimator, derived from the Fisher Information
-Matrix~\href{https://en.wikipedia.org/wiki/Cram\%C3\%A9r\%E2\%80\%93Rao_bound}{[Cram\'er,
-    1946; Rao, 1945]}. If the CRLB for a parameter is large, no
-estimation method---however sophisticated---can reliably recover that
-parameter from the available data. Recent work has shown that practical
-unidentifiability can severely hamper epidemic
-predictions~\href{https://www.science.org/doi/10.1126/sciadv.abg5234}{[Sauer
-    et al., 2021]}. Computing the CRLB before optimization can save
-substantial effort and prevent overinterpretation of unreliable
-estimates.
+(CRLB) provides exactly this: a theoretical lower bound on the
+variance of any unbiased estimator, derived from the Fisher
+Information Matrix (find another ref for CRLB). If the CRLB for a
+parameter is large, no estimation method---however sophisticated---can
+reliably recover that parameter from the available data. Recent work
+has shown that practical unidentifiability can severely hamper
+epidemic predictions~\cite{gallo2022}. Computing the CRLB before
+optimization can save substantial effort and prevent
+overinterpretation of unreliable estimates.
 
 Computing the CRLB requires the Jacobian matrix of model outputs with
 respect to parameters, typically obtained via sensitivity equations.
-For a system $\dot{x} = f(x, t, \beta)$, the sensitivities
-$s = \partial x / \partial \beta$ satisfy
-$\dot{s} = (\partial f / \partial x) s + \partial f / \partial \beta$,
-which can be solved jointly with the original
-system~\href{https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009598}{[Sharpe
-    et al., 2022]}. Previous implementations have used numerical
-differentiation, perturbing each parameter and running multiple
-simulations to approximate
-derivatives~\href{https://www.sciencedirect.com/science/article/abs/pii/S0025556414001631}{[Eisenberg
-    \& Hayashi, 2014]}. For continuous-time ODE models, software
-packages such as
-\href{https://sundials.readthedocs.io/en/latest/cvodes/Mathematics_link.html}{SUNDIALS/CVODES}
-solve sensitivity equations alongside the state equations using
-numerical integration. However, these approaches face practical
-challenges: numerical differentiation introduces approximation errors
-and requires $2p$ model evaluations for $p$ parameters; continuous-time
-sensitivity analysis accumulates integration errors over long time
-horizons and can suffer from numerical instabilities in stiff systems.
+For a system $\dot{x} = f(x, t, \beta)$, the sensitivities $s =
+\partial x / \partial \beta$ satisfy $\dot{s} = (\partial f / \partial
+x) s + \partial f / \partial \beta$, which can be solved jointly with
+the original system~\cite{mester2022}. Previous implementations have
+used numerical differentiation, perturbing each parameter and running
+multiple simulations to approximate derivatives
+\cite{eisenberg2014}. For continuous-time ODE models, software
+packages such as \cite{mester2022} solve sensitivity equations
+alongside the state equations using numerical integration. However,
+these approaches face practical challenges: numerical differentiation
+introduces approximation errors and requires $2p$ model evaluations
+for $p$ parameters; continuous-time sensitivity analysis accumulates
+integration errors over long time horizons and can suffer from
+numerical instabilities in stiff systems.
 
 In this study, we take a different approach. We formulate the epidemic
 model in discrete time, matching the natural resolution of weekly
@@ -184,14 +162,7 @@ introductions), the differential epidemic dynamics reveal the
 connectivity signal, and $\theta$ becomes identifiable.
 
 This result provides a theoretical explanation for the difficulties
-encountered in previous studies. The confounding of transmission and
-connectivity reported
-by~\href{https://pmc.ncbi.nlm.nih.gov/articles/PMC3090691/}{Britton \&
-  O'Neill (2011)} arises precisely when epidemics are synchronized:
-both regions follow similar trajectories regardless of their coupling
-strength.
-\href{https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0169050}{Cobey
-  and Baskerville's (2016)} observation that convergent cross-mapping
+encountered in previous studies. \cite{cobey2016} observation that convergent cross-mapping
 fails for ``strains that oscillate with similar frequencies'' reflects
 the same phenomenon. Our CRLB analysis provides a unified theoretical
 foundation: synchronized dynamics destroy the Fisher Information for
@@ -202,19 +173,17 @@ Our findings have immediate practical implications. Attempts to infer
 connectivity from synchronized epidemics---such as influenza across
 temperate regions with similar winter peaks---are likely to fail
 regardless of the estimation method employed. This explains why
-studies like~\href{https://www.science.org/doi/10.1126/science.1125237}{Viboud
-  et al.\ (2006)}
-and~\href{https://www.science.org/doi/10.1126/science.abb4218}{Kraemer
-  et al.\ (2020)} have relied on external mobility data rather than
-inferring connectivity from case counts: for synchronized seasonal
-epidemics, case data simply do not contain the necessary information.
-Conversely, connectivity inference may be feasible when comparing
-regions with different epidemic timing, such as Northern and Southern
-Hemisphere locations, or during the early invasion phase of a pandemic
-when regional epidemics are naturally asynchronous. More broadly, this
-``look before you leap'' approach can guide study design, temper
-expectations, and prevent the misinterpretation of poorly identified
-parameter estimates as meaningful epidemiological quantities.
+studies like \cite{viboud2006, kraemer2020} have relied on external
+mobility data rather than inferring connectivity from case counts: for
+synchronized seasonal epidemics, case data simply do not contain the
+necessary information.  Conversely, connectivity inference may be
+feasible when comparing regions with different epidemic timing, such
+as Northern and Southern Hemisphere locations, or during the early
+invasion phase of a pandemic when regional epidemics are naturally
+asynchronous. More broadly, this ``look before you leap'' approach can
+guide study design, temper expectations, and prevent the
+misinterpretation of poorly identified parameter estimates as
+meaningful epidemiological quantities.
 
 The mathematical structure underlying our results---coupled oscillators
 with shared periodic forcing---arises throughout the biological and

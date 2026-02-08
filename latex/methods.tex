@@ -345,8 +345,9 @@ sensitivity equations (Eq.~\ref{eq:sens_mu}). This gradient is computed
 exactly in a single forward pass alongside the state and sensitivity
 equations.
 
-We use the NLopt library~\citep{johnson2014} with the SLSQP algorithm
-for gradient-based optimization. To handle potential local minima, we
+We use the \texttt{NLopt} library with the SLSQP algorithm for
+gradient-based optimization. To handle potential local minima, we
 employ a multi-start strategy with $N_0 = 20$ random initial points,
 selecting the solution with lowest objective value. Optimization runs
-use relative tolerance $10^{-4}$ and are parallelized across CPU cores.
+use relative tolerance $10^{-4}$ and are parallelized across CPU
+cores.
