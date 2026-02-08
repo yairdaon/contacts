@@ -1,0 +1,78 @@
+\subsection*{Discrete-Time Cross-Immunity Model}
+
+The connectivity model assumes that all contacts lead to infection in
+the same compartment. An alternative formulation applies to
+cross-immunity between strains or pathogens, where exposure to a
+related strain can confer immunity without causing infection by that
+strain~\citep{gog2002}. We consider uni-directional cross-immunity:
+exposure to strain $j$ confers immunity to strain $i$, but not vice
+versa. The continuous-time equations are:
+\begin{align*}
+  \dot{S} &= -\beta(t) S \circ (I_d + M) I \\
+  \dot{I} &= \beta(t) S\circ I - \nu I\\
+  \dot{R} &= \beta(t) S \circ MI + \nu I,
+\end{align*}
+where the unidirectional cross-immunization matrix is
+\begin{equation*}
+M =
+\begin{bmatrix}
+  0 & \theta \\
+  0 & 0
+\end{bmatrix}
+\end{equation*}
+%% Anallogously, the force of infection in the discrete connectivity
+%% model, we define the force of infection as 
+%% \begin{equation*}
+%% \lambda(t) = \beta(t) I(t)
+%% \end{equation*}
+The expected incidence is:
+\begin{equation}\label{eq:cross_incidence}
+\mu(t) = S(t) \left[1 - \exp(-\beta I) \right]
+\end{equation}
+The rest of the discrete-time dynamics arise naturally when we
+carefully balance the terms to have a constant population:
+\begin{align}\begin{split}\label{eq:discrete_cross}
+S(t+1) &= S(t) \exp(-\beta (I_d + M)I) \\
+I(t+1) &= I(t) \exp(-\gamma) + \mu(t) \\
+R(t+1) &= R(t) + I(t) [1 - \exp(-\gamma)] + S(t)\exp(-\beta I(t))[1-\exp(-\beta MI(t))]
+\end{split}\end{align}
+
+\subsection*{Sensitivity equations}
+The incidence sensitivity is:
+\begin{align}\begin{split}\label{eq:sens_mu_cross}
+    \frac{\partial \mu}{\partial \phi} %&= \frac{\partial}{\partial \phi}S[1-\exp(-\beta I) \\
+    %
+    %
+    %
+    &= \frac{\partial S}{\partial \phi} \left[1 - \exp(-\beta I)\right] +
+    S \exp(-\beta I) \frac{\partial \beta I}{\partial \phi} \\
+    %
+    &=\frac{\partial S}{\partial \phi} \left[1 - \exp(-\beta I)\right] +
+    \beta S \exp(-\beta I) \frac{\partial I}{\partial \phi}
+\end{split}\end{align}
+%% where
+%% \begin{equation*}
+%% \frac{\partial \lambda}{\partial \phi} = \beta
+%% \frac{\partial I}{\partial \phi}
+%% \end{equation*}
+%
+%
+%% Note that $\theta$ does not appear in $\lambda_i$ or $\mu_i$
+%% directly.  The parameter $\theta$ affects future incidence through
+%% the depletion of susceptibles.
+The state sensitivities propagate via:
+\begin{align}\begin{split}\label{eq:sens_cross}
+\frac{\partial S(t+1)}{\partial \phi} &=
+\frac{\partial S}{\partial \phi} \exp(-\beta(I_d +M) I) - \beta S \exp(-\beta(I_d + M)I) \circ \left(
+\frac{\partial I}{\partial \phi} + M\frac{\partial I}{\partial \phi} + \frac{\partial M}{\partial \phi}I \right) \\
+\frac{\partial I(t+1)}{\partial \phi} &= \exp(-\gamma)
+\frac{\partial I}{\partial \phi} + \frac{\partial \mu}{\partial \phi}
+\end{split}\end{align}
+%% nd
+%% \begin{equation*}
+%% \frac{\partial MI}{\partial \phi} = \beta \left(
+%% \theta \frac{\partial I_j}{\partial \phi} + \delta_{\phi,\theta} I_j \right)
+%% \end{equation*}
+%% with $\delta_{\phi,\theta} = 1$ if $\phi = \theta$ and 0 otherwise.
+%% The CRLB derivation proceeds as before, with
+%% $\mathbf{J} = \mathbf{G}^T \mathbf{W} \mathbf{G}$.

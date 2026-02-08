@@ -17,6 +17,7 @@ from src import flu
 
 class Objective:
     def __init__(self,
+                 model,
                  population,
                  beta0,
                  gamma,
@@ -25,6 +26,8 @@ class Objective:
                  rho,
                  n_weeks=26,
                  seasonal_driver=True):
+
+        self.G_fun = compute_g.cross if model == 'cross' else compute_g.contacts
         self.packer = Packer(seasons=population['season'].unique(),
                              regions=population['region'].unique(),
                              seasonal_driver=seasonal_driver)
@@ -63,16 +66,16 @@ class Objective:
             S = S_init[season_idx, :]
             I = I_init[season_idx, :]
 
-            df = compute_g.slow(S0=S,
-                                I0=I,
-                                gamma=self.gamma,
-                                theta=theta,
-                                T=self.n_weeks,
-                                beta0=self.beta0,
-                                amplitude=self.amplitude,
-                                period=53,
-                                phase=self.phase[0],
-                                phase2=self.phase[1])
+            df = self.G_fun(S0=S,
+                            I0=I,
+                            gamma=self.gamma,
+                            theta=theta,
+                            T=self.n_weeks,
+                            beta0=self.beta0,
+                            amplitude=self.amplitude,
+                            period=53,
+                            phase=self.phase[0],
+                            phase2=self.phase[1])
 
             df = df.reset_index()
             df['time'] = df['t'] * timedelta(weeks=1)

@@ -19,7 +19,8 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 def main(sync,
-         method='slsqp'):
+         method='slsqp',
+         model='cross'):
     
     theta = 0.05
     phase = np.zeros(2)
@@ -51,7 +52,8 @@ def main(sync,
 
     pop = makepop(n_regions=n_regions,
                   n_seasons=n_seasons)
-    objective = Objective(population=pop,
+    objective = Objective(model=model,
+                          population=pop,
                           n_weeks=flu.nweeks,
                           gamma=flu.gamma,
                           beta0 = flu.beta0,

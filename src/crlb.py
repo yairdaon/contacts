@@ -14,6 +14,7 @@ from src.helper import JACOBIAN_COLS, plot_G
 
 def compute_crlb(S0,
                  I0,
+                 model,
                  gamma: float,
                  theta: float,
                  T: int,
@@ -57,8 +58,10 @@ def compute_crlb(S0,
     float
         the crlb for standard deviation of theta
     """
+    assert model in ('cross', 'contacts')
+    G_fun = compute_g.cross if model == 'cross' else compute_g.contacts
     
-    df = compute_g.slow(
+    df = G_fun(
         S0=S0,
         I0=I0,
         gamma=gamma,

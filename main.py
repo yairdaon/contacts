@@ -25,7 +25,8 @@ else:
     print(f"Created directory {crlb_res_dir}")
     
 
-def compute_one_crlb(theta,
+def compute_one_crlb(model,
+                     theta,
                      amplitude,
                      gamma,
                      R0,
@@ -51,6 +52,7 @@ def compute_one_crlb(theta,
     crlb = compute_crlb(
         S0=S0,
         I0=I0,
+        model=model,
         gamma=gamma,
         theta=theta,
         T=T,
@@ -88,7 +90,7 @@ def compute_one_crlb(theta,
     n_runs=('Number of runs per parameter combination', 'option', 'r', int, None, 'Number of runs'),
     n_jobs=('Number of parallel jobs', 'option', 'j', int, -1, 'Number of jobs')
 )
-def main(n_runs=1000, n_jobs=-1):
+def main(n_runs=1000, n_jobs=-1, cross=False):
     """CRLB analysis for epidemic connectivity."""
 
     # From keeling and rohani's boarding school influenza example
@@ -108,19 +110,19 @@ def main(n_runs=1000, n_jobs=-1):
         for amplitude in amplitudes:#np.arange(11) * 0.1:
             for phase2 in [0, np.pi]:
                 for run_idx in range(n_runs):
-
-                    tasks.append({
-                        'theta': theta,
-                        'amplitude': amplitude,
-                        'gamma': gamma,
-                        'R0': R0,
-                        'T': T,
-                        'period': period,
-                        'pop_size': pop_size,
-                        'phase': 0,
-                        'phase2': phase2  # Set to None for synchronized regions
-                    })
-                    #task_idx += 1
+                    for model in ('cross', 'contacts'):
+                        tasks.append({
+                            'model': model,
+                            'theta': theta,
+                            'amplitude': amplitude,
+                            'gamma': gamma,
+                            'R0': R0,
+                            'T': T,
+                            'period': period,
+                            'pop_size': pop_size,
+                            'phase': 0,
+                            'phase2': phase2 
+                        })
 
 
     results = Parallel(n_jobs=n_jobs)(
@@ -129,7 +131,7 @@ def main(n_runs=1000, n_jobs=-1):
     
     df = pd.DataFrame(results)
     df['log_crlb'] = np.log10(df.crlb)
-    df.to_csv("crlb.csv")
+    df.to_csv(f"crlb_{model}.csv")
     
 
 if __name__ == "__main__":
