@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import nbinom, poisson
 from scipy.special import xlogy
 
-from src import flu
+from src.diseases import flu
 
 EPS = 1e-14
 

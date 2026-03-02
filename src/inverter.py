@@ -12,7 +12,7 @@ from pprint import pprint
 from src import losses
 from src.packer import Packer
 from src import compute_g
-from src import flu
+from src.diseases import flu
 
 
 class Objective:
@@ -150,15 +150,22 @@ class Objective:
         msg = f"Simulation and observation indices don't match. Sim: {len(simulated)}, Obs: {len(self.obs)}"
         assert np.all(simulated.index == self.obs.index), msg
 
-        msg = f"Nulls dont match. Sim: {simulated.isnull().sum().sum()}, Obs: {self.obs.isnull().sum().sum()}"
-        assert np.all(simulated.isnull() == self.obs.isnull()), msg
+        # Create mask for valid observations (not NaN in observed incidence)
+        valid_mask = ~self.obs['incidence'].isna()
+        sim_valid = simulated[valid_mask].copy()
+        obs_valid = self.obs[valid_mask].copy()
 
-        out = self.loss(self.obs.dropna(), simulated.dropna())
+        # Reweight to account for missing observations
+        n_total = len(self.obs)
+        n_valid = valid_mask.sum()
+        weight = n_total / n_valid if n_valid > 0 else 1.0
+
+        out = self.loss(obs_valid, sim_valid, rho=self.rho) * weight
         assert not np.isnan(out), f"Loss is {out}"
 
         # Compute gradient if requested
         if grad is not None and grad.size > 0:
-            computed_grad = self.compute_gradient(simulated.dropna(), self.obs.dropna())
+            computed_grad = self.compute_gradient(sim_valid, obs_valid) * weight
             grad[:] = computed_grad
 
         self.x_list.append(copy.deepcopy(xx))
@@ -177,10 +184,10 @@ class Inverter:
         self.optimizer = optimizer
 
         
-    def fit(self, n0=1, maxeval=None):
+    def fit(self, n0=1, maxeval=None, n_jobs=-1):
         self.objective.x_list = []
         self.objective.out_list = []
-       
+
         starts = []
         for i in range(n0):
             x0 = self.packer.random_vector()
@@ -188,11 +195,15 @@ class Inverter:
             assert np.all(x0 <= 1)
             assert np.all(x0 >= 0)
 
-        if n0 > 1:
+        if n0 > 1 and n_jobs != 1:
             it = tqdm(starts)
-            self.results = Parallel(n_jobs=-1)(delayed(self.single_optimization)(x, maxeval) for x in it) 
+            self.results = Parallel(n_jobs=n_jobs)(delayed(self.single_optimization)(x, maxeval) for x in it)
         else:
-            self.results = [self.single_optimization(starts[0], maxeval)]
+            # Sequential execution - avoids pickle issues with nlopt
+            self.results = []
+            for x0 in tqdm(starts):
+                result = self.single_optimization(x0, maxeval)
+                self.results.append(result)
 
         print(f"successes rate {sum(int(res['success']) for res in self.results)} / {len(self.results)}")
         best = min(self.results, key=lambda r: r['fun'])

@@ -13,7 +13,7 @@ import plac
 from joblib import Parallel, delayed
 
 from src.crlb import compute_crlb
-from src import flu
+from src.diseases import flu
 
 crlb_res_dir = "crlb_res"
 if os.path.exists(crlb_res_dir):
@@ -44,7 +44,7 @@ def compute_one_crlb(model,
 
     # Random initial conditions
     log_base = np.random.uniform(3, 6)
-    diffs = np.random.uniform(-0.5, 0.5, size=2)
+    diffs = np.random.uniform(-1, 1, size=2)
     I0 = 10**(-log_base + diffs)
     S0 = 1-I0#np.random.uniform(0.90, 1-I0)
 
@@ -66,6 +66,7 @@ def compute_one_crlb(model,
 
     # Store result
     result = {
+        'model': model,
         'theta': theta,
         'gamma': gamma,
         'amplitude': amplitude,
@@ -90,7 +91,7 @@ def compute_one_crlb(model,
     n_runs=('Number of runs per parameter combination', 'option', 'r', int, None, 'Number of runs'),
     n_jobs=('Number of parallel jobs', 'option', 'j', int, -1, 'Number of jobs')
 )
-def main(n_runs=1000, n_jobs=-1, cross=False):
+def main(n_runs=200, n_jobs=-1, cross=False):
     """CRLB analysis for epidemic connectivity."""
 
     # From keeling and rohani's boarding school influenza example
@@ -102,15 +103,20 @@ def main(n_runs=1000, n_jobs=-1, cross=False):
     T = 25
     period = 53
     pop_size = 2e7
-    N = 20
-    thetas = 10 ** np.linspace(-4, -1, N, endpoint=True)
+    N = 20 
+    thetas = {"US"
+
+
+
+
+              10 ** np.linspace(-4, -1, N, endpoint=True)}
     amplitudes = np.linspace(0, 1, N, endpoint=False)
     tasks = []
-    for theta in thetas: #[1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1]:
+    for model in ['contacts']:
         for amplitude in amplitudes:#np.arange(11) * 0.1:
             for phase2 in [0, np.pi]:
                 for run_idx in range(n_runs):
-                    for model in ('cross', 'contacts'):
+                    for theta in thetas[model]:
                         tasks.append({
                             'model': model,
                             'theta': theta,
@@ -131,8 +137,9 @@ def main(n_runs=1000, n_jobs=-1, cross=False):
     
     df = pd.DataFrame(results)
     df['log_crlb'] = np.log10(df.crlb)
-    df.to_csv(f"crlb_{model}.csv")
-    
+    df.to_csv(f"crlb.csv")
+    print(df.query("model == 'cross'").groupby(['model', 'theta', 'amplitude']).agg(lambda x: np.mean(np.isinf(x))))
+    # import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
     try:

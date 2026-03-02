@@ -11,8 +11,7 @@ import nlopt
 
 from src.helper import makepop, a2s
 from src.inverter import Inverter, Objective
-from src import flu 
-from src import flu
+from src.diseases import flu
 
 OUTPUT_DIR = os.path.expanduser("~/contacts/res")
 os.makedirs(OUTPUT_DIR, exist_ok=True)

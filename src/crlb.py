@@ -7,9 +7,10 @@ import pdb
 import os
 import uuid
 from typing import Callable, Dict, List
-from scipy.linalg import cho_factor, cho_solve
+from scipy.linalg import cho_factor, cho_solve, solve
 
-from src import compute_g, flu
+from src import compute_g
+from src.diseases import flu
 from src.helper import JACOBIAN_COLS, plot_G
 
 def compute_crlb(S0,
@@ -76,7 +77,8 @@ def compute_crlb(S0,
     
     mu = df['mu'].values
     G = df[JACOBIAN_COLS].values  # Shape: (2T, 5)
-
+    if np.any(mu == 0):
+        return np.inf
     
     ## Binomial noise
     rho = flu.rho
@@ -86,21 +88,20 @@ def compute_crlb(S0,
     # Fisher Information Matrix: J = G.T @ G 
     factor = ( 1+rho ) / ( 2*(1-rho) )
     J = factor * G.T @ G
-  
+        
     # Cholesky factorization LL^T = J (L is lower triangular)
     L = np.linalg.cholesky(J)
-
+    
     # e1 = [1,0,0,0,0] since theta is first in JACOBIAN_COLS
     e1 = np.zeros(J.shape[0])
     e1[0] = 1
-
+    
     # Solve Lw = e1 for w = L^{-1}e1
     # CRLB for variance is ||L^{-1}e1||^2 = [J^{-1}]_{11}
     w = np.linalg.solve(L, e1)
-
+    
     # CRLB for the standard deviation of theta
     result = np.linalg.norm(w)
-
     return result
     
 
