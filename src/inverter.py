@@ -12,7 +12,6 @@ from pprint import pprint
 from src import losses
 from src.packer import Packer
 from src import compute_g
-from src.diseases import flu
 
 
 class Objective:
@@ -22,7 +21,7 @@ class Objective:
                  beta0,
                  gamma,
                  phase,
-                 amplitude,
+                 eps,
                  rho,
                  n_weeks=26,
                  seasonal_driver=True):
@@ -35,7 +34,7 @@ class Objective:
         self.gamma = gamma
         self.beta0 = beta0
         self.phase = phase
-        self.amplitude = amplitude
+        self.eps = eps
       
         self.pops = {}
         for season in self.packer.seasons:
@@ -72,7 +71,7 @@ class Objective:
                             theta=theta,
                             T=self.n_weeks,
                             beta0=self.beta0,
-                            amplitude=self.amplitude,
+                            eps=self.eps,
                             period=53,
                             phase=self.phase[0],
                             phase2=self.phase[1])

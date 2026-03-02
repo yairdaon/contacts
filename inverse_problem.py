@@ -11,9 +11,9 @@ import nlopt
 
 from src.helper import makepop, a2s
 from src.inverter import Inverter, Objective
-from src.diseases import flu
+from src import flu
 
-OUTPUT_DIR = os.path.expanduser("~/contacts/res")
+OUTPUT_DIR = os.path.expanduser("~/contacts/outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
@@ -56,7 +56,7 @@ def main(sync,
                           n_weeks=flu.nweeks,
                           gamma=flu.gamma,
                           beta0 = flu.beta0,
-                          amplitude=flu.amplitude,
+                          eps=flu.eps,
                           rho=flu.rho,
                           phase=phase)
     

@@ -2,11 +2,9 @@ import numpy as np
 from scipy.stats import nbinom, poisson
 from scipy.special import xlogy
 
-from src.diseases import flu
-
 EPS = 1e-14
 
-def gaussian(observed, simulated, rho=flu.rho):
+def gaussian(observed, simulated, rho):
     """
     Negative log-likelihood for Gaussian observation model.
 

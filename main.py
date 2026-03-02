@@ -13,9 +13,9 @@ import plac
 from joblib import Parallel, delayed
 
 from src.crlb import compute_crlb
-from src.diseases import flu
+from src import flu
 
-crlb_res_dir = "crlb_res"
+crlb_res_dir = "outputs"
 if os.path.exists(crlb_res_dir):
     for png_file in glob.glob(os.path.join(crlb_res_dir, "*.png")):
         os.remove(png_file)
@@ -27,21 +27,16 @@ else:
 
 def compute_one_crlb(model,
                      theta,
-                     amplitude,
+                     eps,
                      gamma,
-                     R0,
+                     beta0,
+                     rho,
                      T,
                      period,
                      pop_size,
                      phase=0.0,
                      phase2=None):
     """Compute CRLB for one parameter combination."""
-
-    # Calculate beta0 from R0 (measured at peak transmission)
-    # beta0 = R0 * (1 - exp(-gamma)) / (1 + amplitude)
-    # where (1 - exp(-gamma)) is the recovery probability per week
-    beta0 = R0 * (1 - np.exp(-gamma)) / (1 + amplitude)
-
     # Random initial conditions
     log_base = np.random.uniform(3, 6)
     diffs = np.random.uniform(-1, 1, size=2)
@@ -57,7 +52,8 @@ def compute_one_crlb(model,
         theta=theta,
         T=T,
         beta0=beta0,
-        amplitude=amplitude,
+        eps=eps,
+        rho=rho,
         period=period,
         pop_size=pop_size,
         phase=phase,
@@ -69,7 +65,7 @@ def compute_one_crlb(model,
         'model': model,
         'theta': theta,
         'gamma': gamma,
-        'amplitude': amplitude,
+        'eps': eps,
         'beta0': beta0,
         'S1_0': S0[0],
         'S2_0': S0[1],
@@ -79,7 +75,7 @@ def compute_one_crlb(model,
         'period': period,
         'crlb': crlb,
         'pop_size': pop_size,
-        'R0': R0,
+        'beta0': beta0,
         'phase': phase,
         'phase2': phase2
     }
@@ -95,7 +91,7 @@ def main(n_runs=200, n_jobs=-1, cross=False):
     """CRLB analysis for epidemic connectivity."""
 
     # From keeling and rohani's boarding school influenza example
-    R0 = flu.R0
+    beta0 = flu.beta0
 
     # Recovery rate from calibration to continuous model
     gamma = flu.gamma # 7 days == one week
@@ -104,30 +100,26 @@ def main(n_runs=200, n_jobs=-1, cross=False):
     period = 53
     pop_size = 2e7
     N = 20 
-    thetas = {"US"
-
-
-
-
-              10 ** np.linspace(-4, -1, N, endpoint=True)}
-    amplitudes = np.linspace(0, 1, N, endpoint=False)
+    thetas = 10 ** np.linspace(-4, -1, N, endpoint=True)
+    epss = np.linspace(0, 1, N, endpoint=False)
     tasks = []
     for model in ['contacts']:
-        for amplitude in amplitudes:#np.arange(11) * 0.1:
+        for eps in epss:#np.arange(11) * 0.1:
             for phase2 in [0, np.pi]:
                 for run_idx in range(n_runs):
-                    for theta in thetas[model]:
+                    for theta in thetas:
                         tasks.append({
                             'model': model,
                             'theta': theta,
-                            'amplitude': amplitude,
+                            'eps': eps,
                             'gamma': gamma,
-                            'R0': R0,
+                            'beta0': beta0,
                             'T': T,
                             'period': period,
                             'pop_size': pop_size,
                             'phase': 0,
-                            'phase2': phase2 
+                            'phase2': phase2,
+                            'rho': flu.rho
                         })
 
 
@@ -137,10 +129,8 @@ def main(n_runs=200, n_jobs=-1, cross=False):
     
     df = pd.DataFrame(results)
     df['log_crlb'] = np.log10(df.crlb)
-    df.to_csv(f"crlb.csv")
-    print(df.query("model == 'cross'").groupby(['model', 'theta', 'amplitude']).agg(lambda x: np.mean(np.isinf(x))))
-    # import pdb; pdb.set_trace()
-
+    df.to_csv(f"outputs/crlb.csv")
+   
 if __name__ == "__main__":
     try:
         plac.call(main)

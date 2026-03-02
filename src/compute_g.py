@@ -18,7 +18,7 @@ def contacts(S0: np.ndarray,
              theta: float,
              T: int,
              beta0: float,
-             amplitude: float,
+             eps: float,
              period: float,
              phase: float = 0.0,
              phase2: float = None
@@ -45,8 +45,8 @@ def contacts(S0: np.ndarray,
         Number of time steps to simulate
     beta0 : float
         Base transmission rate
-    amplitude : float
-        Seasonal amplitude
+    eps : float
+        Seasonal eps
     period : float
         Seasonal period
     phase : float, default=0.0
@@ -98,7 +98,7 @@ def contacts(S0: np.ndarray,
         # β₁(t) = β₀(1 + A·sin(2πt/P + φ))
         # β₂(t) = β₀(1 + A·sin(2πt/P + φ₂))
         phase_vec = np.array([phase, phase2])
-        beta_t = beta0 * (1 + amplitude * np.sin(2 * np.pi * t / period + phase_vec))
+        beta_t = beta0 * (1 + eps * np.sin(2 * np.pi * t / period + phase_vec))
        
         # Force of infection: λ(t) = β(t) ∘ (C I(t))
         # Element-wise multiplication of beta_t with contact-weighted infections
@@ -203,7 +203,7 @@ def cross(S0: np.ndarray,
           theta: float,
           T: int,
           beta0: float,
-          amplitude: float,
+          eps: float,
           period: float,
           phase: float = 0.0,
           phase2: float = None
@@ -232,8 +232,8 @@ def cross(S0: np.ndarray,
         Number of time steps to simulate
     beta0 : float
         Base transmission rate
-    amplitude : float
-        Seasonal amplitude
+    eps : float
+        Seasonal eps
     period : float
         Seasonal period
     phase : float, default=0.0
@@ -272,7 +272,7 @@ def cross(S0: np.ndarray,
 
     for t in range(T):
         phase_vec = np.array([phase, phase2])
-        beta_t = beta0 * (1 + amplitude * np.sin(2 * np.pi * t / period + phase_vec))
+        beta_t = beta0 * (1 + eps * np.sin(2 * np.pi * t / period + phase_vec))
 
         # Force of infection: λ = β ∘ I (only own-strain!)
         lambda_t = beta_t * I

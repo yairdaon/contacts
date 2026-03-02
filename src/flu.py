@@ -1,15 +1,32 @@
 import math
-rho = 0.3 
 
-R0 = 3.65
+## https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.1000316
+## First line in Table 2
+R0_max = 3.52
+R0_min = 1.12
+D = 3.24 # mean infectious period
 
 # Recovery rate from calibration to continuous model
-gamma = 7/2.2 # 7 days == one week
+gamma = 7/D # 7 days == one week
 
-amplitude = 0.7
-# Calculate beta0 from R0 (measured at peak transmission)
-# beta0 = R0 * (1 - exp(-gamma)) / (1 + amplitude)
-# where (1 - exp(-gamma)) is the recovery probability per week
-beta0 = R0 * (1 - math.exp(-gamma)) / (1 + amplitude)
+beta_max = R0_max * gamma
+beta_min = R0_min * gamma
+beta0 = ( beta_max + beta_min ) / 2
+
+## Since beta_max = beta0 (1+eps) and beta_min = beta0 (1-eps), we get
+eps = beta_max /beta0 - 1
+eps_ = 1 - beta_min/beta0 
+assert abs(eps-eps_) < 1e-15
+
+
+## Infection fatality rate from first table of https://onlinelibrary.wiley.com/doi/10.1111/irv.12486
+ifr = (4e3+2e4) / (9.2e6 + 3.56e7) ## Approximately half percent
+print(f"IFR = {ifr*100:.3f}%")
+#ifr = 0.05 / 100
+
+## Reporting rate for ILI?
+rho = 0.3
+
+
 
 nweeks = 25

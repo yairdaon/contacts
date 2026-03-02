@@ -10,7 +10,6 @@ from typing import Callable, Dict, List
 from scipy.linalg import cho_factor, cho_solve, solve
 
 from src import compute_g
-from src.diseases import flu
 from src.helper import JACOBIAN_COLS, plot_G
 
 def compute_crlb(S0,
@@ -20,7 +19,8 @@ def compute_crlb(S0,
                  theta: float,
                  T: int,
                  beta0: float,
-                 amplitude: float,
+                 eps: float,
+                 rho: float,
                  period: float,
                  pop_size: int = 1,
                  phase: float = 0.0,
@@ -41,8 +41,8 @@ def compute_crlb(S0,
         Number of time steps
     beta0 : float
         Base transmission rate
-    amplitude : float
-        Seasonal amplitude
+    eps : float
+        Seasonal eps
     period : float
         Seasonal period
     pop_size : int, default=1
@@ -69,7 +69,7 @@ def compute_crlb(S0,
         theta=theta,
         T=T,
         beta0=beta0,
-        amplitude=amplitude,
+        eps=eps,
         period=period,
         phase=phase,
         phase2=phase2
@@ -81,7 +81,6 @@ def compute_crlb(S0,
         return np.inf
     
     ## Binomial noise
-    rho = flu.rho
     sqrt_W = 1 / mu  
     G = np.einsum('i, ij -> ij', sqrt_W, G)
     
