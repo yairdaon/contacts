@@ -21,7 +21,7 @@ assert abs(eps-eps_) < 1e-15
 
 ## Infection fatality rate from first table of https://onlinelibrary.wiley.com/doi/10.1111/irv.12486
 ifr = (4e3+2e4) / (9.2e6 + 3.56e7) ## Approximately half percent
-print(f"IFR = {ifr*100:.3f}%")
+# print(f"IFR = {ifr*100:.3f}%")
 #ifr = 0.05 / 100
 
 ## Reporting rate for ILI?
