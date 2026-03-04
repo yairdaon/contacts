@@ -8,6 +8,7 @@ import nlopt
 
 from src.data_loader import load_real
 from src.inverter import Inverter
+from src.crlb import compute_crlb
 from src.flu import Mortality as flu
 
 OUTPUT_DIR = "outputs"
