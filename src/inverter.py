@@ -12,20 +12,19 @@ from pprint import pprint
 from src import losses
 from src.packer import Packer
 from src import compute_g
-from src import flu
 
 class Objective:
     def __init__(self,
                  obs,
-                 phases,
-                 seasonal_driver=True):
+                 phase,
+                 disease):
         
         self.packer = Packer(seasons=obs['season'].unique(),
-                             regions=obs['region'].unique(),
-                             seasonal_driver=seasonal_driver)
-        self.phases = phases
+                             regions=obs['region'].unique())
+        self.phase = phase
         self.loss = losses.gaussian
         self.obs = obs
+        self.disease = disease
         
         # self.pops = {}
         # for season in self.packer.seasons:
@@ -66,10 +65,10 @@ class Objective:
         mu = sim_df["incidence"].values + 1e-6  # small constant for numerical stability
 
         # Residual: r = Y - ρμ
-        r = obs - mu * flu.rho
+        r = obs - mu * self.disease.rho
 
         # A_i(t) = ∂ℓ/∂μ = -1/(2μ) + r/((1-ρ)μ) + r²/(2ρ(1-ρ)μ²)
-        A = -1 / (2 * mu) + r / ((1 - flu.rho) * mu) + r ** 2 / (2 * flu.rho * (1 - flu.rho) * mu ** 2)
+        A = -1 / (2 * mu) + r / ((1 - self.disease.rho) * mu) + r ** 2 / (2 * self.disease.rho * (1 - self.disease.rho) * mu ** 2)
 
         # ∂L/∂μ = -A (negative log-likelihood)
         dL_dmu = -A
@@ -98,7 +97,7 @@ class Objective:
         assert not np.isnan(x).any()
 
         params = self.packer.unpack(x)
-        simulated = self.packer.sim(params, self.phases)
+        simulated = self.packer.sim(params, self.phase, self.disease)
 
         msg = f"Simulation and observation indices don't match. Sim: {len(simulated)}, Obs: {len(self.obs)}"
         assert np.all(simulated.index == self.obs.index), msg
@@ -113,7 +112,7 @@ class Objective:
         n_valid = valid_mask.sum()
         weight = n_total / n_valid if n_valid > 0 else 1.0
 
-        out = self.loss(obs_valid, sim_valid, rho=flu.rho) * weight
+        out = self.loss(obs_valid, sim_valid, rho=self.disease.rho) * weight
         assert not np.isnan(out), f"Loss is {out}"
 
         # Compute gradient if requested
@@ -129,13 +128,14 @@ class Objective:
 class Inverter:
     def __init__(self,
                  optimizer,
-                 phases,
+                 phase,
                  obs,
-                 seasonal_driver=True):
+                 disease):
 
         self.objective = Objective(obs=obs,
-                                   phases=phases,
-                                   seasonal_driver=seasonal_driver)
+                                   phase=phase,
+                                   disease=disease)
+        
         self.packer = self.objective.packer
         self.optimizer = optimizer
     

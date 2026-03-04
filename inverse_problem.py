@@ -20,18 +20,19 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def main(sync,
          method='slsqp'):
-    
+
+    disease = flu.ILI
     theta = 0.05
-    phases = np.zeros(2)
-    grad = True
+    phase= np.zeros(2)
     if not sync:
-        phases[1] = np.pi
+        phase[1] = np.pi
     
-    seasonal_driver = True
     n_regions = 2
     n_seasons = 20
-    n0 = 3  # No parallelization in debug mode
+
+    grad = True
     maxeval = None
+    n0 = 5#00 
     if method == 'slsqp':
         optimizer = nlopt.LD_SLSQP
     elif method == 'mma':
@@ -47,24 +48,25 @@ def main(sync,
     print(f"\n\n{un}ynchronized with {method}")
     flag = "" if sync else "un"
     fname = f'{OUTPUT_DIR}/{flag}sync_{method}.csv'
- 
+
+
+    ## Create fake data
     packer = Packer()
     true = packer.random_dict()
     true['theta'] = theta
-    true_trajectory = packer.sim(true, phases)
-
-    # Generate observed data
+    true_trajectory = packer.sim(true, phase, disease)
     obs = true_trajectory.copy()
-    true_counts = true_trajectory['incidence'] * flu.rho  # Fixed rho value
-    scale = np.sqrt(flu.rho * (1 - flu.rho) * true_counts)
+    true_counts = true_trajectory['incidence'] * disease.rho  # Fixed rho value
+    scale = np.sqrt(disease.rho * (1 - disease.rho) * true_counts)
     obs['incidence'] = true_counts + np.random.randn(true_counts.size) * scale
     obs['incidence'] = np.maximum(1e-6, obs['incidence'])  # Ensure non-negative
-
+    #import pdb; pdb.set_trace()
+    
     ## Solve inverse problem
     inv = Inverter(optimizer=optimizer,
-                   phases=phases,
+                   phase=phase,
                    obs=obs,
-                   seasonal_driver=seasonal_driver).fit(n0=n0, maxeval=maxeval)
+                   disease=disease).fit(n0=n0, maxeval=maxeval)
     
     data_rows = []
     
@@ -136,7 +138,6 @@ def main(sync,
     # plt.show()
 
 
-    # df['hostname'] = hostname
     df.to_csv(fname, index=False)
     print(f"Saved optimization results to {fname} with {len(df)} rows")
 

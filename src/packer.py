@@ -5,7 +5,6 @@ from numpy import exp, log
 from pprint import pprint
 
 from src import compute_g
-from src import flu
 
 SLIM = (0.8, 0.99)
 ILIM = (1e-5, 1e-3)
@@ -13,8 +12,7 @@ ILIM = (1e-5, 1e-3)
 class Packer:
     def __init__(self,
                  seasons=None,
-                 regions=None,
-                 seasonal_driver=True):
+                 regions=None):
 
         self.regions = regions if regions is not None else ["HHS0", "HHS1"]
         self.seasons = seasons if seasons is not None else ["1900-01-01", "2000-01-01", "2100-01-01"] 
@@ -25,7 +23,6 @@ class Packer:
          
         # Count parameters: S, I init (2*n_regions*n_seasons), theta,
         self.n_params = 2 * self.n_regions * self.n_seasons + 1 
-        self.seasonal_driver = seasonal_driver
 
 
     def random_vector(self, seed=None):
@@ -89,7 +86,7 @@ class Packer:
         return out
 
 
-    def sim(self, params, phases):
+    def sim(self, params, phase, disease):
         """Simulate and return incidence + Jacobian columns for gradient computation."""
         S_init = params['S_init']
         I_init = params['I_init']
@@ -102,14 +99,13 @@ class Packer:
 
             df = compute_g.contacts(S0=S,
                                     I0=I,
-                                    gamma=flu.gamma,
+                                    gamma=disease.gamma,
                                     theta=theta,
-                                    T=flu.n_weeks,
-                                    beta0=flu.beta0,
-                                    eps=flu.eps,
+                                    T=disease.n_weeks,
+                                    beta0=disease.beta0,
+                                    eps=disease.eps,
                                     period=53,
-                                    phase=phases[0],
-                                    phase2=phases[1])
+                                    phase=phase)
             
             df = df.reset_index()
             df['time'] = df['t'] * timedelta(weeks=1)
