@@ -1,7 +1,11 @@
 import numpy as np
 import pandas as pd
+from datetime import timedelta
 from numpy import exp, log
 from pprint import pprint
+
+from src import compute_g
+from src import flu
 
 SLIM = (0.8, 0.99)
 ILIM = (1e-5, 1e-3)
@@ -83,3 +87,40 @@ class Packer:
         assert idx == flat.size
         #self.verify(flat)
         return out
+
+
+    def sim(self, params, phases):
+        """Simulate and return incidence + Jacobian columns for gradient computation."""
+        S_init = params['S_init']
+        I_init = params['I_init']
+        theta = params["theta"]
+
+        results = []
+        for season_idx, season in enumerate(self.seasons):
+            S = S_init[season_idx, :]
+            I = I_init[season_idx, :]
+
+            df = compute_g.contacts(S0=S,
+                                    I0=I,
+                                    gamma=flu.gamma,
+                                    theta=theta,
+                                    T=flu.n_weeks,
+                                    beta0=flu.beta0,
+                                    eps=flu.eps,
+                                    period=53,
+                                    phase=phases[0],
+                                    phase2=phases[1])
+            
+            df = df.reset_index()
+            df['time'] = df['t'] * timedelta(weeks=1)
+            df['season_idx'] = season_idx
+            df_long = df[['time', 'j', 'mu', 'season_idx', 'theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']].rename(
+                columns={'j': 'region', 'mu': 'incidence'})
+            df_long["region"] = df_long["region"].astype(int).replace(self.region_dict)
+            df_long["season"] = season
+            assert np.all(df_long['incidence'] >= 0), f"Negative incidence values in simulation output"
+            results.append(df_long)
+
+        res = pd.concat(results, ignore_index=True)
+        return res
+

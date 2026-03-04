@@ -9,8 +9,9 @@ from pprint import pprint
 
 import nlopt
 
-from src.helper import makepop, a2s
-from src.inverter import Inverter, Objective
+from src.helper import a2s
+from src.inverter import Inverter
+from src.packer import Packer
 from src import flu
 
 OUTPUT_DIR = os.path.expanduser("~/contacts/outputs")
@@ -18,19 +19,18 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 def main(sync,
-         method='slsqp',
-         model='cross'):
+         method='slsqp'):
     
     theta = 0.05
-    phase = np.zeros(2)
+    phases = np.zeros(2)
     grad = True
     if not sync:
-        phase[1] = np.pi
+        phases[1] = np.pi
     
-
+    seasonal_driver = True
     n_regions = 2
     n_seasons = 20
-    n0 = 500  # No parallelization in debug mode
+    n0 = 3  # No parallelization in debug mode
     maxeval = None
     if method == 'slsqp':
         optimizer = nlopt.LD_SLSQP
@@ -43,26 +43,15 @@ def main(sync,
     else:
         raise ValueError("Invalid optimizer")
 
-    
-    #run = 'full' if full else 'debug'
-    #oo = '' if grad else 'out'
     un = 'S' if sync else 'Uns' 
     print(f"\n\n{un}ynchronized with {method}")
-
-    pop = makepop(n_regions=n_regions,
-                  n_seasons=n_seasons)
-    objective = Objective(model=model,
-                          population=pop,
-                          n_weeks=flu.nweeks,
-                          gamma=flu.gamma,
-                          beta0 = flu.beta0,
-                          eps=flu.eps,
-                          rho=flu.rho,
-                          phase=phase)
-    
-    true = objective.packer.random_dict()
+    flag = "" if sync else "un"
+    fname = f'{OUTPUT_DIR}/{flag}sync_{method}.csv'
+ 
+    packer = Packer()
+    true = packer.random_dict()
     true['theta'] = theta
-    true_trajectory = objective.sim(true)
+    true_trajectory = packer.sim(true, phases)
 
     # Generate observed data
     obs = true_trajectory.copy()
@@ -70,19 +59,13 @@ def main(sync,
     scale = np.sqrt(flu.rho * (1 - flu.rho) * true_counts)
     obs['incidence'] = true_counts + np.random.randn(true_counts.size) * scale
     obs['incidence'] = np.maximum(1e-6, obs['incidence'])  # Ensure non-negative
-    objective.obs = obs
 
     ## Solve inverse problem
-    inv = Inverter(objective=objective, optimizer=optimizer).fit(n0=n0, maxeval=maxeval)
-
-    ## Create CSV dataframe with optimization results
-    # hostname = socket.gethostname().split('.')[0]  # short server name (e.g. dml12)
-    flag = "" if sync else "un"
-    #difficulty = 'full' if full else 'debug'
-    #opt_type = 'grad' if grad else 'cobyla'
-    fname = f'{OUTPUT_DIR}/{flag}sync_{method}.csv'
+    inv = Inverter(optimizer=optimizer,
+                   phases=phases,
+                   obs=obs,
+                   seasonal_driver=seasonal_driver).fit(n0=n0, maxeval=maxeval)
     
-    # Prepare data list for DataFrame
     data_rows = []
     
     # Add true parameters row (chain_number = -1, step_number = 0)

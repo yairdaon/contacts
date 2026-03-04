@@ -12,82 +12,35 @@ from pprint import pprint
 from src import losses
 from src.packer import Packer
 from src import compute_g
-
+from src import flu
 
 class Objective:
     def __init__(self,
-                 model,
-                 population,
-                 beta0,
-                 gamma,
-                 phase,
-                 eps,
-                 rho,
-                 n_weeks=26,
+                 obs,
+                 phases,
                  seasonal_driver=True):
-
-        self.G_fun = compute_g.cross if model == 'cross' else compute_g.contacts
-        self.packer = Packer(seasons=population['season'].unique(),
-                             regions=population['region'].unique(),
+        
+        self.packer = Packer(seasons=obs['season'].unique(),
+                             regions=obs['region'].unique(),
                              seasonal_driver=seasonal_driver)
-        self.n_weeks = n_weeks
-        self.gamma = gamma
-        self.beta0 = beta0
-        self.phase = phase
-        self.eps = eps
-      
-        self.pops = {}
-        for season in self.packer.seasons:
-            pop = (population
-                   .query("season == @season")
-                   .set_index("region")
-                   .loc[self.packer.regions, "population"]
-                   .values)
-            self.pops[season] = pop
-        self.population = population
+        self.phases = phases
         self.loss = losses.gaussian
-        self.rho = rho
+        self.obs = obs
+        
+        # self.pops = {}
+        # for season in self.packer.seasons:
+        #     pop = (population
+        #            .query("season == @season")
+        #            .set_index("region")
+        #            .loc[self.packer.regions, "population"]
+        #            .values)
+        #     self.pops[season] = pop
+        
+        # msg =  f"Population shape {population.shape} != "
+        # msg += f" ({self.packer.n_seasons * self.packer.n_regions}, 3)"
+        # assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3), msg
 
-        msg =  f"Population shape {population.shape} != "
-        msg += f" ({self.packer.n_seasons * self.packer.n_regions}, 3)"
-        assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3), msg
 
-
-
-    def sim(self, params):
-        """Simulate and return incidence + Jacobian columns for gradient computation."""
-        S_init = params['S_init']
-        I_init = params['I_init']
-        theta = params["theta"]
-
-        results = []
-        for season_idx, season in enumerate(self.packer.seasons):
-            S = S_init[season_idx, :]
-            I = I_init[season_idx, :]
-
-            df = self.G_fun(S0=S,
-                            I0=I,
-                            gamma=self.gamma,
-                            theta=theta,
-                            T=self.n_weeks,
-                            beta0=self.beta0,
-                            eps=self.eps,
-                            period=53,
-                            phase=self.phase[0],
-                            phase2=self.phase[1])
-
-            df = df.reset_index()
-            df['time'] = df['t'] * timedelta(weeks=1)
-            df['season_idx'] = season_idx
-            df_long = df[['time', 'j', 'mu', 'season_idx', 'theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']].rename(
-                columns={'j': 'region', 'mu': 'incidence'})
-            df_long["region"] = df_long["region"].astype(int).replace(self.packer.region_dict)
-            df_long["season"] = season
-            assert np.all(df_long['incidence'] >= 0), f"Negative incidence values in simulation output"
-            results.append(df_long)
-
-        res = pd.concat(results, ignore_index=True)
-        return res
 
     def compute_gradient(self, sim_df, obs_df):
         """
@@ -102,7 +55,6 @@ class Objective:
         For minimization of negative log-likelihood L = -ℓ:
             ∂L/∂φ = -Σ A_i(t) * ∂μ_i(t)/∂φ
         """
-        rho = self.rho
         n_seasons = self.packer.n_seasons
         n_regions = self.packer.n_regions
         M = n_seasons * n_regions
@@ -114,10 +66,10 @@ class Objective:
         mu = sim_df["incidence"].values + 1e-6  # small constant for numerical stability
 
         # Residual: r = Y - ρμ
-        r = obs - mu * rho
+        r = obs - mu * flu.rho
 
         # A_i(t) = ∂ℓ/∂μ = -1/(2μ) + r/((1-ρ)μ) + r²/(2ρ(1-ρ)μ²)
-        A = -1 / (2 * mu) + r / ((1 - rho) * mu) + r ** 2 / (2 * rho * (1 - rho) * mu ** 2)
+        A = -1 / (2 * mu) + r / ((1 - flu.rho) * mu) + r ** 2 / (2 * flu.rho * (1 - flu.rho) * mu ** 2)
 
         # ∂L/∂μ = -A (negative log-likelihood)
         dL_dmu = -A
@@ -140,11 +92,13 @@ class Objective:
 
         return grad
 
-    def __call__(self, xx, grad=None):
-        assert not np.isnan(xx).any()
+    
+    def __call__(self, x, grad=None):
+        """ x is a vector of parameters"""
+        assert not np.isnan(x).any()
 
-        params = self.packer.unpack(xx)
-        simulated = self.sim(params)
+        params = self.packer.unpack(x)
+        simulated = self.packer.sim(params, self.phases)
 
         msg = f"Simulation and observation indices don't match. Sim: {len(simulated)}, Obs: {len(self.obs)}"
         assert np.all(simulated.index == self.obs.index), msg
@@ -159,7 +113,7 @@ class Objective:
         n_valid = valid_mask.sum()
         weight = n_total / n_valid if n_valid > 0 else 1.0
 
-        out = self.loss(obs_valid, sim_valid, rho=self.rho) * weight
+        out = self.loss(obs_valid, sim_valid, rho=flu.rho) * weight
         assert not np.isnan(out), f"Loss is {out}"
 
         # Compute gradient if requested
@@ -167,21 +121,24 @@ class Objective:
             computed_grad = self.compute_gradient(sim_valid, obs_valid) * weight
             grad[:] = computed_grad
 
-        self.x_list.append(copy.deepcopy(xx))
+        self.x_list.append(copy.deepcopy(x))
         self.out_list.append(out)
         return out
 
 
-
 class Inverter:
     def __init__(self,
-                 objective,
-                 optimizer):
-        
-        self.objective = objective
-        self.packer = objective.packer
-        self.optimizer = optimizer
+                 optimizer,
+                 phases,
+                 obs,
+                 seasonal_driver=True):
 
+        self.objective = Objective(obs=obs,
+                                   phases=phases,
+                                   seasonal_driver=seasonal_driver)
+        self.packer = self.objective.packer
+        self.optimizer = optimizer
+    
         
     def fit(self, n0=1, maxeval=None, n_jobs=-1):
         self.objective.x_list = []

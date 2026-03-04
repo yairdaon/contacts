@@ -26,7 +26,4 @@ ifr = (4e3+2e4) / (9.2e6 + 3.56e7) ## Approximately half percent
 
 ## Reporting rate for ILI?
 rho = 0.3
-
-
-
-nweeks = 25
+n_weeks = 25
