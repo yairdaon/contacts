@@ -1,66 +1,54 @@
 import os
 import numpy as np
-import pickle
-import pytest
 import pandas as pd
 import plac
-import socket
-from pprint import pprint
-
 import nlopt
 
-from src.helper import a2s
 from src.inverter import Inverter
-from src.packer import Packer
+from src.data_loader import load_synthetic
 from src import flu
 
 OUTPUT_DIR = os.path.expanduser("~/contacts/outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def main(sync,
-         method='slsqp'):
+def main(sync, method='slsqp'):
 
     disease = flu.ILI
     theta = 0.05
-    phase= np.zeros(2)
+    phase = np.zeros(2)
     if not sync:
         phase[1] = np.pi
-    
-    n_regions = 2
-    n_seasons = 20
 
-    grad = True
+    regions = ["HHS0", "HHS1"]
+    seasons = list(range(1990, 2010))  # 20 seasons
+
+    n0 = 5
     maxeval = None
-    n0 = 5#00 
     if method == 'slsqp':
         optimizer = nlopt.LD_SLSQP
     elif method == 'mma':
         optimizer = nlopt.LD_MMA
     elif method == 'ccsaq':
-        optimizer =  nlopt.LD_CCSAQ
+        optimizer = nlopt.LD_CCSAQ
     elif method == 'cobyla':
         optimizer = nlopt.LN_COBYLA
     else:
         raise ValueError("Invalid optimizer")
 
-    un = 'S' if sync else 'Uns' 
+    un = 'S' if sync else 'Uns'
     print(f"\n\n{un}ynchronized with {method}")
     flag = "" if sync else "un"
     fname = f'{OUTPUT_DIR}/{flag}sync_{method}.csv'
 
-
-    ## Create fake data
-    packer = Packer()
-    true = packer.random_dict()
-    true['theta'] = theta
-    true_trajectory = packer.sim(true, phase, disease)
-    obs = true_trajectory.copy()
-    true_counts = true_trajectory['incidence'] * disease.rho  # Fixed rho value
-    scale = np.sqrt(disease.rho * (1 - disease.rho) * true_counts)
-    obs['incidence'] = true_counts + np.random.randn(true_counts.size) * scale
-    obs['incidence'] = np.maximum(1e-6, obs['incidence'])  # Ensure non-negative
-    #import pdb; pdb.set_trace()
+    # Generate synthetic data
+    obs, true = load_synthetic(
+        disease=disease,
+        regions=regions,
+        seasons=seasons,
+        theta=theta,
+        phase=phase
+    )
     
     ## Solve inverse problem
     inv = Inverter(optimizer=optimizer,

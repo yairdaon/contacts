@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from datetime import timedelta
 from numpy import exp, log
 from pprint import pprint
 
@@ -11,16 +10,20 @@ ILIM = (1e-5, 1e-3)
 
 class Packer:
     def __init__(self,
+                 disease,
                  seasons=None,
-                 regions=None):
+                 regions=None,
+                 all_Ts=None):
 
+        self.disease = disease
         self.regions = regions if regions is not None else ["HHS0", "HHS1"]
-        self.seasons = seasons if seasons is not None else ["1900-01-01", "2000-01-01", "2100-01-01"] 
+        self.seasons = seasons if seasons is not None else [1990, 1991, 1992]
         self.n_regions = len(self.regions)
         self.n_seasons = len(self.seasons)
         assert self.n_regions == 2 ## For this branch only
         self.region_dict = dict(zip(range(self.n_regions), self.regions))
-         
+        self.all_Ts = {season: season + np.arange(disease.n_weeks) * disease.step_size for season in self.seasons} if all_Ts is None else all_Ts
+
         # Count parameters: S, I init (2*n_regions*n_seasons), theta,
         self.n_params = 2 * self.n_regions * self.n_seasons + 1 
 
@@ -101,16 +104,14 @@ class Packer:
                                     I0=I,
                                     gamma=disease.gamma,
                                     theta=theta,
-                                    T=disease.n_weeks,
+                                    Ts=self.all_Ts[season],
                                     beta0=disease.beta0,
                                     eps=disease.eps,
-                                    period=53,
                                     phase=phase)
             
             df = df.reset_index()
-            df['time'] = df['t'] * timedelta(weeks=1)
             df['season_idx'] = season_idx
-            df_long = df[['time', 'j', 'mu', 'season_idx', 'theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']].rename(
+            df_long = df[['t', 'j', 'mu', 'season_idx', 'theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']].rename(
                 columns={'j': 'region', 'mu': 'incidence'})
             df_long["region"] = df_long["region"].astype(int).replace(self.region_dict)
             df_long["season"] = season

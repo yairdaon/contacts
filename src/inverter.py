@@ -18,30 +18,18 @@ class Objective:
                  obs,
                  phase,
                  disease):
-        
-        self.packer = Packer(seasons=obs['season'].unique(),
-                             regions=obs['region'].unique())
+
+        self.packer = Packer(disease=disease,
+                             seasons=obs['season'].unique(),
+                             regions=obs['region'].unique(),
+                             all_Ts={season: np.sort(dd['t'].unique()) for season, dd in obs.groupby("season")})
         self.phase = phase
         self.loss = losses.gaussian
         self.obs = obs
         self.disease = disease
         
-        # self.pops = {}
-        # for season in self.packer.seasons:
-        #     pop = (population
-        #            .query("season == @season")
-        #            .set_index("region")
-        #            .loc[self.packer.regions, "population"]
-        #            .values)
-        #     self.pops[season] = pop
-        
-        # msg =  f"Population shape {population.shape} != "
-        # msg += f" ({self.packer.n_seasons * self.packer.n_regions}, 3)"
-        # assert population.shape == (self.packer.n_seasons * self.packer.n_regions, 3), msg
 
-
-
-    def compute_gradient(self, sim_df, obs_df):
+    def compute_gradient(self, sim_df):
         """
         Compute gradient of negative log-likelihood with respect to parameters.
 
@@ -61,11 +49,11 @@ class Objective:
         # Initialize gradient vector: [S_init (M), I_init (M), theta (1)]
         grad = np.zeros(2 * M + 1)
 
-        obs = obs_df["incidence"].values
+        
         mu = sim_df["incidence"].values + 1e-6  # small constant for numerical stability
 
         # Residual: r = Y - ρμ
-        r = obs - mu * self.disease.rho
+        r = self.obs["incidence"].values - mu * self.disease.rho
 
         # A_i(t) = ∂ℓ/∂μ = -1/(2μ) + r/((1-ρ)μ) + r²/(2ρ(1-ρ)μ²)
         A = -1 / (2 * mu) + r / ((1 - self.disease.rho) * mu) + r ** 2 / (2 * self.disease.rho * (1 - self.disease.rho) * mu ** 2)
@@ -97,7 +85,7 @@ class Objective:
         assert not np.isnan(x).any()
 
         params = self.packer.unpack(x)
-        simulated = self.packer.sim(params, self.phase, self.disease)
+        simulated = self.packer.sim(params=params, phase=self.phase, disease=self.disease)
 
         msg = f"Simulation and observation indices don't match. Sim: {len(simulated)}, Obs: {len(self.obs)}"
         assert np.all(simulated.index == self.obs.index), msg
@@ -117,7 +105,7 @@ class Objective:
 
         # Compute gradient if requested
         if grad is not None and grad.size > 0:
-            computed_grad = self.compute_gradient(sim_valid, obs_valid) * weight
+            computed_grad = self.compute_gradient(sim_valid) * weight
             grad[:] = computed_grad
 
         self.x_list.append(copy.deepcopy(x))

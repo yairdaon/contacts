@@ -14,65 +14,52 @@ from src.helper import JACOBIAN_COLS, plot_G
 
 def compute_crlb(S0,
                  I0,
-                 model,
                  gamma: float,
                  theta: float,
-                 T: int,
+                 Ts: np.ndarray,
                  beta0: float,
                  eps: float,
                  rho: float,
-                 period: float,
-                 pop_size: int = 1,
-                 phase: float = 0.0,
-                 phase2: float = None
+                 phase: np.ndarray
                  ):
     """
     Compute Cramér-Rao Lower Bound for standard deviation of connectivity parameter theta.
 
     Parameters:
     -----------
-    S1_0, S2_0, I1_0, I2_0 : float
-        Initial conditions for susceptible and infected populations
+    S0 : np.ndarray
+        Initial susceptible fractions per region
+    I0 : np.ndarray
+        Initial infected fractions per region
     gamma : float
         Recovery rate
     theta : float
         Connectivity parameter
-    T : int
-        Number of time steps
+    Ts : np.ndarray
+        Array of time values
     beta0 : float
         Base transmission rate
     eps : float
-        Seasonal eps
-    period : float
-        Seasonal period
-    pop_size : int, default=1
-        Population scaling factor for Poisson model
-    phase : float, default=0.0
-        Phase offset for seasonal forcing (in radians).
-        If phase2 is None, both regions use this phase.
-    phase2 : float, optional
-        Phase offset for region 2 (in radians).
-        If None, region 2 uses the same phase as region 1.
+        Seasonal amplitude
+    rho : float
+        Reporting rate
+    phase : np.ndarray
+        Phase offsets per region (in radians)
 
     Returns:
     --------
     float
-        the crlb for standard deviation of theta
+        CRLB for standard deviation of theta
     """
-    assert model in ('cross', 'contacts')
-    G_fun = compute_g.cross if model == 'cross' else compute_g.contacts
-    
-    df = G_fun(
+    df = compute_g.contacts(
         S0=S0,
         I0=I0,
         gamma=gamma,
         theta=theta,
-        T=T,
+        Ts=Ts,
         beta0=beta0,
         eps=eps,
-        period=period,
-        phase=phase,
-        phase2=phase2
+        phase=phase
     )
     
     mu = df['mu'].values

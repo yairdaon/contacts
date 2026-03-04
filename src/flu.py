@@ -20,8 +20,9 @@ class Flu:
     eps_ = 1 - beta_min/beta0 
     assert abs(eps-eps_) < 1e-15
     n_weeks = 25
+    step_size = 7 / 365.25  # fraction of year per week
 
-
+    
 class Mortality(Flu):
     ## Infection fatality rate from first table of https://onlinelibrary.wiley.com/doi/10.1111/irv.12486
     rho = (4e3+2e4) / (9.2e6 + 3.56e7) ## Approximately half percent

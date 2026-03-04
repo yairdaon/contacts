@@ -16,10 +16,9 @@ def contacts(S0: np.ndarray,
              I0: np.ndarray,
              gamma: float,
              theta: float,
-             T: int,
              beta0: float,
              eps: float,
-             period: float,
+             Ts,
              phase
              ) -> pd.DataFrame:
     """
@@ -46,8 +45,6 @@ def contacts(S0: np.ndarray,
         Base transmission rate
     eps : float
         Seasonal eps
-    period : float
-        Seasonal period
     phase : float, default=0.0
         Phase offset for seasonal forcings (in radians). Applied to both regions.
         β₁(t) = β₀(1 + A·sin(2πt/P + φ))
@@ -85,12 +82,12 @@ def contacts(S0: np.ndarray,
     dS_dtheta = np.zeros(2)   # ∂S(t)/∂θ = 0 at t=0
     dI_dtheta = np.zeros(2)   # ∂I(t)/∂θ = 0 at t=0
 
-    # Compute observations for T time steps (t = 0, 1, ..., T-1)
-    for t in range(T):
+    # Compute observations for Ts time steps where all 0 <= t < 1
+    for t in Ts:
         # Seasonal transmission rate (vector for each region)
         # β₁(t) = β₀(1 + A·sin(2πt/P + φ))
         # β₂(t) = β₀(1 + A·sin(2πt/P + φ₂))
-        beta_t = beta0 * (1 + eps * np.sin(2 * np.pi * t / period + phase))
+        beta_t = beta0 * (1 + eps * np.sin(2 * np.pi * t + phase))
        
         # Force of infection: λ(t) = β(t) ∘ (C I(t))
         # Element-wise multiplication of beta_t with contact-weighted infections
@@ -123,11 +120,11 @@ def contacts(S0: np.ndarray,
         # ∂μ(t)/∂I(0) = ∂S(t)/∂I(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂I(0)
         dmu_dI0 = dS_dI0 * (1 - np.exp(-lambda_t))[:, None] + (S * np.exp(-lambda_t))[:, None] * dlambda_dI0
 
-        # Store results for both regions (j=1,2)
+        # Store results for both regions (j=0,1)
         for j in range(2):
             row_data = {
                 't': t,
-                'j': j + 1,  # Regions numbered 1,2
+                'j': j,  # Regions numbered 0,1
                 'S': S[j],   # Current susceptible population
                 'I': I[j],   # Current infected population
                 'mu': mu[j], # Mean observation μⱼ(t)
@@ -139,8 +136,8 @@ def contacts(S0: np.ndarray,
             }
             G.append(row_data)
 
-        # Update states for next time step (only if t < T-1)
-        if t < T - 1:
+        # Update states for next time step (only if not last time step)
+        if t < Ts[-1]:
             # === Update state variables ===
             # S(t+1) = S(t) exp(-λ(t))
             # I(t+1) = I(t) exp(-γ) + μ(t)
