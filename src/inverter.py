@@ -27,6 +27,8 @@ class Objective:
         self.loss = losses.gaussian
         self.obs = obs
         self.disease = disease
+        self.x_list = []
+        self.out_list = []
         
 
     def compute_gradient(self, sim_df):

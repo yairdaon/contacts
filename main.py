@@ -65,7 +65,7 @@ def main(n_runs=200, n_jobs=-1):
     season = 2000  # arbitrary reference season
     Ts = season + np.arange(disease.n_weeks) * disease.step_size
 
-    N = 20
+    N = 2#20
     thetas = 10 ** np.linspace(-4, -1, N, endpoint=True)
     epss = np.linspace(0, 1, N, endpoint=False)
 

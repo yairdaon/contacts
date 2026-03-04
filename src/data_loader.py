@@ -87,8 +87,8 @@ def load_real(disease, regions, seasons, mortality_path="data/pni_mortality/outp
     df["season"] = np.floor(df["t"]).astype(int)
     df = df[df["season"].isin(seasons)]
 
-    # Compute incidence
-    df["incidence"] = df["deaths"] / (disease.rho * df["population"])
+    # Compute observed incidence (deaths per capita)
+    df["incidence"] = df["deaths"] / df["population"]
 
     # Build observations
     results = []
