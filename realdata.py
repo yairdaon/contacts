@@ -35,7 +35,7 @@ def main():
         phase=phase,
         obs=obs,
         disease=flu
-    ).fit(n0=5, maxeval=None, n_jobs=-1)
+    ).fit(n0=50, maxeval=None, n_jobs=-1)
 
     # Print results
     fitted = inv.packer.unpack(inv.x)
@@ -58,7 +58,6 @@ def main():
        
         # Get time array for this season
         Ts = np.sort(obs.query("season == @season")['t'].unique())
-        #import pdb; pdb.set_trace()
  
         # Compute CRLB (variance) for this season
         crlb = compute_crlb(
@@ -74,14 +73,14 @@ def main():
         )
 
         # Accumulate Fisher information
-        assert np.isfinite(crlb) and crlb > 0, f"Singular Fisher matrix season {season}, theta = {theta:.4f}"
-        precision += 1.0 / crlb_var
+        assert np.isfinite(crlb), f"Singular Fisher matrix season {season}, theta = {theta:.4f}"
+        assert crlb > 0 
+        precision += 1.0 / crlb
            
        
 
-    var_total = 1.0 / fisher_info_total
-    print(f"\nCombined CRLB variance for theta: {var_total:.6e}")
-    print(f"Combined CRLB std for theta: {np.sqrt(var_total):.6e}")
+    variance = 1.0 / precision
+    print(f"Combined CRLB std for theta: {np.sqrt(variance):.6e}")
 
 
 if __name__ == "__main__":

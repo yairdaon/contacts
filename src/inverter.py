@@ -196,7 +196,13 @@ class Inverter:
             opt.add_inequality_constraint(make_constraint(idx), 1e-8)
 
         x0 = self.packer.random_vector()
-        x = opt.optimize(x0)
+        try:
+            x = opt.optimize(x0)
+        except Exception as e:
+            # Catch nlopt errors (RoundoffLimited, runtime_error, etc.)
+            print(f"nlopt exception: {type(e).__name__}: {e}")
+            x = objective.x_list[-1] if objective.x_list else x0
+        
         params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() == 4)
         params['x_list'] = copy.deepcopy(objective.x_list)
         params['out_list'] = copy.deepcopy(objective.out_list)

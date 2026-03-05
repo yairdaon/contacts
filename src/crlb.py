@@ -69,9 +69,15 @@ def compute_crlb(S0,
     
     mu = df['mu'].values
     G = df[JACOBIAN_COLS].values  # Shape: (2T, 5)
-    if np.any(mu == 0):
+
+    # Ignore negligible incidence
+    valid = mu >= 1e-6
+    mu = mu[valid]
+    G = G[valid]
+
+    if len(mu) == 0:
         return np.inf
-    
+
     ## Binomial noise
     sqrt_W = 1 / mu  
     G = np.einsum('i, ij -> ij', sqrt_W, G)
