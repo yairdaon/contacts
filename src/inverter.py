@@ -210,7 +210,7 @@ class Inverter:
             fun_x0 = objective(x0)
             return dict(x=x0, fun=fun_x0, success=False, x_list=[x0], out_list=[fun_x0], err=str(e))
 
-        params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() == 4, err='')
+        params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() > 0, err='')
         params['x_list'] = copy.deepcopy(objective.x_list)
         params['out_list'] = copy.deepcopy(objective.out_list)
         return params

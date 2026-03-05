@@ -80,10 +80,9 @@ def load_real(disease, regions, seasons, mortality_path="data/pni_mortality/outp
 
     # Compute phases
     phase = np.array([estimate_phase(r, humidity_dir) for r in regions])
-    mean_phase = np.mean(phase)
 
     # Convert date to continuous time with Nov 1 = Y.0
-    df["t"] = calc_t(df["date"]) + mean_phase / (2 * np.pi)
+    df["t"] = calc_t(df["date"])
     df["season"] = np.floor(df["t"]).astype(int)
     df = df[df["season"].isin(seasons)]
 
