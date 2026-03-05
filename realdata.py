@@ -35,7 +35,7 @@ def main():
         phase=phase,
         obs=obs,
         disease=flu
-    ).fit(n0=50, maxeval=None, n_jobs=-1)
+    ).fit(n0=15, maxeval=None, n_jobs=-1)
 
     # Print results
     fitted = inv.packer.unpack(inv.x)

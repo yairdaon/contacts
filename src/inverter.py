@@ -151,6 +151,13 @@ class Inverter:
                 result = self.single_optimization(x0, maxeval)
                 self.results.append(result)
 
+        # Print any errors from failed runs
+        errors = [res['err'] for res in self.results if res['err']]
+        if errors:
+            print(f"Errors ({len(errors)}):")
+            for err in errors:
+                print(f"  {err}")
+
         print(f"successes rate {sum(int(res['success']) for res in self.results)} / {len(self.results)}")
         best = min(self.results, key=lambda r: r['fun'])
         self.x = best['x']
@@ -199,11 +206,11 @@ class Inverter:
         try:
             x = opt.optimize(x0)
         except Exception as e:
-            # Catch nlopt errors (RoundoffLimited, runtime_error, etc.)
-            print(f"nlopt exception: {type(e).__name__}: {e}")
-            x = objective.x_list[-1] if objective.x_list else x0
-        
-        params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() == 4)
+            # Return failed result with objective at x0
+            fun_x0 = objective(x0)
+            return dict(x=x0, fun=fun_x0, success=False, x_list=[x0], out_list=[fun_x0], err=str(e))
+
+        params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() == 4, err='')
         params['x_list'] = copy.deepcopy(objective.x_list)
         params['out_list'] = copy.deepcopy(objective.out_list)
         return params
