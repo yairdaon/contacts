@@ -16,7 +16,7 @@ OUTPUT_DIR = "outputs"
 
 def main():
     regions = ["California", "New York"]
-    seasons = [2010, 2011, 2012]  # 2 seasons
+    seasons = list(range(2009, 2018)) + [2022, 2023, 2024] 
 
     # Load real data
     obs, phase = load_real(
@@ -35,7 +35,7 @@ def main():
         phase=phase,
         obs=obs,
         disease=flu
-    ).fit(n0=15, maxeval=None, n_jobs=-1)
+    ).fit(n0=500, maxeval=None, n_jobs=-1)
 
     # Print results
     fitted = inv.packer.unpack(inv.x)
