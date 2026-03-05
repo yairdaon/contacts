@@ -1,3 +1,4 @@
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -49,8 +50,12 @@ def compute_crlb(S0,
     Returns:
     --------
     float
-        CRLB for standard deviation of theta
+        CRLB for variance of theta (i.e., [J^{-1}]_{11})
     """
+    assert S0.shape == phase.shape
+    assert I0.shape == phase.shape
+    assert len(Ts.shape) == 1
+    assert len(S0.shape) == 1
     df = compute_g.contacts(
         S0=S0,
         I0=I0,
@@ -85,9 +90,7 @@ def compute_crlb(S0,
     # Solve Lw = e1 for w = L^{-1}e1
     # CRLB for variance is ||L^{-1}e1||^2 = [J^{-1}]_{11}
     w = np.linalg.solve(L, e1)
-    
-    # CRLB for the standard deviation of theta
-    result = np.linalg.norm(w)
-    return result
+
+    return w @ w
     
 

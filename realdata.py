@@ -16,7 +16,7 @@ OUTPUT_DIR = "outputs"
 
 def main():
     regions = ["California", "New York"]
-    seasons = [2010, 2011]  # 2 seasons
+    seasons = [2010, 2011, 2012]  # 2 seasons
 
     # Load real data
     obs, phase = load_real(
@@ -39,9 +39,49 @@ def main():
 
     # Print results
     fitted = inv.packer.unpack(inv.x)
-    print(f"\nFitted theta: {fitted['theta']:.4f}")
+    theta = fitted['theta']
+    print(f"\nFitted theta: {theta:.4f}")
     print(f"Final objective: {inv.fun:.4f}")
     print(f"Success: {inv.success}")
+    
+    # Compute CRLB for theta using fitted parameters
+    # Fisher Information is additive across seasons: J_total = sum(J_i)
+    # Since CRLB returns variance = 1/J, we have: 1/var_total = sum(1/var_i)
+    n_regions = len(regions)
+    precision = 0.0
+
+    for season_idx, season in enumerate(seasons):
+        
+        # Get S0 and I0 for this season
+        S0 = fitted['S_init'][season_idx, :]    
+        I0 = fitted['I_init'][season_idx, :]
+       
+        # Get time array for this season
+        Ts = np.sort(obs.query("season == @season")['t'].unique())
+        #import pdb; pdb.set_trace()
+ 
+        # Compute CRLB (variance) for this season
+        crlb = compute_crlb(
+            S0=S0,
+            I0=I0,
+            gamma=flu.gamma,
+            theta=theta,
+            Ts=Ts,
+            beta0=flu.beta0,
+            eps=flu.eps,
+            rho=flu.rho,
+            phase=phase
+        )
+
+        # Accumulate Fisher information
+        assert np.isfinite(crlb) and crlb > 0, f"Singular Fisher matrix season {season}, theta = {theta:.4f}"
+        precision += 1.0 / crlb_var
+           
+       
+
+    var_total = 1.0 / fisher_info_total
+    print(f"\nCombined CRLB variance for theta: {var_total:.6e}")
+    print(f"Combined CRLB std for theta: {np.sqrt(var_total):.6e}")
 
 
 if __name__ == "__main__":
