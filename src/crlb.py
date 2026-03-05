@@ -1,5 +1,6 @@
 
 import numpy as np
+from numpy.linalg import LinAlgError
 import pandas as pd
 import matplotlib.pyplot as plt
 import sys

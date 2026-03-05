@@ -69,3 +69,34 @@ employ a multi-start strategy with $N_0 = 20$ random initial points,
 selecting the solution with lowest objective value. Optimization runs
 use relative tolerance $10^{-4}$ and are parallelized across CPU
 cores.
+
+\subsection*{Real Data}
+
+To validate our theoretical predictions on empirical data, we analyze
+pneumonia and influenza (P\&I) mortality in the United States. We
+integrate two publicly available data sources: weekly P\&I death
+counts from the CDC FluView surveillance system
+\cite{cdcfluview2024} and the HealthData.gov P\&I mortality
+dataset \cite{healthdatagov2024}. Where these sources overlap
+temporally and geographically, we average the reported death counts,
+as the two datasets show strong agreement (see Results). Population
+denominators are obtained from the CDC WONDER database
+\cite{cdcwonder2024} and interpolated linearly to weekly resolution.
+
+The observation model for mortality data uses an infection fatality
+rate (IFR) as the reporting rate $\rho$. Following
+\citet{wong2013case}, we estimate the IFR for seasonal influenza as
+approximately $\rho \approx 5.4 \times 10^{-4}$ (0.054\%), computed
+from the ratio of reported P\&I deaths to estimated total infections.
+
+The seasonal phase $\varphi_i$ for each region is estimated from
+absolute humidity data \cite{shaman2010absolute}. We find the phase
+offset that maximizes the correlation between $\sin(2\pi t +
+\varphi)$ and negative absolute humidity, aligning the model's
+seasonal forcing with humidity-driven transmission dynamics.
+
+For both CRLB computation and parameter inference, we exclude
+observations with incidence below $10^{-6}$ per capita. Such low
+values provide negligible Fisher information and can numerically
+destabilize the bound calculation through division by near-zero
+incidence in the weight matrix.

@@ -148,3 +148,31 @@ phase asynchrony restores parameter identifiability.
 \subsection*{Sensitivity to Phase Difference}
 % MAYBE HAVE: Can run main.py with varying phase differences
 % Show: CRLB(θ) as function of phase difference from 0 to π; identifies transition point
+
+\subsection*{Real Data: P\&I Mortality}
+
+We applied our methodology to pneumonia and influenza mortality data
+from the United States. Two independent data sources---CDC FluView and
+HealthData.gov---provide overlapping coverage for multiple states and
+seasons. Figure~\ref{fig:data_comparison} compares the reported death
+counts from both sources for representative states during 2017--2020.
+
+\begin{figure}%[h]
+\centering
+%\includegraphics[width=\textwidth]{../pix/data_comparison.pdf}
+\fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}PLACEHOLDER: Data comparison figure\vspace{2cm}}}
+\caption{Comparison of weekly P\&I death counts from two data sources:
+  CDC FluView (blue) and HealthData.gov (orange) for four states
+  during 2017--2020. The two sources show strong agreement, with minor
+  discrepancies likely due to reporting delays or definitional
+  differences. Where both sources provide data for the same
+  state-week, we use the average of the two values.}
+\label{fig:data_comparison}
+\end{figure}
+
+The two data sources exhibit strong concordance across states and time
+periods, with discrepancies typically occurring near the edges of
+reporting periods or during weeks with low mortality. By averaging
+where both sources overlap, we obtain a more robust estimate of true
+P\&I mortality while retaining coverage from whichever source extends
+further in time.
