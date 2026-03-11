@@ -1,0 +1,71 @@
+\section*{SI Appendix: Detailed Methods and Derivations}
+
+\subsection*{Discrete-Time Connectivity Model}
+
+We formulate the epidemic model in discrete time with weekly time steps, matching the natural resolution of surveillance data. Consider a system of $n$ interconnected regions, where $S_i(t)$, $I_i(t)$, and $R_i(t)$ denote the fractions of Susceptible, Infected, and Recovered individuals in region $i$ at time $t$. Since these are fractions, we have $S_i(t) + I_i(t) + R_i(t) = 1$ for all $i$ and $t$.
+
+Let $\mathbf{I}(t) = (I_1(t), \ldots, I_n(t))^T$ denote the vector of infected fractions. The force of infection in region $i$ at time $t$ is:
+\begin{equation}
+\lambda_i(t) = \beta_i(t) \sum_{j=1}^n C_{ij} I_j(t)
+\end{equation}
+where $\mathbf{C} \in \mathbb{R}^{n \times n}$ is the contact matrix with entries $C_{ij} \in [0,1]$ representing relative connectivity from region $j$ to region $i$, and $\beta_i(t)$ is the region-specific time-varying transmission rate with seasonal forcing:
+\begin{equation}
+\beta_i(t) = \beta_0\left(1 + A\sin\left(\frac{2\pi t}{P} + \varphi_i\right)\right)
+\end{equation}
+where $\beta_0$ is the baseline transmission rate, $A$ is the seasonal amplitude, $P$ is the period, and $\varphi_i$ is the phase for region $i$.
+
+The expected incidence (new infections) in region $i$ is:
+\begin{equation}\label{eq:si_incidence}
+\mu_i(t) = S_i(t) \left[1 - \exp(-\lambda_i(t))\right]
+\end{equation}
+
+The discrete-time SIR dynamics are:
+\begin{align}\begin{split}\label{eq:si_discrete_sir}
+S_i(t+1) &= S_i(t) \exp(-\lambda_i(t)) \\
+I_i(t+1) &= I_i(t) \exp(-\gamma) + \mu_i(t) \\
+R_i(t+1) &= R_i(t) + I_i(t) [1 - \exp(-\gamma)]
+\end{split}\end{align}
+
+\subsection*{Sensitivity Equations}
+
+The sensitivity of the force of infection is:
+\begin{equation}\label{eq:si_sens_lambda}
+\frac{\partial \lambda_i(t)}{\partial \phi} = \beta_i(t) \left(
+\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{I}(t) + \mathbf{C}
+\frac{\partial \mathbf{I}(t)}{\partial \phi} \right)_i
+\end{equation}
+
+The sensitivity of the expected incidence follows from Eq.~\eqref{eq:si_incidence}:
+\begin{equation}\label{eq:si_sens_mu}
+\frac{\partial \mu_i(t)}{\partial \phi} =
+\frac{\partial S_i(t)}{\partial \phi} \left[1 - \exp(-\lambda_i(t))\right]
++ S_i(t) \exp(-\lambda_i(t)) \frac{\partial \lambda_i(t)}{\partial \phi}
+\end{equation}
+
+The state sensitivities propagate according to:
+\begin{align}\begin{split}\label{eq:si_sens}
+\frac{\partial S_i(t+1)}{\partial \phi} &= \exp(-\lambda_i(t))
+\frac{\partial S_i(t)}{\partial \phi} - S_i(t) \exp(-\lambda_i(t))
+\frac{\partial \lambda_i(t)}{\partial \phi} \\
+\frac{\partial I_i(t+1)}{\partial \phi} &= \exp(-\gamma)
+\frac{\partial I_i(t)}{\partial \phi} +
+\frac{\partial \mu_i(t)}{\partial \phi}
+\end{split}\end{align}
+
+\subsection*{Fisher Information Matrix Derivation}
+
+Under the Gaussian approximation of the binomial observation model, the log-likelihood is:
+\begin{equation}\label{eq:si_loglik}
+\ell(\boldsymbol{\phi}) = -\frac{1}{2}\sum_{t,i}
+\left[\log(2\pi \sigma_i^2(t)) +
+\frac{(Y_i(t) - \rho\mu_i(t))^2}{\sigma_i^2(t)}\right]
+\end{equation}
+where $\sigma_i^2(t) = \rho(1-\rho)\mu_i(t)$.
+
+The Fisher Information Matrix (FIM) entries are:
+\begin{equation}\label{eq:si_fim_scalar}
+J_{kl} = \frac{1+\rho}{2(1-\rho)}\sum_{t=0}^{T-1}\sum_{i=1}^{n}
+\frac{1}{\mu_i(t)^2} \frac{\partial \mu_i(t)}{\partial \phi}
+\frac{\partial \mu_i(t)}{\partial \phi_l}
+\end{equation}
+See main text for full discussion of the CRLB properties derived from this matrix.
