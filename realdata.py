@@ -53,7 +53,7 @@ def process_pair(state1, state2, seasons):
 
     try:
         print("Run inverse problem")
-        n0 = 500
+        n0 = 5#00
         inv = Inverter(
             optimizer=nlopt.LD_SLSQP,
             phase=phase,
@@ -64,33 +64,17 @@ def process_pair(state1, state2, seasons):
         rows = []
         active_seasons = obs['season'].unique()
         
-        print("Calculating CRLB for each season")
-        def compute_single_row(run_idx, res, season):
-            fitted = inv.packer.unpack(res['x'])
+        print("Processing optimization runs and calculating CRLB for best run...")
+        
+        # We'll calculate CRLB for the best run's seasons in parallel
+        # inv.x, inv.fun, inv.success are already the best results
+        def compute_crlb_for_best(season):
+            fitted = inv.packer.unpack(inv.x)
             theta = fitted['theta']
-            obj = res['fun']
-            success = res['success']
-            
             season_idx = seasons.index(season)
             S0 = fitted['S_init'][season_idx, :]    
             I0 = fitted['I_init'][season_idx, :]
             Ts = np.sort(obs.query("season == @season")['t'].unique())
-            
-            row = {
-                'state1': s1_abbr,
-                'state2': s2_abbr,
-                'run_idx': run_idx,
-                'season': season,
-                'theta': theta,
-                'objective': obj,
-                'success': success,
-                'S1_0': S0[0],
-                'S2_0': S0[1],
-                'I1_0': I0[0],
-                'I2_0': I0[1],
-                'crlb': np.nan,
-                'error': ''
-            }
             
             try:
                 crlb_val = compute_crlb(
@@ -104,17 +88,55 @@ def process_pair(state1, state2, seasons):
                     rho=flu.rho,
                     phase=phase
                 )
-                row['crlb'] = crlb_val
+                return season, crlb_val, ''
             except Exception as e:
-                row['error'] = str(e)
-            return row
+                return season, np.nan, str(e)
 
-        tasks = [
-            delayed(compute_single_row)(run_idx, res, season)
-            for run_idx, res in enumerate(inv.results)
-            for season in active_seasons
-        ]
-        rows = Parallel(n_jobs=-1)(tqdm(tasks, desc="CRLB Calculation", total=len(tasks)))
+        # Parallel CRLB computation for the BEST run only
+        crlb_results = Parallel(n_jobs=-1)(delayed(compute_crlb_for_best)(s) for s in active_seasons)
+        crlb_map = {s: (c, e) for s, c, e in crlb_results}
+
+        # Identify which run was the best for the 'is_best' flag
+        best_run_idx = -1
+        for idx, res in enumerate(inv.results):
+            if np.array_equal(res['x'], inv.x):
+                best_run_idx = idx
+                break
+
+        # Now build the full dataframe with ALL runs
+        for run_idx, res in enumerate(inv.results):
+            fitted = inv.packer.unpack(res['x'])
+            theta = fitted['theta']
+            obj = res['fun']
+            success = res['success']
+            
+            for season in active_seasons:
+                season_idx = seasons.index(season)
+                S0 = fitted['S_init'][season_idx, :]    
+                I0 = fitted['I_init'][season_idx, :]
+                
+                row = {
+                    'state1': s1_abbr,
+                    'state2': s2_abbr,
+                    'run_idx': run_idx,
+                    'is_best': run_idx == best_run_idx,
+                    'season': season,
+                    'theta': theta,
+                    'objective': obj,
+                    'success': success,
+                    'S1_0': S0[0],
+                    'S2_0': S0[1],
+                    'I1_0': I0[0],
+                    'I2_0': I0[1],
+                    'crlb': np.nan,
+                    'error': ''
+                }
+                
+                # Fill in CRLB only for the best run
+                if run_idx == best_run_idx:
+                    row['crlb'], row['error'] = crlb_map[season]
+                
+                rows.append(row)
 
         # Save all rows for this pair
         df_results = pd.DataFrame(rows)
@@ -128,7 +150,7 @@ def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
         
-    seasons = list(range(2009, 2018)) + [2022, 2023, 2024]
+    seasons = list(range(2009, 2020)) + [2022, 2023, 2024]
     all_states = us.STATES
     
     # Generate all unique pairs
