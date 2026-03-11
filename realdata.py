@@ -49,11 +49,11 @@ def process_pair(state1, state2, seasons):
         print(f"Insufficient regional data for {s1_abbr}_{s2_abbr}: found {found_regions}")
         return
 
-    print(f"Processing {s1_abbr}_{s2_abbr}...")
+    print(f"Processing {s1_abbr} {s2_abbr}...")
 
     try:
         print("Run inverse problem")
-        n0 = 5#00
+        n0 = 500
         inv = Inverter(
             optimizer=nlopt.LD_SLSQP,
             phase=phase,
