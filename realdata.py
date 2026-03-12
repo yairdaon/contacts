@@ -66,7 +66,7 @@ def process_pair(state1, state2, seasons):
         obs=obs,
         disease=flu
     ).fit(n0=n0, maxeval=None, n_jobs=-1)
-    print("Finised inversion")
+    print("Finished inversion")
     
     # Identify the best result
     best_res_idx = np.argmin([res['fun'] for res in inv.results])
@@ -103,7 +103,11 @@ def process_pair(state1, state2, seasons):
             return season, np.nan, str(e)
 
     # Parallel CRLB computation for the BEST run only
-    crlb_results = Parallel(n_jobs=-1)(delayed(compute_crlb_for_best)(s) for s in tqdm(active_seasons))
+    with Parallel(n_jobs=-1) as parallel:
+        crlb_results = parallel(
+            delayed(compute_crlb_for_best)(s)
+            for s in active_seasons
+         )  
     crlb_map = {s: (c, e) for s, c, e in crlb_results}
 
     # Identify which run was the best for the 'is_best' flag

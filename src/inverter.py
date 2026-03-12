@@ -127,24 +127,18 @@ class Inverter:
     
         
     def fit(self, n0=1, maxeval=None, n_jobs=-1):
-
-        starts = []
-        for i in range(n0):
-            x0 = self.packer.random_vector()
-            starts.append(x0)
-            assert np.all(x0 <= 1)
-            assert np.all(x0 >= 0)
-
+          
         if n0 > 1 and n_jobs != 1:
-            it = tqdm(starts)
-            self.results = Parallel(n_jobs=n_jobs)(delayed(self.single_optimization)(x, maxeval) for x in it)
-        else:
-            # Sequential execution - avoids pickle issues with nlopt
-            self.results = []
-            for x0 in tqdm(starts):
-                result = self.single_optimization(x0, maxeval)
-                self.results.append(result)
+            with Parallel(n_jobs=n_jobs) as parallel:
+                self.results = parallel(
+                    delayed(single_optimization)(self.objective, self.optimizer, maxeval)
+                    for x in tqdm(range(n0))
+                )
 
+        else:  # Sequential 
+            self.results = [self.single_optimization(self.objective, self.optimizer, maxeval) for _ in tqdm(range(n0))]
+
+            
         # Print any errors from failed runs
         errors = [res['err'] for res in self.results if res['err']]
         if errors:
@@ -161,48 +155,52 @@ class Inverter:
         return self
 
 
-    def single_optimization(self, x0, maxeval=None):
-        objective = copy.deepcopy(self.objective)
+def single_optimization(objective, optimizer, maxeval=None):
+     
+    n_regions = objective.packer.n_regions
+    n_seasons = objective.packer.n_seasons
+    M = n_regions * n_seasons
+    n = objective.packer.n_params
+    opt = nlopt.opt(optimizer, n)
+    
+    opt.set_xtol_rel(1e-9)
+    # opt.set_xtol_abs(1e-6)
+    #opt.set_ftol_rel(1e-6) 
+    if maxeval is not None:
+        opt.set_maxeval(maxeval)
 
-        n_regions = self.packer.n_regions
-        n_seasons = self.packer.n_seasons
-        M = n_regions * n_seasons
-        n = self.packer.n_params
-        opt = nlopt.opt(self.optimizer, n)
+    opt.set_min_objective(objective)
+    # S_init and I_init bounded by [0, 1], theta bounded by [0, 0.5]
+    opt.set_lower_bounds([0.]*n)
+    opt.set_upper_bounds([1.]*(n-1) + [0.5])  # theta (last param) bounded by 0.5
+    
+    # Add simplex constraints: S[i] + I[i] <= 1 for each region-season combination
+    # nlopt inequality constraint h(x) >= 0, so for S + I <= 1, we need 1 - S - I >= 0
+    # For gradient-based methods, constraint function must also return gradient
+    def make_constraint(idx):
+        def constraint(x, grad):
+            if grad.size > 0:
+                grad[:] = 0
+                grad[idx] = 1
+                grad[idx + M] = 1
+            return x[idx] + x[idx + M] - 1
+        return constraint
 
-        opt.set_xtol_rel(1e-9)
-        # opt.set_xtol_abs(1e-6)
-        #opt.set_ftol_rel(1e-6) 
-        if maxeval is not None:
-            opt.set_maxeval(maxeval)
+    for idx in range(M):
+        opt.add_inequality_constraint(make_constraint(idx), 1e-8)
 
-        opt.set_min_objective(objective)
-        # S_init and I_init bounded by [0, 1], theta bounded by [0, 0.5]
-        opt.set_lower_bounds([0.]*n)
-        opt.set_upper_bounds([1.]*(n-1) + [0.5])  # theta (last param) bounded by 0.5
+    x0 = objective.packer.random_vector()
 
-        # Add simplex constraints: S[i] + I[i] <= 1 for each region-season combination
-        # nlopt inequality constraint h(x) >= 0, so for S + I <= 1, we need 1 - S - I >= 0
-        # For gradient-based methods, constraint function must also return gradient
-        def make_constraint(idx):
-            def constraint(x, grad):
-                if grad.size > 0:
-                    grad[:] = 0
-                    grad[idx] = 1
-                    grad[idx + M] = 1
-                return x[idx] + x[idx + M] - 1
-            return constraint
-
-        for idx in range(M):
-            opt.add_inequality_constraint(make_constraint(idx), 1e-8)
-
-        x0 = self.packer.random_vector()
-        try:
-            x = opt.optimize(x0)
-        except Exception as e:
-            # Return failed result with objective at x0
-            fun_x0 = objective(x0)
-            return dict(x=x0, fun=fun_x0, success=False, err=str(e))
-
+    try:
+        assert np.all(x0 <= 1)
+        assert np.all(x0 >= 0)
+        x = opt.optimize(x0)
         params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() > 0, err='')
         return params
+    
+    except Exception as e:
+        # Return failed result with objective at x0
+        fun_x0 = objective(x0)
+        return dict(x=x0, fun=fun_x0, success=False, err=str(e))
+
+    
