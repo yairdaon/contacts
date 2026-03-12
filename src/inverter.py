@@ -27,9 +27,7 @@ class Objective:
         self.loss = losses.gaussian
         self.obs = obs
         self.disease = disease
-        self.x_list = []
-        self.out_list = []
-        
+      
 
     def compute_gradient(self, sim_df):
         """
@@ -110,8 +108,6 @@ class Objective:
             computed_grad = self.compute_gradient(sim_valid) * weight
             grad[:] = computed_grad
 
-        self.x_list.append(copy.deepcopy(x))
-        self.out_list.append(out)
         return out
 
 
@@ -131,8 +127,6 @@ class Inverter:
     
         
     def fit(self, n0=1, maxeval=None, n_jobs=-1):
-        self.objective.x_list = []
-        self.objective.out_list = []
 
         starts = []
         for i in range(n0):
@@ -208,10 +202,7 @@ class Inverter:
         except Exception as e:
             # Return failed result with objective at x0
             fun_x0 = objective(x0)
-            return dict(x=x0, fun=fun_x0, success=False, x_list=[x0], out_list=[fun_x0], err=str(e))
+            return dict(x=x0, fun=fun_x0, success=False, err=str(e))
 
         params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() > 0, err='')
-        params['x_list'] = copy.deepcopy(objective.x_list)
-        params['out_list'] = copy.deepcopy(objective.out_list)
         return params
-

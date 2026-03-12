@@ -88,11 +88,8 @@ def compute_crlb(S0,
     J = factor * G.T @ G
         
     # Cholesky factorization LL^T = J (L is lower triangular)
-    try:
-        L = np.linalg.cholesky(J)
-    except LinAlgError as e:
-        print(str(e))
-        return np.inf
+    L = np.linalg.cholesky(J)
+
     # e1 = [1,0,0,0,0] since theta is first in JACOBIAN_COLS
     e1 = np.zeros(J.shape[0])
     e1[0] = 1

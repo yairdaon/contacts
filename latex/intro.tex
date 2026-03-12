@@ -1,5 +1,4 @@
 \section*{Introduction}
-
 Inferring coupling strength between synchronized dynamical systems is a
 fundamental challenge across the sciences. When oscillators are driven
 by common forcing or coupled strongly enough to synchronize, their
@@ -199,3 +198,27 @@ validation data are abundant, we anticipate that the core
 insight---that synchronization fundamentally limits identifiability of
 coupling parameters---will prove broadly applicable across domains where
 coupled oscillatory dynamics arise.
+
+
+
+
+where $J(\phi)$ is the \emph{Fisher Information}. The Fisher
+information measures how sharply the (log-)likelihood changes with the
+parameter $\phi$. When the Fisher information is large, small changes
+in $\phi$ produce large changes in the likelihood, so $\phi$ can be
+estimated precisely. When the Fisher information is low, the
+likelihood is relatively flat in $\phi$, so many nearby values of
+$\phi$ explain the data almost equally well, making estimation less
+tractable. Thus, high Fisher info means the likelihood contains a
+“narrow peak” around the true parameter; low Fisher information
+implies the likelihood has a ``broad, flat peak''.
+
+
+$\hat{\phi}$ of a
+scalar parameter $\phi$, the CRLB states:
+\begin{equation}\label{eq:crlb_statement}
+\text{Var}(\hat{\phi}) \geq \frac{1}{J(\phi)}
+\end{equation}
+
+For a vector of parameters $\boldsymbol{\phi} = (\phi_1, \ldots,
+\phi_p)$, the bound generalizes to:

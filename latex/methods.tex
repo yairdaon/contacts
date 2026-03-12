@@ -1,30 +1,152 @@
 \section*{Methods}
 Our goal is to find a lower bound for estimation of a connectivity
-parameter between regions. To this end we formulate a discrete SIR
-model and employ the Cramer-Rao lower bound to the connectivity
-parameter between two regions.
+parameter between regions. Our strategy is as follows:
+\begin{enumerate}
+\item Formulate a discrete SIR model for regional connectivity in
+  terms of a connectivity parameter $\theta \in[0,0.5]$ (Section
+  \ref{subsec:model}).
+\item Calculate sensitivities for this model, i.e.~the derivatives of
+  model output with respect to initial conditions and $\theta$
+  (Section \ref{subsec:sens}).
+\item Derive an observation model based on a constant reporting rate
+  and approximate it as multiplicative Gaussian noise (Section
+  \ref{subsec:noise}).
+\item Find a maximum-likelihood estimate for $\theta$ and the initial
+  conditions over several seasons (Section \ref{subsec:mle}).
+\item Calculate a Cramer-Rao lower bound for the variance of the
+  maximum-likelihood estimate of the connectivity parameter $\theta$
+  (Section \ref{subsec:crlb}).
+\end{enumerate}
+We apply this approach to estimate connectivity $\theta$ between US
+states and find accompanying a lower bound on the variance of the
+estimator.
 
-\subsection*{The Cram\'er-Rao Lower Bound}
 
-The \emph{Cram\'er-Rao Lower Bound} (CRLB) provides a fundamental limit
-on estimation precision. For any unbiased estimator $\hat{\phi}$ of a
-scalar parameter $\phi$, the CRLB states:
-\begin{equation}\label{eq:crlb_statement}
-\text{Var}(\hat{\phi}) \geq \frac{1}{J(\phi)}
+\subsection{Discrete-Time Connectivity Model}\label{subsec:model}
+Consider $2$ interconnected regions, where $S_i(t)$, $I_i(t)$, and
+$R_i(t)$ denote the fractions of Susceptible, Infected, and Recovered
+individuals in region $i$ at time $t$.
+
+We denote $\mathbf{C} \in \mathbb{R}^{2 \times 2}$ the contact matrix
+with entries $C_{ij} \in [0,1]$ represents relative connectivity from
+region $j$ to region $i$
+\begin{equation}\label{eq:contact}
+\mathbf{C} = \begin{bmatrix} 1-\theta & \theta \\ \theta & 1-\theta \end{bmatrix}
 \end{equation}
-where $J(\phi)$ is the \emph{Fisher Information}. The Fisher
-information measures how sharply the (log-)likelihood changes with the
-parameter $\phi$. When the Fisher information is large, small changes
-in $\phi$ produce large changes in the likelihood, so $\phi$ can be
-estimated precisely. When the Fisher information is low, the
-likelihood is relatively flat in $\phi$, so many nearby values of
-$\phi$ explain the data almost equally well, making estimation
-intrinsically noisy. So high Fisher info means the likelihood contains
-a “narrow peak” around the true parameter; low Fisher information
-implies the likelihood has a ``broad, flat peak''.
+where $\theta \in [0, 0.5]$ is the connectivity parameter representing
+the fraction of contacts that occur between regions. When $\theta = 0$,
+the regions are isolated; when $\theta = 0.5$, contacts are equally
+distributed within and between regions. Row sums equal unity, reflecting
+frequency-dependent transmission.
 
-For a vector of parameters $\boldsymbol{\phi} = (\phi_1, \ldots,
-\phi_p)$, the bound generalizes to:
+We also take $\beta_i(t)$ is the region-specific
+time-varying transmission rate with seasonal forcing:
+\begin{equation*}
+\beta_i(t) = \beta_0\left(1 + \delta\sin\left(2\pi t + \varphi_i\right)\right)
+\end{equation*}
+where $\beta_0$ is the baseline transmission rate, $\delta$ is the
+seasonal amplitude, and $\varphi_i$ is the phase for region $i$.
+
+We thus define the force of infection in region $i$ at time $t$ as:
+\begin{equation*}
+\lambda_i(t) = \beta_i(t) \sum_{j=1}^n C_{ij} I_j(t).
+\end{equation*}
+
+Over one time step, the probability that a susceptible individual in
+region $i$ does \emph{not} become infected is $\exp(-\lambda_i(t))$,
+yielding the infection probability $p_i(t) = 1 - \exp(-\lambda_i(t))$.
+The incidence in region $i$ is:
+\begin{equation}\label{eq:incidence}
+\mu_i(t) = S_i(t) \left[1 - \exp(-\lambda_i(t))\right]
+\end{equation}
+
+Similarly, the probability an infected individual remains infected
+over one time step is $\exp(-\gamma)$, where $\gamma$ is the recovery
+rate. The discrete-time SIR dynamics are thus:
+\begin{align}\begin{split}\label{eq:discrete_sir}
+S_i(t+1) &= S_i(t) \exp(-\lambda_i(t)) \\
+I_i(t+1) &= I_i(t) \exp(-\gamma) + \mu_i(t) \\
+R_i(t+1) &= R_i(t) + I_i(t) [1 - \exp(-\gamma)]
+\end{split}\end{align}
+
+
+\subsubsection{Model Parameters}\label{subsub:params}
+We calibrate model parameters to
+seasonal influenza following~\citet{keeling2008}; see
+Table~\ref{tab:params}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+Parameter & Value & Description \\
+\midrule
+$R_0$ & 3.65 & Basic reproduction number \\
+$\gamma$ & $7/2.2 \approx 3.18$ & Weekly recovery rate \\
+$\beta_0$ & $\approx 2.06$ & Baseline transmission rate \\
+$A$ & 0.7 & Seasonal amplitude \\
+$P$ & 53 weeks & Seasonal period \\
+$\rho$ & 0.3 & Reporting rate \\
+%% $\theta$ & 0.05 & True connectivity (synthetic data) \\
+\bottomrule
+\end{tabular}
+\caption{Model parameters calibrated to seasonal influenza.}
+\label{tab:params}
+\end{table}
+
+\subsection{Sensitivity equations}\label{subsec:sens}
+Computing the Cram\'er-Rao bound and optimizing the likelihood both
+require derivatives of model outputs with respect to parameters. Let
+$\phi \in \{\theta, S_1(0), S_2(0), I_1(0), I_2(0)\}$ denote an
+arbitrary parameter. We derive the sensitivities by differentiating
+the discrete dynamics. We denote:
+\begin{align*}
+  \mathbf{S}(t)&=\left (S_1(t), S_2(t)\right )\\
+  \mathbf{I}(t)&=\left (I_1(t), I_2(t)\right )
+\end{align*}
+the vectors of Susceptibles and Infecteds; $\mathbf{C}$ still denotes
+the connectivity matrix.
+
+The sensitivity of the force of infection is:
+\begin{equation}\label{eq:sens_lambda}
+\frac{\partial \lambda_i(t)}{\partial \phi} = \beta_i(t) \left(
+\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{I}(t) + \mathbf{C}
+\frac{\partial \mathbf{I}(t)}{\partial \phi} \right)_i.
+\end{equation}
+Note that:
+\begin{equation*}
+\frac{\partial \mathbf{C}}{\partial \theta} =
+\begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix}
+\end{equation*}
+while $\partial \mathbf{C}/\partial \phi = \mathbf{0}$ for $\phi \neq
+\theta$.
+
+The sensitivity of the expected incidence follows from
+Eq.~\eqref{eq:incidence} by the product rule:
+\begin{equation}\label{eq:sens_mu}
+\frac{\partial \mu_i(t)}{\partial \phi} =
+\frac{\partial S_i(t)}{\partial \phi} \left[1 - \exp(-\lambda_i(t))\right]
++ S_i(t) \exp(-\lambda_i(t)) \frac{\partial \lambda_i(t)}{\partial \phi}.
+\end{equation}
+
+The state sensitivities propagate according to:
+\begin{align}\begin{split}\label{eq:sens}
+\frac{\partial S_i(t+1)}{\partial \phi} &= \exp(-\lambda_i(t))
+\frac{\partial S_i(t)}{\partial \phi} - S_i(t) \exp(-\lambda_i(t))
+\frac{\partial \lambda_i(t)}{\partial \phi} \\
+\frac{\partial I_i(t+1)}{\partial \phi} &= \exp(-\gamma)
+\frac{\partial I_i(t)}{\partial \phi} +
+\frac{\partial \mu_i(t)}{\partial \phi}
+\end{split}\end{align}
+
+Initial conditions for the sensitivities are: $\partial
+S_i(0)/\partial S_j(0) = \delta_{ij}$, $\partial I_i(0)/\partial
+I_j(0) = \delta_{ij}$, and zero otherwise.  These equations are solved
+jointly with the state equations in a single forward pass.
+
+\subsection{The Cram\'er-Rao Lower Bound}\label{subsec:crlb}
+For a vetor of unbiased estimators the Cram\'er-Rao Lower Bound states
+that
 \begin{equation}\label{eq:crlb_vector}
 \text{Var}(\hat{\phi}_k) \geq [\mathbf{J}^{-1}]_{kk}
 \end{equation}
@@ -36,122 +158,157 @@ J_{kl} = \mathbb{E}\left[\frac{\partial \ell}{\partial \phi_k}
 $$
 %
 It is best to think of $\mathbf{J}$ as statistical precision, so
-$\mathbf{J}^{-1}$ is just the a covariance matrix and (e.g.) its
-$(1,1)$ entry is the variance of the estimator of $\phi_1$.
+$\mathbf{J}^{-1}$ is a covariance matrix and (e.g.) its $(1,1)$ entry
+is the variance of the estimator of $\phi_1$.
 
-The CRLB has a key implication: if $[\mathbf{J}^{-1}]_{kk}$ is large,
-parameter $\phi_k$ cannot be reliably estimated \emph{regardless of the
-estimation method employed}. No amount of algorithmic sophistication can
-overcome a fundamental lack of information in the data.
+%% The CRLB has a key implication: if $[\mathbf{J}^{-1}]_{kk}$ is large,
+%% parameter $\phi_k$ cannot be reliably estimated \emph{regardless of the
+%% estimation method employed}. No amount of algorithmic sophistication can
+%% overcome a fundamental lack of information in the data.
 
-
-
-%% \input{contacts}
-\subsection*{Discrete-Time Cross-Immunity Model}
-
-The connectivity model assumes that all contacts lead to infection in
-the same compartment. An alternative formulation applies to
-cross-immunity between strains or pathogens, where exposure to a
-related strain can confer immunity without causing infection by that
-strain~\citep{gog2002}. We consider uni-directional cross-immunity:
-exposure to strain $j$ confers immunity to strain $i$, but not vice
-versa. The continuous-time equations are:
-\begin{align*}
-  \dot{S} &= -\beta(t) S \circ (I_d + M) I \\
-  \dot{I} &= \beta(t) S\circ I - \nu I\\
-  \dot{R} &= \beta(t) S \circ MI + \nu I,
-\end{align*}
-where the unidirectional cross-immunization matrix is
+We now derive the Fisher Information Matrix for our observation model
+(Eq.~\eqref{eq:obs_gaussian}). Taking the partial derivative of the
+log-likelihood (Eq.~\eqref{eq:loglik}) with respect to a parameter
+$\phi$:
 \begin{equation*}
-M =
-\begin{bmatrix}
-  0 & \theta \\
-  0 & 0
-\end{bmatrix}
+\frac{\partial \ell}{\partial \phi} = -\frac{1}{2}\sum_{t,i} \left[
+\frac{1}{\mu_i(t)} - \frac{2\rho(Y_i(t) - \rho\mu_i(t))}{\rho(1-\rho)\mu_i(t)}
+- \frac{(Y_i(t) - \rho\mu_i(t))^2}{\rho(1-\rho)\mu_i(t)^2}\right]
+\frac{\partial \mu_i(t)}{\partial \phi}
 \end{equation*}
-%% Anallogously, the force of infection in the discrete connectivity
-%% model, we define the force of infection as 
-%% \begin{equation*}
-%% \lambda(t) = \beta(t) I(t)
-%% \end{equation*}
-The expected incidence is:
-\begin{equation}\label{eq:cross_incidence}
-\mu(t) = S(t) \left[1 - \exp(-\beta I) \right]
+
+This can be written as:
+\begin{equation}\label{eq:gradient}
+\frac{\partial \ell}{\partial \phi} = \sum_{t,i} A_i(t)
+\frac{\partial \mu_i(t)}{\partial \phi}
 \end{equation}
-The rest of the discrete-time dynamics arise naturally when we
-carefully balance the terms to have a constant population:
-\begin{align}\begin{split}\label{eq:discrete_cross}
-S(t+1) &= S(t) \exp(-\beta (I_d + M)I) \\
-I(t+1) &= I(t) \exp(-\gamma) + \mu(t) \\
-R(t+1) &= R(t) + I(t) [1 - \exp(-\gamma)] + S(t)\exp(-\beta I(t))[1-\exp(-\beta MI(t))]
-\end{split}\end{align}
-
-\subsection*{Sensitivity equations}
-The incidence sensitivity is:
-\begin{align}\begin{split}\label{eq:sens_mu_cross}
-    \frac{\partial \mu}{\partial \phi} %&= \frac{\partial}{\partial \phi}S[1-\exp(-\beta I) \\
-    %
-    %
-    %
-    &= \frac{\partial S}{\partial \phi} \left[1 - \exp(-\beta I)\right] +
-    S \exp(-\beta I) \frac{\partial \beta I}{\partial \phi} \\
-    %
-    &=\frac{\partial S}{\partial \phi} \left[1 - \exp(-\beta I)\right] +
-    \beta S \exp(-\beta I) \frac{\partial I}{\partial \phi}
-\end{split}\end{align}
-%% where
-%% \begin{equation*}
-%% \frac{\partial \lambda}{\partial \phi} = \beta
-%% \frac{\partial I}{\partial \phi}
-%% \end{equation*}
-%
-%
-%% Note that $\theta$ does not appear in $\lambda_i$ or $\mu_i$
-%% directly.  The parameter $\theta$ affects future incidence through
-%% the depletion of susceptibles.
-The state sensitivities propagate via:
-\begin{align}\begin{split}\label{eq:sens_cross}
-\frac{\partial S(t+1)}{\partial \phi} &=
-\frac{\partial S}{\partial \phi} \exp(-\beta(I_d +M) I) - \beta S \exp(-\beta(I_d + M)I) \circ \left(
-\frac{\partial I}{\partial \phi} + M\frac{\partial I}{\partial \phi} + \frac{\partial M}{\partial \phi}I \right) \\
-\frac{\partial I(t+1)}{\partial \phi} &= \exp(-\gamma)
-\frac{\partial I}{\partial \phi} + \frac{\partial \mu}{\partial \phi}
-\end{split}\end{align}
-%% nd
-%% \begin{equation*}
-%% \frac{\partial MI}{\partial \phi} = \beta \left(
-%% \theta \frac{\partial I_j}{\partial \phi} + \delta_{\phi,\theta} I_j \right)
-%% \end{equation*}
-%% with $\delta_{\phi,\theta} = 1$ if $\phi = \theta$ and 0 otherwise.
-%% The CRLB derivation proceeds as before, with
-%% $\mathbf{J} = \mathbf{G}^T \mathbf{W} \mathbf{G}$.
+where
+\begin{equation*}
+A_i(t) = -\frac{1}{2\mu_i(t)} + \frac{Y_i(t) - \rho\mu_i(t)}{(1-\rho)\mu_i(t)}
++ \frac{(Y_i(t) - \rho\mu_i(t))^2}{2\rho(1-\rho)\mu_i(t)^2}.
+\end{equation*}
+Note that this expression also gives us the gradient of the
+log-likeihood function.
 
 
+The Fisher Information Matrix is:
+\begin{equation*}
+J_{kl} = \mathbb{E}\left[\frac{\partial \ell}{\partial \phi}
+\frac{\partial \ell}{\partial \phi_l}\right] = \sum_{t,i}\sum_{s,j}
+\mathbb{E}[A_i(t) A_j(s)] \frac{\partial \mu_i(t)}{\partial \phi_k}
+\frac{\partial \mu_j(s)}{\partial \phi_l}
+\end{equation*}
+
+We can easily verify that $\mathbb{E}[A_i(t)]= 0$. Since observations
+  are independent across time and regions, $\mathbb{E}[A_i(t) A_j(s)]=
+  0$ when $(i,t) \neq (j,s)$. For the diagonal terms, we need
+  $\mathbb{E}[A_i(t)^2]$. Writing $\epsilon_i(t) = Y_i(t) -
+  \rho\mu_i(t)$:
+\begin{equation*}
+A_i(t) = -\frac{1}{2\mu_i(t)} + \frac{\epsilon_i(t)}{(1-\rho)\mu_i(t)}
++ \frac{\epsilon_i(t)^2}{2\rho(1-\rho)\mu_i(t)^2}
+\end{equation*}
+
+Expanding $A_i(t)^2$:
+\begin{align*}
+A_i(t)^2 &= \frac{1}{4\mu_i(t)^2} - \frac{\epsilon_i(t)}{(1-\rho)\mu_i(t)^2}
+- \frac{\epsilon_i(t)^2}{2\rho(1-\rho)\mu_i(t)^3} \\
+&\quad + \frac{\epsilon_i(t)^2}{(1-\rho)^2\mu_i(t)^2}
++ \frac{\epsilon_i(t)^3}{\rho(1-\rho)^2\mu_i(t)^3}
++ \frac{\epsilon_i(t)^4}{4\rho^2(1-\rho)^2\mu_i(t)^4}
+\end{align*}
+
+Using the moments of $\epsilon_i(t) \sim \mathcal{N}(0, \rho(1-\rho)\mu_i(t))$:
+
+\begin{align*}
+  \mathbb{E}[\epsilon] &= 0, \\
+  \mathbb{E}[\epsilon^2] &= \rho(1-\rho)\mu_i(t), \\
+  \mathbb{E}[\epsilon^3] &= 0, \\
+  \mathbb{E}[\epsilon^4] &= 3[\rho(1-\rho)\mu_i(t)]^2.
+\end{align*}
+  Taking expectations:
+\begin{align*}
+\mathbb{E}[A_i(t)^2] &= \frac{1}{4\mu_i(t)^2}
+- \frac{\rho(1-\rho)\mu_i(t)}{2\rho(1-\rho)\mu_i(t)^3}
++ \frac{\rho(1-\rho)\mu_i(t)}{(1-\rho)^2\mu_i(t)^2}
++ \frac{3[\rho(1-\rho)\mu_i(t)]^2}{4\rho^2(1-\rho)^2\mu_i(t)^4} \\
+&= \frac{1}{4\mu_i(t)^2} - \frac{1}{2\mu_i(t)^2}
++ \frac{\rho}{(1-\rho)\mu_i(t)^2} + \frac{3}{4\mu_i(t)^2} \\
+&= \frac{1}{2\mu_i(t)^2} + \frac{\rho}{(1-\rho)\mu_i(t)^2}
+= \frac{1+\rho}{2(1-\rho)\mu_i(t)^2}
+\end{align*}
+
+Therefore:
+\begin{equation}\label{eq:fim_scalar}
+J_{kl} = \frac{1+\rho}{2(1-\rho)}\sum_{t=0}^{T-1}\sum_{i=1}^{n}
+\frac{1}{\mu_i(t)^2} \frac{\partial \mu_i(t)}{\partial \phi}
+\frac{\partial \mu_i(t)}{\partial \phi_l}
+\end{equation}
+
+Define the Jacobian $\mathbf{G} \in \mathbb{R}^{2T \times p}$ with
+entries $G_{(i,t),k} = \partial \mu_i(t)/\partial \phi_k$, and note
+that these are the incidence sensitivities from
+Eq.~\eqref{eq:sens_mu}. Denote the diagonal weight matrix:
+\begin{equation*}
+\mathbf{W} = \frac{1+\rho}{2(1-\rho)} \,
+\text{diag}\left(\mu_1(0)^{-2}, \ldots, \mu_n(T-1)^{-2}\right)
+\end{equation*}
+Then:
+\begin{equation}\label{eq:fim}
+\mathbf{J} = \mathbf{G}^T \mathbf{W} \mathbf{G}
+\end{equation}
+and we find the Cramer-Rao lower bound for the variance of $\theta$ as
+$\text{Var}(\hat{\theta}) \geq [\mathbf{J}^{-1}]_{11}$.
+
+\subsection{Observation Model}\label{subsec:noise}
+We assume a constant reporting rate $\rho$, meaning a fraction $\rho$
+of infections are observed. Each infection is reported independently
+with probability $\rho$, so observations follow a binomial
+distribution:
+\begin{equation}\label{eq:obs_binomial}
+Y_i(t) \sim \text{Binomial}(\mu_i(t), \rho)
+\end{equation}
+with mean $\mathbb{E}[Y_i(t)] = \rho \mu_i(t)$ and variance
+$\text{Var}[Y_i(t)] = \rho(1-\rho) \mu_i(t)$.
+
+We approximate this distribution by a Gaussian via the central limit
+theorem:
+\begin{equation}\label{eq:obs_gaussian}
+Y_i(t) = \rho \mu_i(t) + \epsilon_i(t), \quad
+\epsilon_i(t) \sim \mathcal{N}(0, \sigma_i^2(t))
+\end{equation}
+where $\sigma_i^2(t) = \rho(1-\rho)\mu_i(t)$ is the observation
+variance. This approximation is holds when $\mu_i(t)$ is large.
+Under the Gaussian model, the log-likelihood of observing data
+$\mathbf{Y} = \{Y_i(t)\}$ given parameters $\boldsymbol{\phi}$ is:
+%% \begin{equation}\label{eq:likelihood}
+%% \mathcal{L}(\boldsymbol{\phi}) = \prod_{t=0}^{T-1} \prod_{i=1}^{n}
+%% \frac{1}{\sqrt{2\pi\sigma_i^2(t)}}
+%% \exp\left(-\frac{(Y_i(t) - \rho\mu_i(t))^2}{2\sigma_i^2(t)}\right)
+%% \end{equation}
+%% The log-likelihood is:
+\begin{equation}\label{eq:loglik}
+\ell(\boldsymbol{\phi}) = -\frac{1}{2}\sum_{t=0}^{T-1}\sum_{i=1}^{n}
+\left[\log(2\pi \sigma_i^2(t)) +
+\frac{(Y_i(t) - \rho\mu_i(t))^2}{\sigma_i^2(t)}\right]
+\end{equation}
 
 
-\subsection*{Optimization}
-
-To validate the CRLB predictions, we perform parameter inference on
-synthetic data generated by simulating the model with known parameters
-and adding binomial observation noise (Eq.~\ref{eq:obs_binomial}).
-
-We minimize the negative log-likelihood (Eq.~\ref{eq:loglik}) subject
-to $\theta \in [0, 0.5]$, $S_i(0), I_i(0) \in [0,1]$, and $S_i(0) +
-I_i(0) \leq 1$. The gradient is minus the score function
-(Eq.~\ref{eq:score}), with $\partial\mu_i(t)/\partial\phi$ from the
-sensitivity equations (Eq.~\ref{eq:sens_mu}). This gradient is computed
-exactly in a single forward pass alongside the state and sensitivity
-equations.
+\subsection{Maximum-likelihood estimates}\label{subsec:mle}
+For given observed (fractional) incidence, we find the
+maximum-likelihood estimate of $\theta$ by minimizing the negative
+log-likelihood (Eq.~\eqref{eq:loglik}) subject to $\theta \in [0,
+  0.5]$, $S_i(0), I_i(0) \in [0,1]$, and $S_i(0) + I_i(0) \leq 1$. We
+have already calculated the gradient of the log-likelihood in
+eq.~\eqref{eq:score}. This gradient is computed exactly in a single
+forward pass alongside the state and sensitivity equations.
 
 We use the \texttt{NLopt} library with the SLSQP algorithm for
 gradient-based optimization. To handle potential local minima, we
-employ a multi-start strategy with $N_0 = 20$ random initial points,
-selecting the solution with lowest objective value. Optimization runs
-use relative tolerance $10^{-4}$ and are parallelized across CPU
-cores.
+employ a multi-start strategy with $500$ random initial points,
+selecting the solution with lowest objective value.
 
-\subsection*{Real Data}
-
+\subsection{Real Data}
 To validate our theoretical predictions on empirical data, we analyze
 pneumonia and influenza (P\&I) mortality in the United States. We
 integrate two publicly available data sources: weekly P\&I death
@@ -180,3 +337,39 @@ observations with incidence below $10^{-6}$ per capita. Such low
 values provide negligible Fisher information and can numerically
 destabilize the bound calculation through division by near-zero
 incidence in the weight matrix.
+
+
+
+
+
+
+
+%% \subsubsection*{Statistical Power}
+%% The CRLB determines the statistical power for detecting non-zero
+%% connectivity. Specifically, we test
+%% \begin{align*}
+%%   H_0&: \theta = 0\\
+%%   H_1&: \theta > 0
+%% \end{align*}
+
+%% at significance level $\alpha$. We assume our estimator $\hat{\theta}$
+%% is both efficient and unbiased, hence it achieves the CRLB and
+%% $\hat{\theta} \sim \mathcal{N}(\theta, CRLB)$. We thus reject the null
+%% $H_0$ whenever $\hat{\theta} > z_\alpha\sqrt{\text{CRLB}}$. The
+%% statistical power is the probability of correctly rejecting $H_0$ i.e.
+%% \begin{align*}%\label{eq:power}
+%%   \text{Power} &= \Pr(\hat{\theta} > \sqrt{\text{CRLB}} z_\alpha|H_1) \\
+%%   &= \Pr(\frac{\hat{\theta} - \theta}{\sqrt{\text{CRLB}}} > z_\alpha|H_1) \\
+%%   &= \Pr(Z > z_\alpha - \frac{\theta}{\sqrt{\text{CRLB}}}) \\
+%%   &= 1 - \Phi\left(z_\alpha -
+%%   \frac{\theta}{\sqrt{\text{CRLB}}}\right)
+%% \end{align*}
+%% where $\Phi$ is the standard normal CDF and $z_\alpha$ is the critical
+%% value ($\Pr(Z < z_{0.05}) = \alpha$ (e.g.~ $z_{0.05}= 1.645$).
+
+%% %% Power approaches 1 when the $\theta$ is large relative to the
+%% %% estimation uncertainty $\sqrt{\text{CRLB}}$, and approaches
+%% %% $\alpha$ when this ratio is small.
+
+
+
