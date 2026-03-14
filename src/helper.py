@@ -4,17 +4,28 @@ import numpy as np
 from scipy.special import logit, expit
 import matplotlib.pyplot as plt
 from typing import Optional
+from datetime import datetime
 
 ## Important that theta is kept as the first entry.
 JACOBIAN_COLS = ['theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']
 YEAR_LENGTH = 365.25
 
 
+
+def current():
+    return f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
+
 def calc_t(date):
-    """Convert datetime to continuous time where Jan 1 = integer."""
-    return date.dt.year + (date.dt.dayofyear - 1) / YEAR_LENGTH
+    """Convert datetime to continuous time where November 1st = integer.
+    61 because november is 30 days and december is 31 days.
+    """
+    shifted = date + pd.Timedelta(days=61)
+    return shifted.dt.year + (shifted.dt.dayofyear-1) / YEAR_LENGTH
 
-
+## We can check with
+##  print(calc_t(pd.Series([pd.to_datetime("2009-11-01")])).iloc[0])
+## prinnts 2010.0
 def a2s(x):
     return np.array2string(x, precision=3)
 

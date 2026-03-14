@@ -24,7 +24,7 @@ def compute_crlb(S0,
                  rho: float,
                  phase: np.ndarray
                  ):
-    """
+    """`
     Compute Cramér-Rao Lower Bound for standard deviation of connectivity parameter theta.
 
     Parameters:
@@ -57,6 +57,7 @@ def compute_crlb(S0,
     assert I0.shape == phase.shape
     assert len(Ts.shape) == 1
     assert len(S0.shape) == 1
+
     df = compute_g.contacts(
         S0=S0,
         I0=I0,

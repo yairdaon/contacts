@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import nbinom, poisson
 from scipy.special import xlogy
 
-EPS = 1e-14
+EPS = 1e-6
 
 def gaussian(observed, simulated, rho):
     """

@@ -12,6 +12,8 @@ from pprint import pprint
 from src import losses
 from src.packer import Packer
 from src import compute_g
+from src.crlb import compute_crlb
+from src.helper import current
 
 class Objective:
     def __init__(self,
@@ -120,34 +122,32 @@ class Inverter:
 
         self.objective = Objective(obs=obs,
                                    phase=phase,
-                                   disease=disease)
-        
-        self.packer = self.objective.packer
+                                   disease=disease)       
         self.optimizer = optimizer
     
         
-    def fit(self, n0=1, maxeval=None, n_jobs=-1):
+    def fit(self,
+            n0,
+            maxeval=None,
+            n_jobs=-1):
           
-        if n0 > 1 and n_jobs != 1:
-            with Parallel(n_jobs=n_jobs) as parallel:
-                self.results = parallel(
-                    delayed(single_optimization)(self.objective, self.optimizer, maxeval)
-                    for x in tqdm(range(n0))
-                )
+        with Parallel(n_jobs=n_jobs) as parallel:
+            results = parallel(
+                delayed(single_optimization)(self.objective, self.optimizer, maxeval)
+                for x in tqdm(range(n0))
+            )
 
-        else:  # Sequential 
-            self.results = [self.single_optimization(self.objective, self.optimizer, maxeval) for _ in tqdm(range(n0))]
 
             
         # Print any errors from failed runs
-        errors = [res['err'] for res in self.results if res['err']]
+        errors = [res['err'] for res in results if res['err']]
         if errors:
             print(f"Errors ({len(errors)}):")
             for err in errors:
                 print(f"  {err}")
 
-        print(f"successes rate {sum(int(res['success']) for res in self.results)} / {len(self.results)}")
-        best = min(self.results, key=lambda r: r['fun'])
+        print(f"successes rate {sum(int(res['success']) for res in results)} / {len(results)}")
+        best = min(results, key=lambda r: r['fun'])
         self.x = best['x']
         self.success = best['success']
         self.fun = best['fun']
@@ -173,6 +173,7 @@ def single_optimization(objective, optimizer, maxeval=None):
     # S_init and I_init bounded by [0, 1], theta bounded by [0, 0.5]
     opt.set_lower_bounds([0.]*n)
     opt.set_upper_bounds([1.]*(n-1) + [0.5])  # theta (last param) bounded by 0.5
+    #opt.set_maxtime(30.0)
     
     # Add simplex constraints: S[i] + I[i] <= 1 for each region-season combination
     # nlopt inequality constraint h(x) >= 0, so for S + I <= 1, we need 1 - S - I >= 0
@@ -195,12 +196,12 @@ def single_optimization(objective, optimizer, maxeval=None):
         assert np.all(x0 <= 1)
         assert np.all(x0 >= 0)
         x = opt.optimize(x0)
-        params = dict(x=x, fun=opt.last_optimum_value(), success=opt.last_optimize_result() > 0, err='')
+        params = dict(x=x, fun=opt.last_optimum_value(), optimization_results=opt.last_optimize_result(), err='')
         return params
     
     except Exception as e:
         # Return failed result with objective at x0
         fun_x0 = objective(x0)
-        return dict(x=x0, fun=fun_x0, success=False, err=str(e))
+        return dict(x=x0, fun=fun_x0, optimization_result=None, err=str(e))
 
     
