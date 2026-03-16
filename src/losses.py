@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import nbinom, poisson
 from scipy.special import xlogy
 
-EPS = 1e-6
+EPS = 1e-14
 
 def gaussian(observed, simulated, rho):
     """
@@ -39,5 +39,5 @@ def gaussian(observed, simulated, rho):
     residual = obs - sim
     log_term = xlogy(sigma2, 2 * np.pi * sigma2)
     quad_term = residual ** 2 
-    ret = np.sum( (log_term+quad_term) / (sigma2+EPS) ) / 2 
+    ret = np.sum( (log_term+quad_term) / (sigma2+EPS)) / 2 
     return ret

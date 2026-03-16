@@ -130,13 +130,12 @@ class Inverter:
             n0,
             maxeval=None,
             n_jobs=-1):
-          
+
         with Parallel(n_jobs=n_jobs) as parallel:
             results = parallel(
                 delayed(single_optimization)(self.objective, self.optimizer, maxeval)
-                for x in tqdm(range(n0))
+                for _ in tqdm(range(n0))
             )
-
 
             
         # Print any errors from failed runs
@@ -151,7 +150,8 @@ class Inverter:
         self.x = best['x']
         self.success = best['success']
         self.fun = best['fun']
-   
+        self.nlopt_code = best['nlopt_code']
+
         return self
 
 
@@ -163,9 +163,9 @@ def single_optimization(objective, optimizer, maxeval=None):
     n = objective.packer.n_params
     opt = nlopt.opt(optimizer, n)
     
-    opt.set_xtol_rel(1e-9)
-    # opt.set_xtol_abs(1e-6)
-    #opt.set_ftol_rel(1e-6) 
+    opt.set_xtol_rel(1e-9) ## Code 4 (??)
+    #opt.set_xtol_abs(1e-7) ## Code 4 (??)
+    #opt.set_ftol_rel(1e-6) ## Code 3 
     if maxeval is not None:
         opt.set_maxeval(maxeval)
 
@@ -196,12 +196,13 @@ def single_optimization(objective, optimizer, maxeval=None):
         assert np.all(x0 <= 1)
         assert np.all(x0 >= 0)
         x = opt.optimize(x0)
-        params = dict(x=x, fun=opt.last_optimum_value(), optimization_results=opt.last_optimize_result(), err='')
+        code = opt.last_optimize_result()
+        params = dict(x=x, fun=opt.last_optimum_value(), success=1<=code<=4, nlopt_code=code, err='')
         return params
     
     except Exception as e:
         # Return failed result with objective at x0
         fun_x0 = objective(x0)
-        return dict(x=x0, fun=fun_x0, optimization_result=None, err=str(e))
+        return dict(x=x0, fun=fun_x0, success=False, nlopt_code=0, err=str(e))
 
     

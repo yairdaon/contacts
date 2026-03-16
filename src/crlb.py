@@ -98,7 +98,6 @@ def compute_crlb(S0,
     # Solve Lw = e1 for w = L^{-1}e1
     # CRLB for variance is ||L^{-1}e1||^2 = [J^{-1}]_{11}
     w = np.linalg.solve(L, e1)
-
     return w @ w
     
 

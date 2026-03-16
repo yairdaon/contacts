@@ -23,8 +23,9 @@ def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
         
-    seasons = list(range(2009, 2019)) + [2022, 2023, 2024, 2025]    
-
+    seasons = list(range(2010, 2020))+ [2022, 2023, 2024, 2025]    
+    # seasons = [2016,2017]
+    
     for state1, state2 in combinations(us.STATES, 2):
         if state1 == state2:
             continue
@@ -39,8 +40,6 @@ def main():
         filename = f"{OUTPUT_DIR}/{s1_abbr}x{s2_abbr}.csv"
         if os.path.exists(filename):
             continue
-
-
 
         regions = [state1.name, state2.name]
     
@@ -67,7 +66,7 @@ def main():
             phase=phase,
             obs=obs,
             disease=flu
-        ).fit(n0=5, maxeval=None, n_jobs=-3)
+        ).fit(n0=200, maxeval=None, n_jobs=-3)
         print("Finished inversion", current())
 
         # Save results for only the best fit
@@ -103,13 +102,23 @@ def main():
                 'I1_0': fitted['I_init'][i, 0],
                 'I2_0': fitted['I_init'][i, 1],
                 'crlb': bound,
-                'error': err
+                'error': err,
+                'nlopt_code': inv.nlopt_code
               }
             rows.append(row)
-            
-        pd.DataFrame(rows).to_csv(filename, index=False)
+        
+        res = pd.DataFrame(rows)
+        res['crlb4std'] = np.sqrt(1 / sum(1/res.crlb))
+        res.to_csv(filename, index=False)
+        #import pdb; pdb.set_trace()
+        print(res.optimization_results.value_counts())
         print(f"Saved {filename} at {current()}")
 
-
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        import sys, traceback, pdb
+        _, _, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)

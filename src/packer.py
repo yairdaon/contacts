@@ -88,7 +88,6 @@ class Packer:
         #self.verify(flat)
         return out
 
-
     def sim(self, params, phase, disease):
         """Simulate and return incidence + Jacobian columns for gradient computation."""
         S_init = params['S_init']
@@ -99,7 +98,8 @@ class Packer:
         for season_idx, season in enumerate(self.seasons):
             S = S_init[season_idx, :]
             I = I_init[season_idx, :]
-
+            # S, I = self.packer.get_IC(params)
+            
             df = compute_g.contacts(S0=S,
                                     I0=I,
                                     gamma=disease.gamma,
@@ -111,7 +111,15 @@ class Packer:
             
             df = df.reset_index()
             df['season_idx'] = season_idx
-            df_long = df[['t', 'j', 'mu', 'season_idx', 'theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']].rename(
+            df_long = df[['t',
+                          'j',
+                          'mu',
+                          'season_idx',
+                          'theta',
+                          'S1_0',
+                          'I1_0',
+                          'S2_0',
+                          'I2_0']].rename(
                 columns={'j': 'region', 'mu': 'incidence'})
             df_long["region"] = df_long["region"].astype(int).replace(self.region_dict)
             df_long["season"] = season
