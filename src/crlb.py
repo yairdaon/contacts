@@ -22,7 +22,8 @@ def compute_crlb(S0,
                  beta0: float,
                  eps: float,
                  rho: float,
-                 phase: np.ndarray
+                 phase: np.ndarray,
+                 N: np.ndarray
                  ):
     """`
     Compute Cramér-Rao Lower Bound for standard deviation of connectivity parameter theta.
@@ -30,9 +31,9 @@ def compute_crlb(S0,
     Parameters:
     -----------
     S0 : np.ndarray
-        Initial susceptible fractions per region
+        Initial susceptible counts per region
     I0 : np.ndarray
-        Initial infected fractions per region
+        Initial infected counts per region
     gamma : float
         Recovery rate
     theta : float
@@ -47,6 +48,8 @@ def compute_crlb(S0,
         Reporting rate
     phase : np.ndarray
         Phase offsets per region (in radians)
+    N : np.ndarray
+        Population sizes per region
 
     Returns:
     --------
@@ -66,7 +69,8 @@ def compute_crlb(S0,
         Ts=Ts,
         beta0=beta0,
         eps=eps,
-        phase=phase
+        phase=phase,
+        N=N
     )
     
     mu = df['mu'].values

@@ -66,7 +66,7 @@ def estimate_phase(state, humidity_dir="data/viboud"):
     return result.x
 
 
-def load_real(disease, regions, seasons, mortality_path="data/pni_mortality/output.csv", humidity_dir="data/viboud"):
+def load_real(disease, regions, seasons, mortality_path="data/pni_mortality/deaths.csv", humidity_dir="data/viboud"):
     """
     Load real epidemic data from CSV.
 
@@ -86,8 +86,8 @@ def load_real(disease, regions, seasons, mortality_path="data/pni_mortality/outp
     df["season"] = np.floor(df["t"]).astype(int)
     df = df[df["season"].isin(seasons)]
 
-    # Compute observed incidence (deaths per capita)
-    df["incidence"] = df["deaths"] / df["population"]
+    # Keep incidence as raw death counts
+    df["incidence"] = df["deaths"]
 
     # Build observations
     results = []

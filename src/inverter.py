@@ -21,12 +21,14 @@ class Objective:
     def __init__(self,
                  obs,
                  phase,
-                 disease):
+                 disease,
+                 populations):
 
         self.packer = Packer(disease=disease,
                              seasons=obs['season'].unique(),
                              regions=obs['region'].unique(),
-                             all_Ts={season: np.sort(dd['t'].unique()) for season, dd in obs.groupby("season")})
+                             all_Ts={season: np.sort(dd['t'].unique()) for season, dd in obs.groupby("season")},
+                             populations=populations)
         self.phase = phase
         self.loss = losses.gaussian
         self.obs = obs
@@ -120,20 +122,24 @@ class Inverter:
                  optimizer,
                  phase,
                  obs,
-                 disease):
+                 disease,
+                 populations):
 
         self.optimizer = optimizer
         self.objective = Objective(obs=obs,
                                    phase=phase,
-                                   disease=disease)       
+                                   disease=disease,
+                                   populations=populations)       
         
     def fit(self,
             n0,
             maxeval=None,
             n_jobs=-1):
 
-    
-
+        
+        single_optimization(self.objective, self.optimizer, maxeval)
+        print("PASSSSS")
+        assert False
         with Parallel(n_jobs=n_jobs) as parallel:
             results = parallel(
                 delayed(single_optimization)(self.objective, self.optimizer, maxeval)
@@ -166,46 +172,52 @@ def single_optimization(objective, optimizer, maxeval=None):
     n = objective.packer.n_params
     opt = nlopt.opt(optimizer, n)
     
-    opt.set_xtol_rel(1e-9) ## Code 4 (??)
+    #opt.set_xtol_rel(1e-9) ## Code 4 (??)
     #opt.set_xtol_abs(1e-7) ## Code 4 (??)
     #opt.set_ftol_rel(1e-6) ## Code 3 
     if maxeval is not None:
         opt.set_maxeval(maxeval)
 
     opt.set_min_objective(objective)
-    # S_init and I_init bounded by [0, 1], theta bounded by [0, 0.5]
-    opt.set_lower_bounds([0.]*n)
-    opt.set_upper_bounds([1.]*(n-1) + [0.5])  # theta (last param) bounded by 0.5
-    opt.set_maxtime(100)
-    
-    # Add simplex constraints: S[i] + I[i] <= 1 for each region-season combination
-    # nlopt inequality constraint h(x) >= 0, so for S + I <= 1, we need 1 - S - I >= 0
-    # For gradient-based methods, constraint function must also return gradient
-    def make_constraint(idx):
-        def constraint(x, grad):
-            if grad.size > 0:
-                grad[:] = 0
-                grad[idx] = 1
-                grad[idx + M] = 1
-            return x[idx] + x[idx + M] - 1
-        return constraint
 
-    for idx in range(M):
-        opt.add_inequality_constraint(make_constraint(idx), 1e-8)
+    packer = objective.packer
+
+    # Build upper bounds and constraints
+    N_list = []
+    idx = 0
+    for season in packer.seasons:
+        for region in packer.regions:
+            N_val = packer.populations[(season, region)]
+            N_list.append(N_val)
+
+            # Add constraint: S[idx] + I[idx] <= N_val (nlopt uses fc(x) <= 0)
+            def make_constraint(i, N):
+                def constraint(x, grad):
+                    if grad.size > 0:
+                        grad[:] = 0
+                        grad[i] = 1
+                        grad[i + M] = 1
+                    return x[i] + x[i + M] - N
+                return constraint
+
+            opt.add_inequality_constraint(make_constraint(idx, N_val), 1.)#e-8)
+            idx += 1
+
+    opt.set_lower_bounds([0.0] * n)
+    opt.set_upper_bounds(N_list * 2 + [0.5])
+    opt.set_maxtime(100)
 
     x0 = objective.packer.random_vector()
 
-    try:
-        assert np.all(x0 <= 1)
-        assert np.all(x0 >= 0)
-        x = opt.optimize(x0)
-        code = opt.last_optimize_result()
-        params = dict(x=x, fun=opt.last_optimum_value(), success=1<=code<=4, nlopt_code=code, err='')
-        return params
+    #try:
+    x = opt.optimize(x0)
+    code = opt.last_optimize_result()
+    params = dict(x=x, fun=opt.last_optimum_value(), success=1<=code<=4, nlopt_code=code, err='')
+    return params
     
-    except Exception as e:
-        # Return failed result with objective at x0
-        fun_x0 = objective(x0)
-        return dict(x=x0, fun=fun_x0, success=False, nlopt_code=0, err=str(e))
+    # except Exception as e:
+    #     # Return failed result with objective at x0
+    #     fun_x0 = objective(x0)
+    #     return dict(x=x0, fun=fun_x0, success=False, nlopt_code=0, err="Error: " + str(e))
 
     

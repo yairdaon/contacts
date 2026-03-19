@@ -59,4 +59,4 @@ class ILI(Flu):
     ## Reporting rate for ILI?
     rho = 0.3
 
-print(Flu())
+#print(Flu())

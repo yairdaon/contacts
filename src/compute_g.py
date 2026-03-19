@@ -19,7 +19,8 @@ def contacts(S0: np.ndarray,
              beta0: float,
              eps: float,
              Ts,
-             phase
+             phase,
+             N: np.ndarray
              ) -> pd.DataFrame:
     """
     Compute the Jacobian matrix G = ∂μ/∂φ for the exponential discretization SIR model.
@@ -27,14 +28,16 @@ def contacts(S0: np.ndarray,
     This function uses the exponential formulation:
         S(t+1) = S(t) exp(-λ(t))
         I(t+1) = I(t) exp(-γ) + μ(t)
-    where μ(t) = S(t)[1 - exp(-λ(t))] and λ(t) = β(t) C I(t)
+    where μ(t) = S(t)[1 - exp(-λ(t))] and λ(t) = β(t) C (I(t)/N)
+
+    All S, I, μ are in counts (not fractions).
 
     Parameters:
     -----------
     S0 : np.ndarray
-        Initial susceptible populations (shape: n_regions)
+        Initial susceptible counts (shape: n_regions)
     I0 : np.ndarray
-        Initial infected populations (shape: n_regions)
+        Initial infected counts (shape: n_regions)
     gamma : float
         Recovery rate parameter (not probability - can exceed 1)
     theta : float
@@ -49,6 +52,8 @@ def contacts(S0: np.ndarray,
         Phase offset for seasonal forcings (in radians). Applied to both regions.
         β₁(t) = β₀(1 + A·sin(2πt/P + φ))
         β₂(t) = β₀(1 + A·sin(2πt/P + φ₂)) if phase2 is not None
+    N : np.ndarray
+        Population sizes for each region (shape: n_regions)
 
     Returns:
     --------
@@ -58,6 +63,7 @@ def contacts(S0: np.ndarray,
         - j ∈ {1, 2} (regions)
         Columns: ['S', 'I', 'mu', 'theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']
         Entry (t,j,param) = ∂μⱼ(t)/∂param
+        S, I, mu are counts (not fractions)
     """
 
     # Initialize arrays to store results
@@ -89,33 +95,33 @@ def contacts(S0: np.ndarray,
         # β₂(t) = β₀(1 + A·sin(2πt/P + φ₂))
         beta_t = beta0 * (1 + eps * np.sin(2 * np.pi * t + phase))
        
-        # Force of infection: λ(t) = β(t) ∘ (C I(t))
-        # Element-wise multiplication of beta_t with contact-weighted infections
-        lambda_t = beta_t * (C @ I)
+        # Force of infection: λ(t) = β(t) ∘ (C (I(t)/N))
+        # Element-wise multiplication of beta_t with contact-weighted prevalence
+        lambda_t = beta_t * (C @ (I / N))
 
         # Mean incidence: μ(t) = S(t) [1 - exp(-λ(t))]
         mu = S * (1 - np.exp(-lambda_t))
 
         # === Compute ∂μ(t)/∂θ ===
-        # ∂λ(t)/∂θ = β(t) [Ω I(t) + C ∂I(t)/∂θ]
-        dlambda_dtheta = beta_t * (Omega @ I + C @ dI_dtheta)
+        # ∂λ(t)/∂θ = β(t) [Ω (I(t)/N) + C (∂I(t)/∂θ / N)]
+        dlambda_dtheta = beta_t * (Omega @ (I / N) + C @ (dI_dtheta / N))
 
         # ∂μ(t)/∂θ = ∂S(t)/∂θ [1 - exp(-λ(t))] + S(t) exp(-λ(t)) ∂λ(t)/∂θ
         dmu_dtheta = dS_dtheta * (1 - np.exp(-lambda_t)) + S * np.exp(-lambda_t) * dlambda_dtheta
 
         # === Compute ∂μ(t)/∂S(0) ===
-        # ∂λ(t)/∂S(0) = β(t) ∘ C ∂I(t)/∂S(0)
+        # ∂λ(t)/∂S(0) = β(t) ∘ C (∂I(t)/∂S(0) / N)
         # Broadcasting: beta_t[:, None] has shape (2, 1), (C @ dI_dS0) has shape (2, 2)
-        dlambda_dS0 = beta_t[:, None] * (C @ dI_dS0)  # Shape (2, 2)
+        dlambda_dS0 = beta_t[:, None] * (C @ (dI_dS0 / N[:, None]))  # Shape (2, 2)
 
         # ∂μ(t)/∂S(0) = ∂S(t)/∂S(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂S(0)
         # Broadcasting: (2,2) * (2,) -> each row gets multiplied
         dmu_dS0 = dS_dS0 * (1 - np.exp(-lambda_t))[:, None] + (S * np.exp(-lambda_t))[:, None] * dlambda_dS0
         
         # === Compute ∂μ(t)/∂I(0) ===
-        # ∂λ(t)/∂I(0) = β(t) ∘ C ∂I(t)/∂I(0)
+        # ∂λ(t)/∂I(0) = β(t) ∘ C (∂I(t)/∂I(0) / N)
         # Broadcasting: beta_t[:, None] has shape (2, 1), (C @ dI_dI0) has shape (2, 2)
-        dlambda_dI0 = beta_t[:, None] * (C @ dI_dI0)  # Shape (2, 2)
+        dlambda_dI0 = beta_t[:, None] * (C @ (dI_dI0 / N[:, None]))  # Shape (2, 2)
 
         # ∂μ(t)/∂I(0) = ∂S(t)/∂I(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂I(0)
         dmu_dI0 = dS_dI0 * (1 - np.exp(-lambda_t))[:, None] + (S * np.exp(-lambda_t))[:, None] * dlambda_dI0
@@ -125,9 +131,9 @@ def contacts(S0: np.ndarray,
             row_data = {
                 't': t,
                 'j': j,  # Regions numbered 0,1
-                'S': S[j],   # Current susceptible population
-                'I': I[j],   # Current infected population
-                'mu': mu[j], # Mean observation μⱼ(t)
+                'S': S[j],   # Current susceptible count
+                'I': I[j],   # Current infected count
+                'mu': mu[j], # Incidence count μⱼ(t)
                 'theta': dmu_dtheta[j],
                 'S1_0': dmu_dS0[j, 0],  # ∂μⱼ(t)/∂S₁(0)
                 'I1_0': dmu_dI0[j, 0],  # ∂μⱼ(t)/∂I₁(0)
