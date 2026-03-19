@@ -6,7 +6,7 @@ from pprint import pprint
 from src import compute_g
 
 SLIM = (0.8, 0.99)
-ILIM = (1e-5, 1e-3)
+ILIM = (1e-7, 1e-5)  # Much smaller for count-based framework
 
 class Packer:
     """

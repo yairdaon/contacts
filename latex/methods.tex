@@ -23,10 +23,14 @@ estimator.
 
 
 \subsection{Discrete-Time Connectivity Model}\label{subsec:model}
-Consider $2$ interconnected regions, where $S_i(t)$, $I_i(t)$, and
-$R_i(t)$ denote the fractions of Susceptible, Infected, and Recovered
-individuals in region $i$ at time $t$. We let $\beta_i(t)$ be a
-region-specific time-varying transmission rate with seasonal forcing:
+Consider $2$ interconnected regions with known population sizes $N_1$
+and $N_2$ (not necessarily equal). We work with population counts
+rather than fractions to improve numerical stability and the validity
+of the Gaussian approximation in the observation model. Let $S_i(t)$,
+$I_i(t)$, and $R_i(t)$ denote the number of Susceptible, Infected, and
+Recovered individuals in region $i$ at time $t$, with $S_i(t) + I_i(t)
++ R_i(t) = N_i$. We let $\beta_i(t)$ be a region-specific time-varying
+transmission rate with seasonal forcing:
 \begin{equation*}
 \beta_i(t) = \beta_0\left(1 + \delta\sin\left(2\pi t + \varphi_i\right)\right)
 \end{equation*}
@@ -52,13 +56,13 @@ reflecting frequency-dependent transmission.
 Using the contact matrix $\mathbf{C}$, the force of infection in
 region $i$ at time $t$ is defined as:
 \begin{equation*}
-\lambda_i(t) = \beta_i(t) \sum_{j=1}^n C_{ij} I_j(t).
+\lambda_i(t) = \beta_i(t) \sum_{j=1}^n C_{ij} \frac{I_j(t)}{N_j}.
 \end{equation*}
 
 Over one time step (e.g.~a week), the probability that a susceptible
 individual in region $i$ does \emph{not} become infected is
 $\exp(-\lambda_i(t))$, yielding the infection probability $p_i(t) = 1
-- \exp(-\lambda_i(t))$. The incidence (i.e.~fraction of new
+- \exp(-\lambda_i(t))$. The incidence (i.e.~number of new
 infections) in region $i$ is therefore:
 \begin{equation}\label{eq:incidence}
 \mu_i(t) = S_i(t) \left[1 - \exp(-\lambda_i(t))\right]
@@ -118,13 +122,13 @@ $\text{Var}[Y_i(t)] = \rho(1-\rho) \mu_i(t)$.
 We approximate this distribution by a Gaussian via the central limit
 theorem:
 \begin{equation}\label{eq:obs_gaussian}
-Y_i(t) = \rho \mu_i(t) + \delta_i(t), \quad
-\delta_i(t) \sim \mathcal{N}(0, \sigma_i^2(t))
+Y_i(t) = \rho \mu_i(t) + \epsilon_i(t), \quad
+\epsilon_i(t) \sim \mathcal{N}(0, \sigma_i^2(t))
 \end{equation}
 where $\sigma_i^2(t) = \rho(1-\rho)\mu_i(t)$ is the observation
 variance. This approximation holds when $\mu_i(t)$ is large.
 
-Importatnly, the vector of parameters $\mathbf{\phi}$ for this model
+Importatnly, the vector of parameters $\boldsymbol{\phi}$ for this model
 is different than the parameters presented in Table~\ref{tab:params}
 which are held fixed. For a single season and two regions:
 \begin{equation*}
@@ -163,12 +167,13 @@ dynamics. We denote:
   \mathbf{I}(t)&=\left (I_1(t), I_2(t)\right )
 \end{align*}
 the vectors of Susceptibles and Infecteds; $\mathbf{C}$ still denotes
-the connectivity matrix.
+the connectivity matrix. Define $\mathbf{N}^{-1} = \text{diag}(1/N_1,
+1/N_2)$ as the diagonal matrix of inverse population sizes.
 
 The sensitivity of the force of infection is:
 \begin{equation}\label{eq:sens_lambda}
 \frac{\partial \lambda_i(t)}{\partial \phi} = \beta_i(t) \left(
-\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{I}(t) + \mathbf{C}
+\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{N}^{-1} \mathbf{I}(t) + \mathbf{C} \mathbf{N}^{-1}
 \frac{\partial \mathbf{I}(t)}{\partial \phi} \right)_i.
 \end{equation}
 Note that:
@@ -326,7 +331,7 @@ $\text{Var}(\hat{\theta}) \geq [\mathbf{J}^{-1}]_{11}$.
 For given observed incidence, we find the maximum-likelihood estimate
 of $\theta$ by minimizing the negative log-likelihood
 (Eq.~\eqref{eq:loglik}) subject to $\theta \in [0, 0.5]$, $S_i(0),
-I_i(0) \in [0,1]$, and $S_i(0) + I_i(0) \leq 1$. We have already
+I_i(0) \in [0, N_i]$, and $S_i(0) + I_i(0) \leq N_i$. We have already
 calculated the gradient of the log-likelihood in
 eq.~\eqref{eq:gradient}.
 

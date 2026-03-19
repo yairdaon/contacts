@@ -2,7 +2,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 from epiweeks import Week
-from scipy.interpolate import interp1d
 
 
 def clean_numeric(x):
@@ -22,6 +21,28 @@ def trim(pp, n=3, trim_last=True):
 pop = pd.read_csv("pops.csv").drop(['Notes', 'Yearly July 1st Estimates Code'], axis=1)
 pop.columns = ['date', 'state', 'state code', 'population']
 pop['date'] = pd.to_datetime({'year': pop['date'], 'month': 7, 'day': 1})
+pop['year'] = pop['date'].dt.year
+
+# Extrapolate population linearly to cover 2008-2027
+def extrapolate_pop(group):
+    years = group['year'].values
+    pops = group['population'].values
+    a, b = np.polyfit(years, pops, 1)
+
+    all_years = np.arange(2008, 2028)
+    missing_years = np.setdiff1d(all_years, years)
+    missing_pops = a * missing_years + b
+
+    extra = pd.DataFrame({
+        'year': missing_years,
+        'population': missing_pops,
+        'state': group['state'].iloc[0],
+        'state code': group['state code'].iloc[0],
+        'date': pd.to_datetime([f'{y}-07-01' for y in missing_years])
+    })
+    return pd.concat([group, extra], ignore_index=True)
+
+pop = pop.groupby('state', group_keys=False).apply(extrapolate_pop).reset_index(drop=True)
 
 ## Data from https://gis.cdc.gov/grasp/fluview/mortality.html
 df = pd.read_csv('pni_deaths.csv')
@@ -74,15 +95,11 @@ plt.close('all')
 # merged = aaa.merge(dff, on=['state', 'date'], how='inner', suffixes=('_aa', '_df'))
 # merged['err'] = merged['deaths_aa'] - merged['deaths_df']
 
-comb = pd.concat([df, aa]).groupby(['state', 'date'], as_index=False)['deaths'].mean()                                                              
+comb = pd.concat([df, aa]).groupby(['state', 'date'], as_index=False)['deaths'].mean()
 comb['date'] = pd.to_datetime(comb.date)
+comb = comb.query("state not in ('New York City', 'District of Columbia') and date.dt.year < 2026")
+comb.to_csv("deaths.csv", index=False)
 
-res = []
-for state, pop_data in pop.groupby('state'):
-    pni_data = comb.query("state == @state").copy()
-    interpolant = interp1d(pop_data.date.astype(int), pop_data.population, kind='linear', fill_value='extrapolate')
-    pni_data['population'] = interpolant(pni_data.date.astype(int))
-    res.append(pni_data)
-
-res = pd.concat(res).reset_index(drop=True)
-res.to_csv("output.csv")
+# Save population data separately
+pop = pop.query("state not in ('New York City', 'District of Columbia')")
+pop.to_csv("populations.csv", index=False)
