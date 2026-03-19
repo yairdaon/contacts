@@ -22,6 +22,31 @@ class Flu:
     n_weeks = 25
     step_size = 7 / 365.25  # fraction of year per week
 
+    def __repr__(self):
+        attrs = {k: v for k, v in self.__class__.__dict__.items() if not k.startswith('_') and not callable(v)}
+        # Also include attributes from parent classes that aren't overridden
+        for base in self.__class__.__mro__:
+            for k, v in base.__dict__.items():
+                if not k.startswith('_') and not callable(v) and k not in attrs:
+                    attrs[k] = v
+        
+        details = ", ".join(f"{k}={v:.4f}" if isinstance(v, float) else f"{k}={v}" for k, v in sorted(attrs.items()))
+        return f"{self.__class__.__name__}({details})"
+
+    def __str__(self):
+        attrs = {k: v for k, v in self.__class__.__dict__.items() if not k.startswith('_') and not callable(v)}
+        for base in self.__class__.__mro__:
+            for k, v in base.__dict__.items():
+                if not k.startswith('_') and not callable(v) and k not in attrs:
+                    attrs[k] = v
+                    
+        header = f"--- {self.__class__.__name__} Parameters ---"
+        lines = [header]
+        for k, v in sorted(attrs.items()):
+            val_str = f"{v:.4f}" if isinstance(v, float) else f"{v}"
+            lines.append(f"{k:10} : {val_str}")
+        return "\n".join(lines)
+
     
 class Mortality(Flu):
     ## Infection fatality rate from first table of https://onlinelibrary.wiley.com/doi/10.1111/irv.12486
@@ -33,3 +58,5 @@ class Mortality(Flu):
 class ILI(Flu):
     ## Reporting rate for ILI?
     rho = 0.3
+
+print(Flu())

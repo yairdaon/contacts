@@ -109,9 +109,9 @@ def main():
         
         res = pd.DataFrame(rows)
         res['crlb4std'] = np.sqrt(1 / sum(1/res.crlb))
+        print(res)
         res.to_csv(filename, index=False)
         #import pdb; pdb.set_trace()
-        print(res.optimization_results.value_counts())
         print(f"Saved {filename} at {current()}")
 
 if __name__ == "__main__":

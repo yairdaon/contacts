@@ -8,6 +8,8 @@ from joblib import delayed, Parallel
 from scipy.optimize import minimize
 from tqdm import tqdm
 from pprint import pprint
+import time
+
 
 from src import losses
 from src.packer import Packer
@@ -85,7 +87,7 @@ class Objective:
     def __call__(self, x, grad=None):
         """ x is a vector of parameters"""
         assert not np.isnan(x).any()
-
+      
         params = self.packer.unpack(x)
         simulated = self.packer.sim(params=params, phase=self.phase, disease=self.disease)
 
@@ -120,16 +122,17 @@ class Inverter:
                  obs,
                  disease):
 
+        self.optimizer = optimizer
         self.objective = Objective(obs=obs,
                                    phase=phase,
                                    disease=disease)       
-        self.optimizer = optimizer
-    
         
     def fit(self,
             n0,
             maxeval=None,
             n_jobs=-1):
+
+    
 
         with Parallel(n_jobs=n_jobs) as parallel:
             results = parallel(
@@ -173,7 +176,7 @@ def single_optimization(objective, optimizer, maxeval=None):
     # S_init and I_init bounded by [0, 1], theta bounded by [0, 0.5]
     opt.set_lower_bounds([0.]*n)
     opt.set_upper_bounds([1.]*(n-1) + [0.5])  # theta (last param) bounded by 0.5
-    #opt.set_maxtime(30.0)
+    opt.set_maxtime(100)
     
     # Add simplex constraints: S[i] + I[i] <= 1 for each region-season combination
     # nlopt inequality constraint h(x) >= 0, so for S + I <= 1, we need 1 - S - I >= 0
