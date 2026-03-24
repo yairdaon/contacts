@@ -3,146 +3,161 @@ import numpy as np
 import pandas as pd
 import plac
 import nlopt
+import matplotlib.pyplot as plt
 
 from src.inverter import Inverter
 from src.data_loader import load_synthetic
-from src import flu
+from src import flu, compute_g
+from src.crlb import compute_crlb
 
 OUTPUT_DIR = os.path.expanduser("~/contacts/outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# Default population sizes for synthetic regions
+DEFAULT_N = {
+    "California": 1e6,
+    "Alaska": 1e6
+}
 
-def main(sync, method='slsqp'):
+
+def main():
 
     disease = flu.ILI
+    disease = flu.Mortality
     theta = 0.05
     phase = np.zeros(2)
-    if not sync:
-        phase[1] = np.pi
 
-    regions = ["HHS0", "HHS1"]
-    seasons = list(range(1990, 2010))  # 20 seasons
+    regions = list(DEFAULT_N.keys())
+    seasons = list(range(1995, 2005))  # 10 seasons
 
-    n0 = 5
+    # Build populations dictionary
+    populations = {}
+    for season in seasons:
+        for region in regions:
+            populations[(season, region)] = DEFAULT_N[region]
+
+    n0 = 25
     maxeval = None
-    if method == 'slsqp':
-        optimizer = nlopt.LD_SLSQP
-    elif method == 'mma':
-        optimizer = nlopt.LD_MMA
-    elif method == 'ccsaq':
-        optimizer = nlopt.LD_CCSAQ
-    elif method == 'cobyla':
-        optimizer = nlopt.LN_COBYLA
-    else:
-        raise ValueError("Invalid optimizer")
+    optimizer = nlopt.LD_SLSQP
+    # optimizer = nlopt.LD_MMA
+    # optimizer = nlopt.LD_CCSAQ
 
-    un = 'S' if sync else 'Uns'
-    print(f"\n\n{un}ynchronized with {method}")
-    flag = "" if sync else "un"
-    fname = f'{OUTPUT_DIR}/{flag}sync_{method}.csv'
+    rows = []
+    trajectories = {}
 
-    # Generate synthetic data
-    obs, true = load_synthetic(
-        disease=disease,
-        regions=regions,
-        seasons=seasons,
-        theta=theta,
-        phase=phase
-    )
-    
-    ## Solve inverse problem
-    inv = Inverter(optimizer=optimizer,
-                   phase=phase,
-                   obs=obs,
-                   disease=disease).fit(n0=n0, maxeval=maxeval)
-    
-    data_rows = []
-    
-    # Add true parameters row (chain_number = -1, step_number = 0)
-    true_row = {'chain_number': -1, 'step_number': 0, 'fun': np.nan}
-    true_row.update(true)
-    
-    # Flatten arrays in true_params for CSV storage
-    for key, value in true.items():
-        if isinstance(value, np.ndarray):
-            if value.ndim == 1:  # 1D array (like c_vec)
-                for i, v in enumerate(value):
-                    true_row[f'{key}_{i}'] = v
-            elif value.ndim == 2:  # 2D array (like S_init, E_init, I_init)
-                for season_idx in range(value.shape[0]):
-                    for region_idx in range(value.shape[1]):
-                        true_row[f'{key}_s{season_idx}_r{region_idx}'] = value[season_idx, region_idx]
-            true_row.pop(key)  # Remove original array entry
-    
-    data_rows.append(true_row)
-    
-    # Add optimization chains
-    for chain_idx, res in enumerate(inv.results):
-        # Add optimization steps
-        for step_idx, (x, obj_val) in enumerate(zip(res['x_list'], res['out_list'])):
-            unpacked = inv.packer.unpack(x)
-            row = {'chain_number': chain_idx, 'step_number': step_idx, 'fun': obj_val}
-            
-            # Add scalar parameters
-            for key, value in unpacked.items():
-                if not isinstance(value, np.ndarray):
-                    row[key] = value
-                elif isinstance(value, np.ndarray):
-                    if value.ndim == 1:  # 1D array (like c_vec)
-                        for i, v in enumerate(value):
-                            row[f'{key}_{i}'] = v
-                    elif value.ndim == 2:  # 2D array (like S_init, E_init, I_init)
-                        for season_idx in range(value.shape[0]):
-                            for region_idx in range(value.shape[1]):
-                                row[f'{key}_s{season_idx}_r{region_idx}'] = value[season_idx, region_idx]
-            
-            data_rows.append(row)
-        
-        # Add optimal point (step_number = -1)
-        optimal_unpacked = inv.packer.unpack(res['x'])
-        opt_row = {'chain_number': chain_idx, 'step_number': -1, 'fun': res['fun']}
-        
-        # Add scalar parameters
-        for key, value in optimal_unpacked.items():
-            if not isinstance(value, np.ndarray):
-                opt_row[key] = value
-            elif isinstance(value, np.ndarray):
-                if value.ndim == 1:  # 1D array (like c_vec)
-                    for i, v in enumerate(value):
-                        opt_row[f'{key}_{i}'] = v
-                elif value.ndim == 2:  # 2D array (like S_init, E_init, I_init)
-                    for season_idx in range(value.shape[0]):
-                        for region_idx in range(value.shape[1]):
-                            opt_row[f'{key}_s{season_idx}_r{region_idx}'] = value[season_idx, region_idx]
-        
-        data_rows.append(opt_row)
-    
-    # Create DataFrame and save to CSV
-    df = pd.DataFrame(data_rows)#.query("0 < chain_number <=14")
-    df = df.assign(sync=sync, optimizer=method)#, likelihood=np.exp(-df.fun))
-    # import seaborn as sns
-    # from matplotlib import pyplot as plt
-    # sns.relplot(hue='chain_number', x='fun', y='theta', data=df, kind='line')                                              
-    # plt.show()
+    for phase2 in [0, np.pi]:
+        phase[1] = phase2
 
+        # Generate synthetic data
+        obs, true_params = load_synthetic(
+            disease=disease,
+            regions=regions,
+            seasons=seasons,
+            theta=theta,
+            phase=phase,
+            populations=populations
+        )
 
-    df.to_csv(fname, index=False)
-    print(f"Saved optimization results to {fname} with {len(df)} rows")
+        ## Solve inverse problem
+        inv = Inverter(optimizer=optimizer,
+                       phase=phase,
+                       obs=obs,
+                       disease=disease,
+                       populations=populations).fit(n0=n0, maxeval=maxeval)
 
-    
-    # ll = -inv.fun ## Resulting log-likelihood
-    # assert np.isfinite(ll), f"Log likelihood is not finite: {ll}"
-    # assert ll >= 0, f"Final log-likelihood is negative: {ll}"
-    
+        fitted = inv.objective.packer.unpack(inv.x)
+
+        for i, season in enumerate(seasons):
+            N = np.array([populations[(season, regions[0])],
+                          populations[(season, regions[1])]])
+
+            try:
+                bound = compute_crlb(
+                    S0=fitted['S_init'][i, :],
+                    I0=fitted['I_init'][i, :],
+                    gamma=disease.gamma,
+                    theta=fitted['theta'],
+                    Ts=inv.objective.packer.all_Ts[season],
+                    beta0=disease.beta0,
+                    eps=disease.eps,
+                    rho=disease.rho,
+                    phase=phase,
+                    N=N
+                )
+                err = ''
+            except Exception as e:
+                bound = np.nan
+                err = str(e)
+
+            row = {
+                'season': season,
+                'objective': inv.fun,
+                'success': inv.success,
+                'nlopt_code': inv.nlopt_code,
+                'theta_true': theta,
+                'theta_fit': fitted['theta'],
+                'S1_0': fitted['S_init'][i, 0],
+                'S2_0': fitted['S_init'][i, 1],
+                'I1_0': fitted['I_init'][i, 0],
+                'I2_0': fitted['I_init'][i, 1],
+                'crlb': bound,
+                'error': err,
+                'phase2': phase2
+            }
+            rows.append(row)
+
+        # Store first-season trajectories for plotting
+        season = seasons[0]
+        N = np.array([populations[(season, regions[0])],
+                      populations[(season, regions[1])]])
+        Ts = inv.objective.packer.all_Ts[season]
+
+        trajectories[phase2] = {
+            'true': compute_g.contacts(
+                S0=true_params['S_init'][0, :], I0=true_params['I_init'][0, :],
+                gamma=disease.gamma, theta=theta, Ts=Ts,
+                beta0=disease.beta0, eps=disease.eps, phase=phase, N=N
+            ).reset_index(),
+            'fit': compute_g.contacts(
+                S0=fitted['S_init'][0, :], I0=fitted['I_init'][0, :],
+                gamma=disease.gamma, theta=fitted['theta'], Ts=Ts,
+                beta0=disease.beta0, eps=disease.eps, phase=phase, N=N
+            ).reset_index(),
+            'theta_fit': fitted['theta'],
+        }
+
+    df = pd.DataFrame(rows)
+
+    # Plot: top = synchronized (phase2==0), bottom = unsynchronized (phase2==pi)
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    for row_idx, phase2 in enumerate([0, np.pi]):
+        traj = trajectories[phase2]
+        sync_label = "Synchronized" if phase2 == 0 else "Unsynchronized"
+
+        for j, region in enumerate(regions):
+            ax = axes[row_idx, j]
+            true_j = traj['true'][traj['true']['j'] == j]
+            fit_j = traj['fit'][traj['fit']['j'] == j]
+
+            ax.plot(true_j['t'], true_j['S'], 'r-', label='S true')
+            ax.plot(fit_j['t'], fit_j['S'], 'r--', label='S fitted')
+            ax.plot(true_j['t'], true_j['I'], 'b-', label='I true')
+            ax.plot(fit_j['t'], fit_j['I'], 'b--', label='I fitted')
+
+            ax.set_title(f"{sync_label} - {region} (theta_fit={traj['theta_fit']:.4f})")
+            ax.set_xlabel('t')
+            ax.legend()
+
+    fig.suptitle(f"theta_true={theta}")
+    fig.tight_layout()
+    plt.show()
+
 
 if __name__ == "__main__":
     try:
-        for method in ['slsqp']:#, 'mma', 'ccsaq']:
-            for sync in [True, False]:
-                main(sync=sync, method=method)
+        main()
     except:
         import sys, traceback, pdb
         _, _, tb = sys.exc_info()
         traceback.print_exc()
         pdb.post_mortem(tb)
-

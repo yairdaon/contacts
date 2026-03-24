@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import nbinom, poisson
 from scipy.special import xlogy
 
-EPS = 1e-14
+EPS = 1e-6
 
 def gaussian(observed, simulated, rho):
     """
@@ -29,15 +29,15 @@ def gaussian(observed, simulated, rho):
     obs = observed["incidence"].values
 
     # μ = true incidence, ρμ = expected observation
-    mu = simulated["incidence"].values
+    mu = simulated["mu"].values
     sim = mu * rho
 
     # σ² = ρ(1-ρ)μ
-    sigma2 = sim * (1 - rho)
+    sigma2 = sim * (1 - rho) + EPS
 
     # Negative log-likelihood: (1/2) Σ [log(2πσ²) + residual²/σ²]
     residual = obs - sim
     log_term = xlogy(sigma2, 2 * np.pi * sigma2)
     quad_term = residual ** 2 
-    ret = np.sum( (log_term+quad_term) / (sigma2+EPS)) / 2 
+    ret = np.sum( (log_term+quad_term) / sigma2) / 2 
     return ret

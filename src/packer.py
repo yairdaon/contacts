@@ -6,7 +6,7 @@ from pprint import pprint
 from src import compute_g
 
 SLIM = (0.8, 0.99)
-ILIM = (1e-7, 1e-5)  # Much smaller for count-based framework
+ILIM = (1e-4, 1e-2)  # Much smaller for count-based framework
 
 class Packer:
     """
@@ -75,13 +75,6 @@ class Packer:
         out["S_init"] = S_init
         return out
 
-    def verify(self, flat):
-        assert flat.shape == (self.n_params,), f"Packed vector shape {flat.shape} != ({self.n_params},)"
-        assert np.all(flat >= 0)   
-        tot = flat[:-1].reshape(2,-1).sum(axis=0)
-        assert np.all(tot <= 1)
-        
-
         
     def pack(self, params):
         parts = []
@@ -93,7 +86,6 @@ class Packer:
         parts.append([params["theta"]]) 
 
         flat = np.concatenate(parts)
-        #self.verify(flat)
         return flat
 
     def unpack(self, flat):
@@ -116,7 +108,6 @@ class Packer:
         idx += 1
 
         assert idx == flat.size
-        #self.verify(flat)
         return out
 
     def sim(self, params, phase, disease):
@@ -155,10 +146,11 @@ class Packer:
                           'I1_0',
                           'S2_0',
                           'I2_0']].rename(
-                columns={'j': 'region', 'mu': 'incidence'})
+                columns={'j': 'region'})
             df_long["region"] = df_long["region"].astype(int).replace(self.region_dict)
             df_long["season"] = season
-            assert np.all(df_long['incidence'] >= 0), f"Negative incidence values in simulation output"
+            df_long['mu'] = df_long['mu'] + 1
+            assert np.all(df_long['mu'] >= 0), f"Non positive mu values in simulation output"
             results.append(df_long)
 
         res = pd.concat(results, ignore_index=True)

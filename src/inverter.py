@@ -16,6 +16,46 @@ from src.packer import Packer
 from src import compute_g
 from src.crlb import compute_crlb
 from src.helper import current
+"""  
+┌──────┬─────────────────┬──────────────────────────────┐
+│ Code │      Name       │           Meaning            │
+├──────┼─────────────────┼──────────────────────────────┤
+│ 1    │ SUCCESS         │ Generic success              │
+├──────┼─────────────────┼──────────────────────────────┤
+│ 2    │ STOPVAL_REACHED │ Hit target objective value   │
+├──────┼─────────────────┼──────────────────────────────┤
+│ 3    │ FTOL_REACHED    │ Hit ftol_rel or ftol_abs     │
+├──────┼─────────────────┼──────────────────────────────┤
+│ 4    │ XTOL_REACHED    │ Hit xtol_rel or xtol_abs     │
+├──────┼─────────────────┼──────────────────────────────┤
+│ 5    │ MAXEVAL_REACHED │ Hit max function evaluations │
+├──────┼─────────────────┼──────────────────────────────┤
+│ 6    │ MAXTIME_REACHED │ Hit max wall time            │
+└──────┴─────────────────┴──────────────────────────────┘
+Error codes (negative):
+┌──────┬──────────────────┬──────────────────────────────────────────┐
+│ Code │       Name       │                 Meaning                  │
+├──────┼──────────────────┼──────────────────────────────────────────┤
+│ -1   │ FAILURE          │ Generic failure                          │
+├──────┼──────────────────┼──────────────────────────────────────────┤
+│ -2   │ INVALID_ARGS     │ Bad arguments (e.g. lower > upper bound) │
+├──────┼──────────────────┼──────────────────────────────────────────┤
+│ -3   │ OUT_OF_MEMORY    │ Out of memory                            │
+├──────┼──────────────────┼──────────────────────────────────────────┤
+│ -4   │ ROUNDOFF_LIMITED │ Roundoff errors limited progress         │
+├──────┼──────────────────┼──────────────────────────────────────────┤
+│ -5   │ FORCED_STOP      │ User called force_stop()                 │
+└──────┴──────────────────┴──────────────────────────────────────────┘
+"""
+
+CODES = {1: "Success",
+         2: "STOPVAL_REACHED",
+         3: "FTOL_REACHED",
+         4: "XTOL_REACHED",
+         5: "MAXEVAL_REACHED",
+         6: "MAXTIME_REACHED"
+         }
+
 
 class Objective:
     def __init__(self,
@@ -33,8 +73,10 @@ class Objective:
         self.loss = losses.gaussian
         self.obs = obs
         self.disease = disease
-      
-
+        # self.calls = 0
+        # self.verbose = True
+        # self.current = 0
+        
     def compute_gradient(self, sim_df):
         """
         Compute gradient of negative log-likelihood with respect to parameters.
@@ -56,7 +98,7 @@ class Objective:
         grad = np.zeros(2 * M + 1)
 
         
-        mu = sim_df["incidence"].values + 1e-6  # small constant for numerical stability
+        mu = sim_df["mu"].values + 1e-6  # small constant for numerical stability
 
         # Residual: r = Y - ρμ
         r = self.obs["incidence"].values - mu * self.disease.rho
@@ -88,33 +130,40 @@ class Objective:
     
     def __call__(self, x, grad=None):
         """ x is a vector of parameters"""
-        assert not np.isnan(x).any()
+        # self.calls = self.calls + 1
+        #assert not np.isnan(x).any()
       
         params = self.packer.unpack(x)
-        simulated = self.packer.sim(params=params, phase=self.phase, disease=self.disease)
-
-        msg = f"Simulation and observation indices don't match. Sim: {len(simulated)}, Obs: {len(self.obs)}"
-        assert np.all(simulated.index == self.obs.index), msg
+        sim = self.packer.sim(params=params, phase=self.phase, disease=self.disease)
+      
+        # msg = f"Simulation and observation indices don't match. Sim: {len(simulated)}, Obs: {len(self.obs)}"
+        # assert np.all(simulated.index == self.obs.index), msg
 
         # Create mask for valid observations (not NaN in observed incidence)
-        valid_mask = ~self.obs['incidence'].isna()
-        sim_valid = simulated[valid_mask].copy()
-        obs_valid = self.obs[valid_mask].copy()
+        # valid_mask = ~self.obs['incidence'].isna()
+        # sim_valid = simulated[valid_mask].copy()
+        # obs_valid = self.obs[valid_mask].copy()
 
-        # Reweight to account for missing observations
-        n_total = len(self.obs)
-        n_valid = valid_mask.sum()
-        weight = n_total / n_valid if n_valid > 0 else 1.0
+        # # Reweight to account for missing observations
+        # n_total = len(self.obs)
+        # n_valid = valid_mask.sum()
+        # weight = n_total / n_valid if n_valid > 0 else 1.0
 
-        out = self.loss(obs_valid, sim_valid, rho=self.disease.rho) * weight
-        assert not np.isnan(out), f"Loss is {out}"
+        #out = self.loss(obs_valid, sim_valid, rho=self.disease.rho)# * weight
+        out = self.loss(self.obs, sim, rho=self.disease.rho)# * weight
+        # assert not np.isnan(out), f"Loss is {out}"
 
         # Compute gradient if requested
         if grad is not None and grad.size > 0:
-            computed_grad = self.compute_gradient(sim_valid) * weight
+            computed_grad = self.compute_gradient(sim) #* weight
             grad[:] = computed_grad
 
+                
+        # if self.calls % 50 == 0 and self.verbose:
+        #     print(f"Objective = {out:.4f}, Improvement =  {(out-self.current) / abs(out):.6f}")
+        # self.current = out
         return out
+
 
 
 class Inverter:
@@ -133,22 +182,23 @@ class Inverter:
         
     def fit(self,
             n0,
-            maxeval=None,
             n_jobs=-1):
 
-        
-        single_optimization(self.objective, self.optimizer, maxeval)
-        print("PASSSSS")
-        assert False
+        start = time.time()
+        res = single_optimization(self.objective, self.optimizer)
+        sing = time.time()
+        print(f"Single   {(sing-start):.2f} sec")
+
         with Parallel(n_jobs=n_jobs) as parallel:
             results = parallel(
-                delayed(single_optimization)(self.objective, self.optimizer, maxeval)
+                delayed(single_optimization)(self.objective, self.optimizer)
                 for _ in tqdm(range(n0))
             )
-
+        para = time.time()
+        print(f"Parallel {(para-sing):.2f} sec")
+        results = [res] + results 
             
-        # Print any errors from failed runs
-        errors = [res['err'] for res in results if res['err']]
+        errors = [res['desc'] for res in results if not res['success']]
         if errors:
             print(f"Errors ({len(errors)}):")
             for err in errors:
@@ -164,19 +214,17 @@ class Inverter:
         return self
 
 
-def single_optimization(objective, optimizer, maxeval=None):
-     
+def single_optimization(objective, optimizer):
+
+    start = time.time()
     n_regions = objective.packer.n_regions
     n_seasons = objective.packer.n_seasons
     M = n_regions * n_seasons
     n = objective.packer.n_params
     opt = nlopt.opt(optimizer, n)
     
-    #opt.set_xtol_rel(1e-9) ## Code 4 (??)
-    #opt.set_xtol_abs(1e-7) ## Code 4 (??)
-    #opt.set_ftol_rel(1e-6) ## Code 3 
-    if maxeval is not None:
-        opt.set_maxeval(maxeval)
+    opt.set_ftol_rel(1e-2)
+    opt.set_maxtime(5000)
 
     opt.set_min_objective(objective)
 
@@ -190,7 +238,7 @@ def single_optimization(objective, optimizer, maxeval=None):
             N_val = packer.populations[(season, region)]
             N_list.append(N_val)
 
-            # Add constraint: S[idx] + I[idx] <= N_val (nlopt uses fc(x) <= 0)
+            # Add constraint: S[idx] + I[idx] <= N_val
             def make_constraint(i, N):
                 def constraint(x, grad):
                     if grad.size > 0:
@@ -200,24 +248,27 @@ def single_optimization(objective, optimizer, maxeval=None):
                     return x[i] + x[i + M] - N
                 return constraint
 
-            opt.add_inequality_constraint(make_constraint(idx, N_val), 1.)#e-8)
+            opt.add_inequality_constraint(make_constraint(idx, N_val), 1e-8)
             idx += 1
 
     opt.set_lower_bounds([0.0] * n)
     opt.set_upper_bounds(N_list * 2 + [0.5])
-    opt.set_maxtime(100)
 
     x0 = objective.packer.random_vector()
-
-    #try:
-    x = opt.optimize(x0)
-    code = opt.last_optimize_result()
-    params = dict(x=x, fun=opt.last_optimum_value(), success=1<=code<=4, nlopt_code=code, err='')
-    return params
+    setup = time.time()
+    try:
+        x = opt.optimize(x0)
+        code = opt.last_optimize_result()
+        params = dict(x=x, fun=opt.last_optimum_value(), success=1<=code<=4, nlopt_code=code, desc=CODES[code])
+        
     
-    # except Exception as e:
-    #     # Return failed result with objective at x0
-    #     fun_x0 = objective(x0)
-    #     return dict(x=x0, fun=fun_x0, success=False, nlopt_code=0, err="Error: " + str(e))
+    except Exception as e:
+        # Return failed result with objective at x0
+        fun_x0 = objective(x0)
+        params = dict(x=x0, fun=fun_x0, success=False, nlopt_code=0, desc="Error: " + str(e))
 
+    end = time.time()
+    params['runtime'] = end - start
+    params['setup'] = setup - start
+    return params
     

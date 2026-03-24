@@ -8,11 +8,22 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize_scalar
 
-from src.helper import calc_t
 from src.packer import Packer
 
+YEAR_LENGTH = 365.25
 
-def load_synthetic(disease, regions, seasons, theta, phase, S_init=None, I_init=None, add_noise=True):
+def calc_t(date):
+    """Convert datetime to continuous time where November 1st = integer.
+    61 because november is 30 days and december is 31 days.
+    """
+    shifted = date + pd.Timedelta(days=61)
+    return shifted.dt.year + (shifted.dt.dayofyear-1) / YEAR_LENGTH
+
+## We can check with
+##  print(calc_t(pd.Series([pd.to_datetime("2009-11-01")])).iloc[0])
+## prinnts 2010.0
+
+def load_synthetic(disease, regions, seasons, theta, phase, populations, S_init=None, I_init=None, add_noise=True):
     """
     Generate synthetic epidemic data using Packer.sim().
 
@@ -20,7 +31,7 @@ def load_synthetic(disease, regions, seasons, theta, phase, S_init=None, I_init=
         obs: DataFrame with columns [t, region, season, season_idx, incidence, ...]
         true_params: dict with theta, S_init, I_init
     """
-    packer = Packer(disease=disease, seasons=seasons, regions=regions)
+    packer = Packer(disease=disease, seasons=seasons, regions=regions, populations=populations)
 
     # Generate initial conditions if not provided
     if S_init is None or I_init is None:
@@ -35,11 +46,10 @@ def load_synthetic(disease, regions, seasons, theta, phase, S_init=None, I_init=
     # Use Packer.sim to generate trajectory
     obs = packer.sim(true_params, phase, disease)
 
-    if add_noise:
-        true_counts = obs['incidence'] * disease.rho
-        scale = np.sqrt(disease.rho * (1 - disease.rho) * true_counts)
-        obs['incidence'] = true_counts + np.random.randn(len(true_counts)) * scale
-        obs['incidence'] = np.maximum(1e-6, obs['incidence'])
+    mu = obs['mu']
+    scale = np.sqrt(disease.rho * (1 - disease.rho) * mu)
+    obs['incidence'] = mu * disease.rho + np.random.randn(len(mu)) * scale
+    obs['incidence'] = np.maximum(1e-6, obs['incidence'])
 
     return obs, true_params
 

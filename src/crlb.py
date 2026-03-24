@@ -12,7 +12,7 @@ from typing import Callable, Dict, List
 from scipy.linalg import cho_factor, cho_solve, solve
 
 from src import compute_g
-from src.helper import JACOBIAN_COLS, plot_G
+from src.helper import JACOBIAN_COLS
 
 def compute_crlb(S0,
                  I0,

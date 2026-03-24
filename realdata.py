@@ -24,25 +24,30 @@ def main():
         os.makedirs(OUTPUT_DIR)
 
     seasons = list(range(2010, 2020))+ [2022, 2023, 2024, 2025]
-    # seasons = [2016,2017]
+    #seasons = list(range(2013, 2018))
 
     # Load population data once
     # Season Y starts Nov 1st of year (Y-1), so use July 1st population of year (Y-1)
     pop_df = pd.read_csv("data/pni_mortality/populations.csv", parse_dates=["date"])
     pop_df['season'] = pop_df['date'].dt.year + 1  # July 1st, Y -> season Y+1
     pop_df = pop_df[['season', 'state', 'population']].set_index(['season', 'state'])
-        
+
+    
+    states = ['CA' ,'NY' , 'AZ']
     for state1, state2 in combinations(us.STATES, 2):
         if state1 == state2:
             continue
-    
+        
         # Ensure alphabetical order for filename and state assignment
         s1_abbr = state1.abbr
         s2_abbr = state2.abbr
         if s1_abbr > s2_abbr:
             state1, state2 = state2, state1
             s1_abbr, s2_abbr = s2_abbr, s1_abbr
-    
+
+        if s1_abbr not in states or s2_abbr not in states:
+            continue
+        
         filename = f"{OUTPUT_DIR}/{s1_abbr}x{s2_abbr}.csv"
         if os.path.exists(filename):
             continue
@@ -75,12 +80,12 @@ def main():
 
         print(f"\n\nInversion for {s1_abbr} X {s2_abbr}", current())
         inv = Inverter(
-            optimizer=nlopt.LD_SLSQP,
+            optimizer=nlopt.LN_COBYLA,
             phase=phase,
             obs=obs,
             disease=flu,
             populations=populations
-        ).fit(n0=1, maxeval=None, n_jobs=-3)
+        ).fit(n0=55, n_jobs=-3)
         print("Finished inversion", current())
 
         # Save results for only the best fit
@@ -126,10 +131,9 @@ def main():
         
         res = pd.DataFrame(rows)
         res['crlb4std'] = np.sqrt(1 / sum(1/res.crlb))
-        print(res)
         res.to_csv(filename, index=False)
-        #import pdb; pdb.set_trace()
-        print(f"Saved {filename} at {current()}")
+        print(res.drop(["S1_0", "S2_0" , "I1_0", "I2_0", "objective"], axis=1))
+        print(f"Ran {filename} at {current()}")
 
 if __name__ == "__main__":
     main()
