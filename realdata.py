@@ -12,7 +12,6 @@ from itertools import combinations
 from src.helper import current
 from src.data_loader import load_real
 from src.inverter import Inverter
-from src.crlb import compute_crlb
 from src.flu import Mortality as flu
 from joblib import Parallel, delayed
 from tqdm import tqdm
@@ -33,7 +32,10 @@ def main():
     pop_df = pop_df[['season', 'state', 'population']].set_index(['season', 'state'])
 
     
-    states = ['CA' ,'NY' , 'AZ']
+    states = ['CA' ,'NY', 'TX', 'FL', ## Largest
+              'DE', 'RI', 'MO', ## Small but > 1e6 population
+              'AB', 'LO', 'KE'
+              ]
     for state1, state2 in combinations(us.STATES, 2):
         if state1 == state2:
             continue
@@ -49,8 +51,8 @@ def main():
             continue
         
         filename = f"{OUTPUT_DIR}/{s1_abbr}x{s2_abbr}.csv"
-        if os.path.exists(filename):
-            continue
+        # if os.path.exists(filename):
+        #     continue
 
         regions = [state1.name, state2.name]
     
@@ -80,38 +82,17 @@ def main():
 
         print(f"\n\nInversion for {s1_abbr} X {s2_abbr}", current())
         inv = Inverter(
-            optimizer=nlopt.LN_COBYLA,
             phase=phase,
             obs=obs,
             disease=flu,
             populations=populations
-        ).fit(n0=55, n_jobs=-3)
+        ).fit(n0=200, n_jobs=-3)
         print("Finished inversion", current())
 
         # Save results for only the best fit
         rows = []
         fitted = inv.objective.packer.unpack(inv.x)
         for i, season in enumerate(seasons):
-            try:
-                N = np.array([populations[(season, regions[0])],
-                              populations[(season, regions[1])]])
-                bound = compute_crlb(
-                    S0=fitted['S_init'][i, :],
-                    I0=fitted['I_init'][i, :],
-                    gamma=flu.gamma,
-                    theta=fitted['theta'],
-                    Ts=inv.objective.packer.all_Ts[season],
-                    beta0=flu.beta0,
-                    eps=flu.eps,
-                    rho=flu.rho,
-                    phase=phase,
-                    N=N
-                )
-                err  = ''
-            except Exception as e:
-                bound = np.nan
-                err = str(e)
-                
             row = {
                 'state1': s1_abbr,
                 'state2': s2_abbr,
@@ -123,9 +104,9 @@ def main():
                 'S2_0': fitted['S_init'][i, 1],
                 'I1_0': fitted['I_init'][i, 0],
                 'I2_0': fitted['I_init'][i, 1],
-                'crlb': bound,
-                'error': err,
-                'nlopt_code': inv.nlopt_code
+                'crlb': inv.crlbs[i],
+                'status': inv.desc,
+                'runtime': inv.runtime
               }
             rows.append(row)
         

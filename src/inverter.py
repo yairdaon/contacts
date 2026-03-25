@@ -168,13 +168,11 @@ class Objective:
 
 class Inverter:
     def __init__(self,
-                 optimizer,
                  phase,
                  obs,
                  disease,
                  populations):
 
-        self.optimizer = optimizer
         self.objective = Objective(obs=obs,
                                    phase=phase,
                                    disease=disease,
@@ -185,13 +183,13 @@ class Inverter:
             n_jobs=-1):
 
         start = time.time()
-        res = single_optimization(self.objective, self.optimizer)
+        res = single_optimization(self.objective)
         sing = time.time()
         print(f"Single   {(sing-start):.2f} sec")
 
         with Parallel(n_jobs=n_jobs) as parallel:
             results = parallel(
-                delayed(single_optimization)(self.objective, self.optimizer)
+                delayed(single_optimization)(self.objective)
                 for _ in tqdm(range(n0))
             )
         para = time.time()
@@ -205,30 +203,34 @@ class Inverter:
                 print(f"  {err}")
 
         print(f"successes rate {sum(int(res['success']) for res in results)} / {len(results)}")
-        best = min(results, key=lambda r: r['fun'])
+        # Prefer successful results (nlopt converged + all CRLBs valid)
+        successful = [r for r in results if r['success']]
+        pool = successful if successful else results
+        best = min(pool, key=lambda r: r['fun'])
         self.x = best['x']
         self.success = best['success']
         self.fun = best['fun']
         self.nlopt_code = best['nlopt_code']
+        self.desc = best['desc']
+        self.runtime = best['runtime']
+        self.crlbs = best['crlbs']
 
         return self
 
 
-def single_optimization(objective, optimizer):
+def single_optimization(objective):
 
     start = time.time()
-    n_regions = objective.packer.n_regions
-    n_seasons = objective.packer.n_seasons
-    M = n_regions * n_seasons
-    n = objective.packer.n_params
-    opt = nlopt.opt(optimizer, n)
-    
-    opt.set_ftol_rel(1e-2)
-    opt.set_maxtime(5000)
-
-    opt.set_min_objective(objective)
-
     packer = objective.packer
+    n_regions = packer.n_regions
+    n_seasons = packer.n_seasons
+    M = n_regions * n_seasons
+    n = packer.n_params
+    opt = nlopt.opt(nlopt.LD_SLSQP, n)
+    
+    opt.set_ftol_rel(1e-9)
+    opt.set_maxtime(100)
+    opt.set_min_objective(objective)
 
     # Build upper bounds and constraints
     N_list = []
@@ -254,21 +256,41 @@ def single_optimization(objective, optimizer):
     opt.set_lower_bounds([0.0] * n)
     opt.set_upper_bounds(N_list * 2 + [0.5])
 
-    x0 = objective.packer.random_vector()
-    setup = time.time()
+    x0 = packer.random_vector()
     try:
         x = opt.optimize(x0)
         code = opt.last_optimize_result()
-        params = dict(x=x, fun=opt.last_optimum_value(), success=1<=code<=4, nlopt_code=code, desc=CODES[code])
-        
-    
+        result = dict(x=x, fun=opt.last_optimum_value(), nlopt_success=1<=code<=4, nlopt_code=code, desc=CODES[code])
     except Exception as e:
-        # Return failed result with objective at x0
         fun_x0 = objective(x0)
-        params = dict(x=x0, fun=fun_x0, success=False, nlopt_code=0, desc="Error: " + str(e))
+        result = dict(x=x0, fun=fun_x0, nlopt_success=False, nlopt_code=0, desc="Error: " + str(e))
 
-    end = time.time()
-    params['runtime'] = end - start
-    params['setup'] = setup - start
-    return params
+    # Compute CRLBs for each season
+    fitted = packer.unpack(result['x'])
+    crlbs = []
+    for season_idx, season in enumerate(packer.seasons):
+        N = np.array([packer.populations[(season, packer.regions[i])]
+                      for i in range(n_regions)])
+        try:
+            bound = compute_crlb(
+                S0=fitted['S_init'][season_idx, :],
+                I0=fitted['I_init'][season_idx, :],
+                gamma=objective.disease.gamma,
+                theta=fitted['theta'],
+                Ts=packer.all_Ts[season],
+                beta0=objective.disease.beta0,
+                eps=objective.disease.eps,
+                rho=objective.disease.rho,
+                phase=objective.phase,
+                N=N
+            )
+            crlbs.append(bound)
+        except Exception:
+            result['desc'] += f' {season}.'
+            crlbs.append(np.nan)
+
+    result['crlbs'] = crlbs
+    result['success'] = result['nlopt_success'] and all(np.isfinite(c) for c in crlbs)
+    result['runtime'] = time.time() - start
+    return result
     
