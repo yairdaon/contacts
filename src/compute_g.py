@@ -17,7 +17,7 @@ def contacts(S0: np.ndarray,
              gamma: float,
              theta: float,
              beta0: float,
-             eps: float,
+             delta: float,
              Ts,
              phase,
              N: np.ndarray
@@ -46,8 +46,8 @@ def contacts(S0: np.ndarray,
         Number of time steps to simulate
     beta0 : float
         Base transmission rate
-    eps : float
-        Seasonal eps
+    delta : float
+        Seasonal delta
     phase : float, default=0.0
         Phase offset for seasonal forcings (in radians). Applied to both regions.
         β₁(t) = β₀(1 + A·sin(2πt/P + φ))
@@ -93,7 +93,7 @@ def contacts(S0: np.ndarray,
         # Seasonal transmission rate (vector for each region)
         # β₁(t) = β₀(1 + A·sin(2πt/P + φ))
         # β₂(t) = β₀(1 + A·sin(2πt/P + φ₂))
-        beta_t = beta0 * (1 + eps * np.sin(2 * np.pi * t + phase))
+        beta_t = beta0 * (1 + delta * np.sin(2 * np.pi * t + phase))
        
         # Force of infection: λ(t) = β(t) ∘ (C (I(t)/N))
         # Element-wise multiplication of beta_t with contact-weighted prevalence

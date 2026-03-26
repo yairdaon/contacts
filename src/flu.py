@@ -3,6 +3,9 @@ import numpy as np
 
 
 class Flu:
+    slim = (0.8, 0.95)
+    ilim = (1e-4, 1e-2) 
+
     ## https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.1000316
     ## First line in Table 2
     R0_max = 3.52
@@ -21,11 +24,11 @@ class Flu:
     beta_min = R0_min * (1 - np.exp(-gamma))
     beta0 = ( beta_max + beta_min ) / 2
     
-    ## Since beta_max = beta0 (1+eps) and beta_min = beta0 (1-eps), we get
-    eps = beta_max /beta0 - 1
-    eps_ = 1 - beta_min/beta0 
-    assert abs(eps-eps_) < 1e-15
-    n_weeks = 10
+    ## Since beta_max = beta0 (1+delta) and beta_min = beta0 (1-delta), we get
+    delta = beta_max /beta0 - 1
+    delta_ = 1 - beta_min/beta0 
+    assert abs(delta-delta_) < 1e-15
+    n_weeks = 20
     step_size = 7 / 365.25  # fraction of year per week
 
     def __repr__(self):

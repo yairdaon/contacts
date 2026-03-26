@@ -12,7 +12,9 @@ from typing import Callable, Dict, List
 from scipy.linalg import cho_factor, cho_solve, solve
 
 from src import compute_g
-from src.helper import JACOBIAN_COLS
+
+## Important that theta is kept as the first entry.
+JACOBIAN_COLS = ['theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']
 
 def compute_crlb(S0,
                  I0,
@@ -20,7 +22,7 @@ def compute_crlb(S0,
                  theta: float,
                  Ts: np.ndarray,
                  beta0: float,
-                 eps: float,
+                 delta: float,
                  rho: float,
                  phase: np.ndarray,
                  N: np.ndarray
@@ -42,7 +44,7 @@ def compute_crlb(S0,
         Array of time values
     beta0 : float
         Base transmission rate
-    eps : float
+    delta : float
         Seasonal amplitude
     rho : float
         Reporting rate
@@ -68,7 +70,7 @@ def compute_crlb(S0,
         theta=theta,
         Ts=Ts,
         beta0=beta0,
-        eps=eps,
+        delta=delta,
         phase=phase,
         N=N
     )

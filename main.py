@@ -14,14 +14,17 @@ from src import flu
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+N_POP = 1e6  # Population size per region
 
-def compute_one_crlb(theta, eps, gamma, beta0, rho, Ts, phase):
+
+def compute_one_crlb(theta, delta, gamma, beta0, rho, Ts, phase):
     """Compute CRLB for one parameter combination with random initial conditions."""
-    # Random initial conditions
+    N = np.array([N_POP, N_POP])
+
     log_base = np.random.uniform(3, 6)
     diffs = np.random.uniform(-1, 1, size=2)
-    I0 = 10**(-log_base + diffs)
-    S0 = 1 - I0
+    I0 = 10**(-log_base + diffs) * N
+    S0 = (1 - 10**(-log_base + diffs)) * N
 
     crlb = compute_crlb(
         S0=S0,
@@ -30,15 +33,16 @@ def compute_one_crlb(theta, eps, gamma, beta0, rho, Ts, phase):
         theta=theta,
         Ts=Ts,
         beta0=beta0,
-        eps=eps,
+        delta=delta,
         rho=rho,
-        phase=phase
+        phase=phase,
+        N=N
     )
 
     return {
         'theta': theta,
         'gamma': gamma,
-        'eps': eps,
+        'delta': delta,
         'beta0': beta0,
         'S1_0': S0[0],
         'S2_0': S0[1],
@@ -54,7 +58,7 @@ def compute_one_crlb(theta, eps, gamma, beta0, rho, Ts, phase):
     n_runs=('Number of runs per parameter combination', 'option', 'r', int),
     n_jobs=('Number of parallel jobs', 'option', 'j', int)
 )
-def main(n_runs=200, n_jobs=-1):
+def main(n_runs=1000, n_jobs=-1):
     disease = flu.ILI
 
     beta0 = disease.beta0
@@ -65,18 +69,18 @@ def main(n_runs=200, n_jobs=-1):
     season = 2000  # arbitrary reference season
     Ts = season + np.arange(disease.n_weeks) * disease.step_size
 
-    N = 2#20
+    N = 50
     thetas = 10 ** np.linspace(-4, -1, N, endpoint=True)
-    epss = np.linspace(0, 1, N, endpoint=False)
+    deltas = np.linspace(0, 1, N, endpoint=False)
 
     tasks = []
-    for eps in epss:
+    for delta in deltas:
         for phase2 in [0, np.pi]:
             for _ in range(n_runs):
                 for theta in thetas:
                     tasks.append({
                         'theta': theta,
-                        'eps': eps,
+                        'delta': delta,
                         'gamma': gamma,
                         'beta0': beta0,
                         'rho': rho,

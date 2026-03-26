@@ -5,8 +5,6 @@ from pprint import pprint
 
 from src import compute_g
 
-SLIM = (0.8, 0.99)
-ILIM = (1e-4, 1e-2)  # Much smaller for count-based framework
 
 class Packer:
     """
@@ -15,7 +13,7 @@ class Packer:
     Parameters:
     -----------
     disease : object
-        Disease parameters (gamma, beta0, eps, rho, n_weeks, step_size)
+        Disease parameters (gamma, beta0, delta, rho, n_weeks, step_size)
     seasons : list, optional
         List of season years (e.g., [2010, 2011, 2012])
     regions : list, optional
@@ -68,8 +66,8 @@ class Packer:
         for s_idx, season in enumerate(self.seasons):
             for r_idx, region in enumerate(self.regions):
                 N = self.populations[(season, region)]
-                I_init[s_idx, r_idx] = np.random.uniform(ILIM[0] * N, ILIM[1] * N)
-                S_init[s_idx, r_idx] = np.random.uniform(SLIM[0] * N, SLIM[1] * N)
+                I_init[s_idx, r_idx] = np.random.uniform(*self.disease.ilim)
+                S_init[s_idx, r_idx] = np.random.uniform(*self.disease.slim)
 
         out["I_init"] = I_init
         out["S_init"] = S_init
@@ -113,25 +111,26 @@ class Packer:
     def sim(self, params, phase, disease):
         """Simulate and return incidence + Jacobian columns for gradient computation."""
         S_init = params['S_init']
-        I_init = params['I_init']
+        I_init = params['I_init'] 
         theta = params["theta"]
-
+        
         results = []
         for season_idx, season in enumerate(self.seasons):
-            S = S_init[season_idx, :]
-            I = I_init[season_idx, :]
-
             # Get populations for this season
             N = np.array([self.populations[(season, self.regions[i])]
                           for i in range(self.n_regions)])
 
+            S = S_init[season_idx, :] * N
+            I = I_init[season_idx, :] * N
+
+         
             df = compute_g.contacts(S0=S,
                                     I0=I,
                                     gamma=disease.gamma,
                                     theta=theta,
                                     Ts=self.all_Ts[season],
                                     beta0=disease.beta0,
-                                    eps=disease.eps,
+                                    delta=disease.delta,
                                     phase=phase,
                                     N=N)
             

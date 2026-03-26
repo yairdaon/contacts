@@ -47,9 +47,9 @@ def load_synthetic(disease, regions, seasons, theta, phase, populations, S_init=
     obs = packer.sim(true_params, phase, disease)
 
     mu = obs['mu']
-    scale = np.sqrt(disease.rho * (1 - disease.rho) * mu)
+    scale = np.sqrt(disease.rho * (1 - disease.rho) * mu) * int(add_noise)
     obs['incidence'] = mu * disease.rho + np.random.randn(len(mu)) * scale
-    obs['incidence'] = np.maximum(1e-6, obs['incidence'])
+    # obs['incidence'] = np.maximum(1e-6, obs['incidence'])
 
     return obs, true_params
 
