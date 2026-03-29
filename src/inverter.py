@@ -107,7 +107,7 @@ def single_optimization(objective):
                 return constraint
             opt.add_inequality_constraint(make_constraint(idx), 1e-8)
         opt.set_lower_bounds([0.0] * n)
-        opt.set_upper_bounds([1.0] * (2 * M) + [0.5])
+        opt.set_upper_bounds([1.0] * (2 * M) + [0.1])
         return opt
 
     # Stage 1: unweighted MSE (robust to bad starting points)

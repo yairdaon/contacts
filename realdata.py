@@ -5,13 +5,15 @@ Run inverse problem on real epidemic data for all state pairs, recording granula
 import os
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 import nlopt
 import us
 from itertools import combinations
 
-from src.helper import current
 from src.data_loader import load_real
 from src.inverter import Inverter
+from src.helpers import current
 from src.flu import Mortality as flu
 from joblib import Parallel, delayed
 from tqdm import tqdm
@@ -22,8 +24,7 @@ def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
-    seasons = list(range(2010, 2020))+ [2022, 2023, 2024, 2025]
-    #seasons = list(range(2013, 2018))
+    seasons = list(range(2013, 2019)) + [2023, 2024, 2025]
 
     # Load population data once
     # Season Y starts Nov 1st of year (Y-1), so use July 1st population of year (Y-1)
@@ -34,8 +35,8 @@ def main():
     
     states = ['CA' ,'NY', 'TX', 'FL', ## Largest
               'DE', 'RI', 'MO', ## Small but > 1e6 population
-              'AB', 'LO', 'KE'
-              ]
+              'AL', 'LA', 'KY'
+              ][:2]
     for state1, state2 in combinations(us.STATES, 2):
         if state1 == state2:
             continue
@@ -62,11 +63,10 @@ def main():
             regions=regions,
             seasons=seasons
         )
-
         if obs.empty:
             print(f"No data for {s1_abbr}x{s2_abbr}")
             continue
-
+        
         # Check if we have data for both regions in at least some seasons
         found_regions = obs['region'].unique()
         if len(found_regions) < 2:
@@ -86,7 +86,7 @@ def main():
             obs=obs,
             disease=flu,
             populations=populations
-        ).fit(n0=200, n_jobs=-3)
+        ).fit(n0=10, n_jobs=-1, plot=True)
         print("Finished inversion", current())
 
         # Save results for only the best fit
@@ -113,7 +113,7 @@ def main():
         res = pd.DataFrame(rows)
         res['crlb4std'] = np.sqrt(1 / sum(1/res.crlb))
         res.to_csv(filename, index=False)
-        print(res.drop(["S1_0", "S2_0" , "I1_0", "I2_0", "objective"], axis=1))
+        print(res.set_index(['state1', 'state2'], drop=True)[['season', 'theta', 'crlb', 'crlb4std']])
         print(f"Ran {filename} at {current()}")
 
 if __name__ == "__main__":

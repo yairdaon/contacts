@@ -93,12 +93,12 @@ $R^{\text{max}}_0$ & 3.52 & $R_0$ at peak season & \cite{shaman2010} \\
 $R^{\text{min}}_0$ & 1.12 & $R_0$ during the summer & \cite{shaman2010} \\
 $D$ & 3.24 & Mean infection period (days) & \cite{shaman2010} \\
 $\gamma$ & $2.16$ & Weekly recovery rate & $7 /  D $ \\
-$\beta_{\text{max}}$ & $7.6$ & Transmission rate at peak  season & $R_0^{\text{max}} / \gamma $\\
-$\beta_{\text{min}}$ & $2.4$ & Transmission rate during the summer & $R_0^{\text{min}} / \gamma $ \\
-$\beta_0$ & $5.01$ & Mean transmission rate & $(\beta_{\text{min}} + \beta_{\text{max}})/2$ \\
+$\beta_{\text{max}}$ & $3.11$ & Transmission rate at peak season & $R_0^{\text{max}} (1 - e^{-\gamma})$\\
+$\beta_{\text{min}}$ & $0.99$ & Transmission rate at low season & $R_0^{\text{min}} (1 - e^{-\gamma})$ \\
+$\beta_0$ & $2.05$ & Mean transmission rate & $(\beta_{\text{min}} + \beta_{\text{max}})/2$ \\
 $\delta$ & $0.517$ & Seasonal amplitude & $\beta_{\text{max}} / \beta_0 - 1$\\
-$\rho_1$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate (IFR) & \citet{rolfes2018}\\
-$\rho_2$ & $0.3$ & Reporting rate for Influenza-like Illness & \\
+$\rho$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate (IFR) & \citet{rolfes2018}\\
+$\varphi$ & & Phase of seasonal forcing & separately for each state \\
 \bottomrule
 \end{tabular}
 \caption{Model parameters calibrated to seasonal influenza. Recall

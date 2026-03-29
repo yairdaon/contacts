@@ -63,6 +63,43 @@ asynchronous epidemics. The effect is robust: regardless of the true
 connectivity or seasonal amplitude, synchronization consistently
 inflates the theoretical lower bound on estimation variance.
 
+\subsection*{Inverse Problem on Synthetic Data}
+
+To validate our inference framework, we generated synthetic epidemic
+data from the discrete SIR model with known connectivity $\theta =
+0.05$ and two regions of equal population ($N = 10^6$), using $10$
+seasons of ILI data with reporting rate $\rho = 0.3$. We solved the
+inverse problem using multi-start gradient-based optimization (SLSQP)
+and compared the fitted trajectories to the ground truth.
+
+\begin{figure}%[h]
+\centering
+\includegraphics[width=\textwidth]{../pix/inverse_problem.pdf}
+\caption{Reconstruction of epidemic dynamics from synthetic data with
+  true connectivity $\theta = 0.05$. Top row: synchronized epidemics
+  (both regions in-phase). Bottom row: unsynchronized epidemics
+  (regions out-of-phase by $\pi$). Solid lines show the true
+  susceptible (red) and infected (blue) trajectories; dashed lines
+  show the fitted trajectories. Each panel displays the estimated
+  $\hat{\theta}$ and the Cram\'er-Rao lower bound on the standard
+  deviation $\sqrt{\text{CRLB}}$. In both cases the optimizer recovers
+  the true dynamics, but the CRLB reveals that the synchronized
+  estimate carries much larger uncertainty: the same point estimate is
+  far less reliable when epidemics are in phase.}
+\label{fig:inverse}
+\end{figure}
+
+Figure~\ref{fig:inverse} shows that the optimizer successfully
+recovers the true susceptible and infected trajectories in both the
+synchronized and unsynchronized settings. However, the CRLB standard
+deviation differs dramatically between the two cases: for
+unsynchronized epidemics, the CRLB is small, indicating that $\theta$
+is tightly identifiable; for synchronized epidemics, the CRLB is
+orders of magnitude larger, confirming that $\theta$ cannot be
+reliably estimated even when the point estimate happens to be close to
+the true value. This validates the theoretical predictions from the
+Fisher Information analysis.
+
 \subsection*{Epidemic Dynamics}
 % HAVE: Simulated incidence curves from compute_g.py
 % Show: Two-panel figure - synchronized (curves overlap) vs asynchronous (curves offset)

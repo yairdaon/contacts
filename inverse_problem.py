@@ -12,8 +12,8 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Default population sizes for synthetic regions
 DEFAULT_N = {
-    "A": 1e6,
-    "B": 1e6
+    "A": 1e5,
+    "B": 1e5
 }
 
 
@@ -24,7 +24,7 @@ def main(add_noise):
     phase = np.zeros(2)
 
     regions = list(DEFAULT_N.keys())
-    seasons = list(range(1995, 2008))  # 10 seasons
+    seasons = list(range(1995, 2008))
 
     # Build populations dictionary
     populations = {}
@@ -154,7 +154,7 @@ def main(add_noise):
     fig.tight_layout()
     fig.savefig(f"pix/inverse_problem_{noise_tag}.png", dpi=150, bbox_inches='tight')
     fig.savefig(f"pix/inverse_problem_{noise_tag}.pdf", bbox_inches='tight')
-    plt.show()
+    plt.close()
     print(f"Synchronized:   theta_fit={trajectories[0]['theta_fit']:.4f}, CRLB std={crlb_std[0]:.4f}")
     print(f"Unsynchronized: theta_fit={trajectories[np.pi]['theta_fit']:.4f}, CRLB std={crlb_std[np.pi]:.4f}")
 
