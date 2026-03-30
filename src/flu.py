@@ -3,8 +3,8 @@ import numpy as np
 
 
 class Flu:
-    slim = (0.8, 0.95)
-    ilim = (1e-4, 1e-2) 
+    slim = (0.4, 0.95)
+    ilim = (5e-5, 1e-2) 
 
     ## https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.1000316
     ## First line in Table 2

@@ -17,9 +17,10 @@ class Objective:
                              all_Ts={season: np.sort(dd['t'].unique()) for season, dd in obs.groupby("season")},
                              populations=populations)
         self.phase = phase
-        self.obs = obs
+        self.obs = obs.sort_values(['season', 't', 'region']).reset_index(drop=True)
         self.disease = disease
         self.weighted = False
+        self.n_obs = len(self.obs)
 
     def compute_gradient(self, sim_df):
         """
@@ -77,11 +78,11 @@ class Objective:
         if self.weighted:
             sigma2 = sim * (1 - self.disease.rho) + 1e-6
             log_term = xlogy(sigma2, 2 * np.pi * sigma2)
-            out = np.sum((log_term + residual ** 2) / sigma2) / 2
+            out = np.sum((log_term + residual ** 2) / sigma2) / (2 * self.n_obs)
         else:
-            out = np.sum(residual ** 2)
+            out = np.sum(residual ** 2) / self.n_obs
 
         if grad is not None and grad.size > 0:
-            grad[:] = self.compute_gradient(simulated)
+            grad[:] = self.compute_gradient(simulated) / self.n_obs
 
         return out

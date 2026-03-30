@@ -100,6 +100,29 @@ comb['date'] = pd.to_datetime(comb.date)
 comb = comb.query("state not in ('New York City', 'District of Columbia') and date.dt.year < 2026")
 comb.to_csv("deaths.csv", index=False)
 
+# Compute excess deaths by subtracting pre-season baseline.
+# A flu season Y starts Nov 1 of year (Y-1).
+# Baseline = mean weekly deaths in July-October of year (Y-1) for each state.
+comb['month'] = comb['date'].dt.month
+comb['year'] = comb['date'].dt.year
+
+# Assign each week to a flu season: Nov-Dec belong to next year's season
+comb['season'] = comb['year'] + (comb['month'] >= 11).astype(int)
+
+# Pre-season months: July (7) through October (10)
+pre_season = comb[comb['month'].between(7, 10)]
+baseline = pre_season.groupby(['state', 'season'])['deaths'].mean().rename('baseline')
+
+# Merge baseline and subtract
+excess = comb.merge(baseline, on=['state', 'season'], how='left')
+excess['excess_deaths'] = excess['deaths'] - excess['baseline']
+
+# Keep only in-season weeks (Nov through April) and drop helper columns
+in_season = excess[excess['month'].isin([11, 12, 1, 2, 3, 4])].copy()
+in_season = in_season.drop(columns=['deaths', 'month', 'year', 'season', 'baseline'])
+in_season = in_season.rename(columns={'excess_deaths': 'deaths'})
+in_season.to_csv("excess_deaths.csv", index=False)
+
 # Save population data separately
 pop = pop.query("state not in ('New York City', 'District of Columbia')")
 pop.to_csv("populations.csv", index=False)

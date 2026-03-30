@@ -36,7 +36,7 @@ def main():
     states = ['CA' ,'NY', 'TX', 'FL', ## Largest
               'DE', 'RI', 'MO', ## Small but > 1e6 population
               'AL', 'LA', 'KY'
-              ][:2]
+              ][:3]
     for state1, state2 in combinations(us.STATES, 2):
         if state1 == state2:
             continue
@@ -61,7 +61,8 @@ def main():
         obs, phase = load_real(
             disease=flu,
             regions=regions,
-            seasons=seasons
+            seasons=seasons,
+            mortality_path="data/pni_mortality/excess_deaths.csv"
         )
         if obs.empty:
             print(f"No data for {s1_abbr}x{s2_abbr}")
@@ -86,7 +87,7 @@ def main():
             obs=obs,
             disease=flu,
             populations=populations
-        ).fit(n0=10, n_jobs=-1, plot=True)
+        ).fit(n0=20, n_jobs=-1, plot=True)
         print("Finished inversion", current())
 
         # Save results for only the best fit

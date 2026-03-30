@@ -19,6 +19,14 @@ def calc_t(date):
     shifted = date + pd.Timedelta(days=61)
     return shifted.dt.year + (shifted.dt.dayofyear-1) / YEAR_LENGTH
 
+def t_to_date(t):
+    """Inverse of calc_t: convert continuous time back to datetime."""
+    year = int(t)
+    frac = t - year
+    day_of_year = int(frac * YEAR_LENGTH) + 1
+    dt = pd.Timestamp(year=year, month=1, day=1) + pd.Timedelta(days=day_of_year - 1)
+    return dt - pd.Timedelta(days=61)
+
 ## We can check with
 ##  print(calc_t(pd.Series([pd.to_datetime("2009-11-01")])).iloc[0])
 ## prinnts 2010.0

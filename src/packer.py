@@ -153,5 +153,6 @@ class Packer:
             results.append(df_long)
 
         res = pd.concat(results, ignore_index=True)
+        res = res.sort_values(['season', 't', 'region']).reset_index(drop=True)
         return res
 
