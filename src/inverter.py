@@ -24,14 +24,13 @@ class Inverter:
     def fit(self,
             n0,
             n_jobs=-1,
-            plot=False):
+            fname=None):
 
         results = Parallel(n_jobs=n_jobs)(delayed(single_optimization)(self.objective) for _ in tqdm(range(n0)))
 
-        n_both_ok = sum(1 for r in results if r['mse_ok'] and r['nll_ok'])
-        n_mse_only = sum(1 for r in results if r['mse_ok'] and not r['nll_ok'])
-        n_both_fail = sum(1 for r in results if not r['mse_ok'])
-        print(f"Optimization: {n_both_ok} full + {n_mse_only} MSE-only + {n_both_fail} failed / {n0} total")
+        n_ok = sum(1 for r in results if r['success'])
+        n_fail = n0 - n_ok
+        print(f"Optimization: {n_ok} succeeded + {n_fail} failed / {n0} total")
 
         best = min(results, key=lambda r: r['fun'])
         self.x = best['x']
@@ -42,12 +41,12 @@ class Inverter:
         self.runtime = best['runtime']
         self.crlbs = best['crlbs']
 
-        if plot:
-            self._plot_reconstruction()
+        if fname:
+            self._plot_reconstruction(fname=fname)
 
         return self
 
-    def _plot_reconstruction(self):
+    def _plot_reconstruction(self, fname=None):
         """Plot observed vs fitted incidence for each region and season."""
         import matplotlib.pyplot as plt
         from src.data_loader import t_to_date
@@ -60,7 +59,7 @@ class Inverter:
         obs = obj.obs
 
         regions = list(packer.regions)
-        seasons = list(packer.seasons)[:4]
+        seasons = list(packer.seasons)[:3]
         n_seasons = len(seasons)
 
         fig, axes = plt.subplots(len(regions), n_seasons, figsize=(4 * n_seasons, 3 * len(regions)),
@@ -86,9 +85,13 @@ class Inverter:
                 if i == 0 and j == 0:
                     ax.legend(fontsize=8)
 
-        fig.suptitle(rf"$\hat{{\theta}}={fitted['theta']:.4f}$, status={self.desc}", fontsize=12)
         fig.tight_layout()
-        plt.show()
+        if fname:
+            plt.savefig(fname + ".png", dpi=150, bbox_inches='tight')
+            plt.savefig(fname + ".pdf", bbox_inches='tight')
+            print(f"Saved {fname}")
+        else:
+            plt.show()
 
 
 def single_optimization(objective):
@@ -100,51 +103,31 @@ def single_optimization(objective):
     M = n_regions * n_seasons
     n = packer.n_params
 
-    def make_opt():
-        opt = nlopt.opt(nlopt.LD_SLSQP, n)
-        opt.set_xtol_rel(1e-10)
-        opt.set_maxtime(100)
-        opt.set_min_objective(objective)
-        for idx in range(M):
-            def make_constraint(i):
-                def constraint(x, grad):
-                    if grad.size > 0:
-                        grad[:] = 0
-                        grad[i] = 1
-                        grad[i + M] = 1
-                    return x[i] + x[i + M] - 1
-                return constraint
-            opt.add_inequality_constraint(make_constraint(idx), 1e-8)
-        opt.set_lower_bounds([0.0] * n)
-        opt.set_upper_bounds([1.0] * (2 * M) + [0.5])
-        return opt
+    opt = nlopt.opt(nlopt.LD_SLSQP, n)
+    opt.set_xtol_rel(1e-10)
+    opt.set_maxtime(100)
+    opt.set_min_objective(objective)
+    for idx in range(M):
+        def make_constraint(i):
+            def constraint(x, grad):
+                if grad.size > 0:
+                    grad[:] = 0
+                    grad[i] = 1
+                    grad[i + M] = 1
+                return x[i] + x[i + M] - 1
+            return constraint
+        opt.add_inequality_constraint(make_constraint(idx), 1e-8)
+    opt.set_lower_bounds([0.0] * n)
+    opt.set_upper_bounds([1.0] * (2 * M) + [0.5])
 
-    # Stage 1: unweighted MSE (robust to bad starting points)
-    objective.weighted = False
-    opt = make_opt()
     x0 = packer.random_vector()
-    mse_ok = False
-    try:
-        x0 = opt.optimize(x0)
-        mse_ok = True
-    except Exception:
-        pass  # use whatever x0 we have
-
-    # Stage 2: weighted NLL (statistically efficient, starting from MSE solution)
-    objective.weighted = True
-    opt = make_opt()
-    nll_ok = False
     try:
         x = opt.optimize(x0)
         code = opt.last_optimize_result()
-        nll_ok = True
         result = dict(x=x, fun=opt.last_optimum_value(), nlopt_success=1<=code<=4, nlopt_code=code, desc=CODES[code])
     except Exception:
-        # Weighted stage failed — fall back to MSE solution
         fun_x0 = objective(x0)
-        result = dict(x=x0, fun=fun_x0, nlopt_success=True, nlopt_code=3, desc="MSE only" if mse_ok else "both failed")
-    result['mse_ok'] = mse_ok
-    result['nll_ok'] = nll_ok
+        result = dict(x=x0, fun=fun_x0, nlopt_success=False, nlopt_code=-1, desc="failed")
 
     failed_seasons = []
     # Compute CRLBs for each season

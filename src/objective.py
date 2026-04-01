@@ -19,15 +19,12 @@ class Objective:
         self.phase = phase
         self.obs = obs.sort_values(['season', 't', 'region']).reset_index(drop=True)
         self.disease = disease
-        self.weighted = False
         self.n_obs = len(self.obs)
 
     def compute_gradient(self, sim_df):
         """
-        Compute gradient of the objective with respect to parameters.
-
-        Unweighted (MSE): ∂L/∂φ = -2ρ Σ (Y - ρμ) * ∂μ/∂φ
-        Weighted (NLL):   ∂L/∂φ = -Σ A_i(t) * ∂μ_i(t)/∂φ
+        Compute gradient of the negative log-likelihood with respect to parameters.
+        ∂L/∂φ = -Σ A_i(t) * ∂μ_i(t)/∂φ
         """
         n_seasons = self.packer.n_seasons
         n_regions = self.packer.n_regions
@@ -39,12 +36,8 @@ class Objective:
         mu = sim_df["mu"].values + 1e-6
         r = self.obs["incidence"].values - mu * rho
 
-        if self.weighted:
-            A = -1 / (2 * mu) + r / ((1 - rho) * mu) + r ** 2 / (2 * rho * (1 - rho) * mu ** 2)
-            dL_dmu = -A
-        else:
-            # MSE: L = Σ (Y - ρμ)², so ∂L/∂μ = -2ρ(Y - ρμ)
-            dL_dmu = -2 * rho * r
+        A = -1 / (2 * mu) + r / ((1 - rho) * mu) + r ** 2 / (2 * rho * (1 - rho) * mu ** 2)
+        dL_dmu = -A
 
         # theta gradient
         grad[-1] = np.sum(dL_dmu * sim_df['theta'].values)
@@ -66,7 +59,7 @@ class Objective:
 
 
     def __call__(self, x, grad=None):
-        """Evaluate objective and gradient. MSE or weighted NLL depending on self.weighted."""
+        """Evaluate negative log-likelihood and gradient."""
         params = self.packer.unpack(x)
         simulated = self.packer.sim(params=params, phase=self.phase, disease=self.disease)
 
@@ -74,13 +67,10 @@ class Objective:
         mu = simulated["mu"].values
         sim = mu * self.disease.rho
         residual = obs - sim
-
-        if self.weighted:
-            sigma2 = sim * (1 - self.disease.rho) + 1e-6
-            log_term = xlogy(sigma2, 2 * np.pi * sigma2)
-            out = np.sum((log_term + residual ** 2) / sigma2) / (2 * self.n_obs)
-        else:
-            out = np.sum(residual ** 2) / self.n_obs
+        
+        sigma2 = sim * (1 - self.disease.rho) + 1e-6
+        log_term = xlogy(sigma2, 2 * np.pi * sigma2)
+        out = np.sum((log_term + residual ** 2) / sigma2) / (2 * self.n_obs)
 
         if grad is not None and grad.size > 0:
             grad[:] = self.compute_gradient(simulated) / self.n_obs

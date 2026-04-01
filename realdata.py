@@ -21,10 +21,10 @@ OUTPUT_DIR = "outputs/states"
 
     
 def main():
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs("pix", exist_ok=True)
 
-    seasons = list(range(2013, 2019)) + [2023, 2024, 2025]
+    seasons = list(range(2010, 2019)) + [2023, 2024, 2025]
 
     # Load population data once
     # Season Y starts Nov 1st of year (Y-1), so use July 1st population of year (Y-1)
@@ -36,7 +36,7 @@ def main():
     states = ['CA' ,'NY', 'TX', 'FL', ## Largest
               'DE', 'RI', 'MO', ## Small but > 1e6 population
               'AL', 'LA', 'KY'
-              ][:3]
+              ]
     for state1, state2 in combinations(us.STATES, 2):
         if state1 == state2:
             continue
@@ -87,7 +87,7 @@ def main():
             obs=obs,
             disease=flu,
             populations=populations
-        ).fit(n0=20, n_jobs=-1, plot=True)
+        ).fit(n0=200, n_jobs=-1, fname=f"pix/rec_{s1_abbr}x{s2_abbr}")
         print("Finished inversion", current())
 
         # Save results for only the best fit
