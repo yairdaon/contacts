@@ -64,35 +64,43 @@ inflates the theoretical lower bound on estimation variance.
 
 \subsection*{Likelihood Surface}
 
-Figure~\ref{fig:likelihood} provides direct visualization of the
-log-likelihood surface as a function of the connectivity parameter
-$\theta$ for different phase offsets between regions. For each phase
-difference $\varphi_1 - \varphi_2$, we generate synthetic data with
-true connectivity $\theta = 0.05$ and evaluate the likelihood at the
-true initial conditions across a grid of $\theta$ values.
+Figure~\ref{fig:likelihood} directly visualizes how both phase
+asymmetry and initial-condition asymmetry affect the likelihood
+surface. We generate synthetic data with true connectivity $\theta =
+0.05$ and evaluate the likelihood at the true initial conditions
+across a grid of $\theta$ values, sweeping over four phase differences.
 
 \begin{figure}%[h]
 \centering
-\includegraphics[width=0.8\textwidth]{../pix/likelihood_surface.pdf}
+\includegraphics[width=\textwidth]{../pix/likelihood_surface.pdf}
 \caption{Log-likelihood as a function of connectivity $\theta$ for
-  different phase offsets between regions. The vertical dashed line
-  indicates the true value $\theta = 0.05$. For synchronized epidemics
-  ($\varphi_1 - \varphi_2 = 0$), the likelihood is essentially flat
-  across the entire range of $\theta$. As the phase difference
-  increases, a clear peak emerges near the true value, confirming that
-  asynchrony restores parameter identifiability.}
+  four phase offsets between regions. Left: both regions start with
+  similar initial conditions. Right: regions start with substantially
+  different initial conditions. The vertical dashed line indicates the
+  true $\theta = 0.05$. With similar initial conditions (left),
+  synchronized epidemics ($\varphi_1 - \varphi_2 = 0$) produce a
+  nearly flat likelihood; increasing the phase difference progressively
+  sharpens the peak. With different initial conditions (right), even
+  synchronized epidemics show a clear peak, because the asymmetric
+  initial states create distinguishable trajectories that depend on
+  $\theta$.}
 \label{fig:likelihood}
 \end{figure}
 
-For synchronized epidemics ($\varphi_1 - \varphi_2 = 0$), the
-likelihood surface is nearly flat: changing $\theta$ from 0 to 0.5
-produces negligible change in likelihood. This flatness directly
-reflects the vanishing Fisher Information predicted by the
-CRLB---when epidemics rise and fall together, the data contain
-essentially no information about connectivity. As the phase difference
-increases, a progressively sharper peak emerges near the true value
-$\theta = 0.05$, confirming that phase asynchrony restores parameter
-identifiability.
+The two panels illustrate the interplay between phase asymmetry and
+initial-condition asymmetry. With similar initial conditions (left),
+the synchronized curve ($\varphi_1 - \varphi_2 = 0$) is nearly
+flat---the optimizer would return some $\hat\theta$, but the
+likelihood barely changes across the parameter space, meaning the
+estimate is unreliable. Increasing the phase difference progressively
+restores a peak near the true value. With different initial conditions
+(right), even perfectly synchronized forcing produces a clear
+likelihood peak, because the differing initial states cause the two
+regional epidemics to follow different trajectories whose interaction
+depends on $\theta$. In practice, US states sharing a winter flu
+season have both similar phases and similar initial conditions,
+placing them in the left-panel regime where an analyst could easily
+obtain a misleading estimate.
 
 \subsection*{Real Data: P\&I Mortality}
 
@@ -126,6 +134,22 @@ seasons used for inference highlighted.
   included in the analysis. COVID-19 pandemic years (2020--2022) are
   excluded.}
 \label{fig:seasons}
+\end{figure}
+
+Figure~\ref{fig:reconstruction} shows the fitted excess deaths
+(red) against the observed excess deaths (black) for California and
+New York across three representative flu seasons. The model captures
+the seasonal epidemic shape but the fit is imperfect, reflecting both
+model misspecification and the difficulty of fitting a simple SIR model
+to real mortality data.
+
+\begin{figure}%[h]
+\centering
+\includegraphics[width=\textwidth]{../pix/rec_CAxNY.pdf}
+\caption{Reconstruction of excess P\&I deaths for California (top) and
+  New York (bottom) for three flu seasons. Black dots: observed weekly
+  excess deaths. Red line: fitted model $\rho\mu_i(t)$.}
+\label{fig:reconstruction}
 \end{figure}
 
 We estimated connectivity $\theta$ and its CRLB for all pairs among

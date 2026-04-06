@@ -59,7 +59,8 @@ class Inverter:
         obs = obj.obs
 
         regions = list(packer.regions)
-        seasons = list(packer.seasons)[:3]
+        show_seasons = [2013, 2015, 2017]
+        seasons = [s for s in show_seasons if s in packer.seasons] or list(packer.seasons)[:3]
         n_seasons = len(seasons)
 
         fig, axes = plt.subplots(len(regions), n_seasons, figsize=(4 * n_seasons, 3 * len(regions)),

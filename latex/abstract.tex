@@ -1,24 +1,20 @@
 \begin{abstract}
-Inferring connectivity between coupled dynamical systems is a
-fundamental challenge when shared forcing synchronizes their dynamics.
-We address this problem in the context of spatial epidemiology, asking:
-can regional connectivity be inferred from epidemic surveillance data?
-Using a discrete-time two-region SIR model with seasonal forcing, we
-derive exact sensitivity equations and compute the Cram\'er-Rao Lower
-Bound (CRLB) for the connectivity parameter. Our analysis reveals that
-identifiability depends critically on epidemic synchrony. When regions
-experience epidemics in phase---rising and falling together due to
-shared seasonal forcing---the Fisher Information for connectivity
-approaches zero, making reliable inference impossible regardless of
-estimation method. In contrast, when epidemics are out of phase, the
-differential dynamics reveal the connectivity signal. We validate these
-theoretical predictions with multi-start optimization on synthetic data:
-the likelihood surface is flat for synchronized epidemics but shows a
-clear peak at the true connectivity for asynchronous epidemics. Our
-results explain why previous studies have struggled to infer
-connectivity from case data alone, and suggest that inference efforts
-should focus on settings where regional epidemics are naturally
-asynchronous. The discrete-time CRLB framework provides a
-computationally efficient tool for assessing parameter identifiability
-before attempting costly estimation.
+When shared forcing synchronizes coupled dynamical systems, the
+coupling itself becomes difficult to infer---an optimizer may converge
+to a plausible-looking estimate that carries no statistical support.
+We quantify this risk in the context of spatial epidemiology using the
+Cram\'er-Rao Lower Bound (CRLB). For a discrete-time two-region SIR
+model with seasonal forcing, we derive exact sensitivity equations and
+compute the Fisher Information for the connectivity parameter
+$\theta$. Identifiability depends on two factors: the degree of
+epidemic synchrony and the similarity of initial conditions between
+regions. When both are high, the CRLB diverges and $\theta$ cannot be
+reliably estimated regardless of sample size or estimation method.
+Asymmetry---whether from different seasonal timing or different
+initial epidemic states---restores identifiability. We validate these
+predictions on synthetic data and apply the framework to pneumonia
+and influenza excess mortality across the 20 largest US states.
+Despite 12 flu seasons of data, connectivity estimates for nearly all
+state pairs cannot be distinguished from zero, consistent with the
+strong synchronization of temperate influenza epidemics.
 \end{abstract}

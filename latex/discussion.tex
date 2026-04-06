@@ -1,75 +1,123 @@
 \section*{Discussion}
 
-We have shown that phase synchronization between coupled epidemic
-systems fundamentally limits the identifiability of connectivity
-parameters. Using the Cram\'er-Rao Lower Bound, we quantified this
-limitation precisely: when epidemics rise and fall together, the
-Fisher Information for coupling parameters approaches zero, making
-reliable inference impossible regardless of the statistical method
-employed. Multi-start optimization on synthetic data confirmed these
-theoretical predictions.
+We have shown that the identifiability of connectivity between coupled
+epidemic systems depends on the degree of symmetry between their
+dynamics. Using the Cram\'er-Rao Lower Bound, we quantified this
+precisely: when two regions experience synchronized epidemics with
+similar initial conditions, the Fisher Information for the coupling
+parameter approaches zero. A maximum-likelihood optimizer will still
+converge in this regime, potentially returning an estimate that
+appears well-determined but is in fact meaningless---the likelihood
+surface is flat, and any value of $\theta$ fits the data equally well.
+Any source of asymmetry---different seasonal phasing or different
+initial epidemic states---breaks this degeneracy and restores
+identifiability.
 
-\subsection*{Implications for Global Influenza Surveillance}
+\subsection*{The Role of Symmetry Breaking}
 
-Our results have direct implications for inferring influenza
-transmission between geographical regions.  \cite{deyle2016}
-demonstrated that influenza dynamics differ fundamentally between
-temperate and tropical regions: in temperate countries like Germany,
-the seasonal climate cycle explains over 90\% of the variance in
-absolute humidity, driving tightly synchronized winter epidemics. In
-tropical countries like Singapore, seasonality explains less than 30\%
-of climate variance, resulting in irregular, weakly synchronized
-outbreaks.
+Our analysis identifies two independent mechanisms that restore
+identifiability. First, when the seasonal forcing phases differ
+between regions, the epidemics peak at different times, and the
+connectivity parameter governs the cross-regional transmission that
+links these offset dynamics. Second, when initial conditions
+differ---for example, because regions enter the flu season with
+different levels of prior immunity---the resulting epidemic
+trajectories diverge even under identical forcing, again creating a
+signal that depends on $\theta$.
 
-This dichotomy maps directly onto our identifiability framework.
-\textbf{In temperate regions}---North America, Europe, northern
-Asia---influenza epidemics are strongly synchronized by shared winter
-forcing. Our analysis predicts that connectivity between such regions
-cannot be reliably inferred from case data alone, explaining why
-studies of influenza spread in these regions have relied on external
-mobility data \cite{viboud2006, charu2017} \textbf{In tropical
-  regions}---sub-Saharan Africa, South America, Southeast Asia,
-Polynesia---the weaker and less coherent seasonal forcing produces
-asynchronous epidemic patterns.  Here, our framework predicts that
-connectivity inference may be feasible, as the differential timing of
-outbreaks provides the information needed to distinguish coupled from
-uncoupled dynamics.
+For US states, both mechanisms are weak. Seasonal influenza is driven
+by winter conditions that are approximately synchronized across
+temperate North America~\citep{shaman2010}, and population-level
+susceptibility follows similar patterns nationwide. This double
+symmetry explains why connectivity cannot be reliably inferred from
+mortality data despite over a decade of observations.
 
-This suggests a strategic reorientation of inference efforts: rather
-than attempting to infer connectivity from synchronized temperate
-epidemics, researchers should focus on tropical and subtropical
-regions where asynchrony provides identifiability, or on pandemic
-emergence phases when regional epidemics are naturally out of phase.
+\subsection*{Implications for Influenza Surveillance}
+
+The contrast between temperate and tropical influenza dynamics maps
+directly onto our identifiability framework. In temperate regions,
+shared winter forcing drives tightly synchronized epidemics, placing
+inference in the high-CRLB regime. In tropical regions, weaker and
+less coherent seasonal forcing produces asynchronous outbreak
+patterns~\citep{tamerius2013}, providing the asymmetry needed for
+identifiability. This suggests that connectivity inference from case
+data may be more feasible in tropical and subtropical settings, or
+during the early invasion phase of a pandemic when regional epidemics
+are naturally out of phase.
+
+Our results also explain why spatial epidemic studies have
+predominantly relied on external mobility data---commuting
+surveys~\citep{viboud2006}, gravity models~\citep{charu2017},
+mobile phone records~\citep{kraemer2020}, or air travel
+data~\citep{zhang2026}---rather than estimating connectivity from
+case counts. This was not necessarily a deliberate
+choice informed by identifiability theory; rather, case-data-based
+estimates were likely tried, found to be noisy or inconsistent, and
+quietly abandoned in favor of external data sources. Our CRLB
+analysis provides a theoretical explanation for these practical
+failures.
 
 \subsection*{Limitations}
 
-Several limitations warrant discussion. First, our analysis assumes a
-specific observation model (binomial reporting with Gaussian
-approximation); other noise structures may yield different CRLB
-expressions. Second, we focused on a two-region model with symmetric
-coupling; extensions to asymmetric coupling or larger networks may
-reveal additional identifiability challenges. Third, our synthetic
-data validation used the same model for generation and inference;
-model misspecification in real applications could introduce additional
-biases.
+Several limitations warrant discussion. First, our model assumes a
+single influenza strain with uniform transmission parameters
+($\beta_0$, $\delta$, $\gamma$) across all seasons. In reality, the
+basic reproduction number varies substantially across influenza
+subtypes: H3N2 seasons tend to be more severe and transmissible than
+H1N1 or influenza B seasons~\citep{biggerstaff2014}. This
+variability is partially mitigated by allowing the initial susceptible
+fraction $S_i(0)$ to vary freely across seasons---a lower effective
+$R_0$ can be compensated by a higher initial susceptible pool, and
+vice versa---but the seasonal forcing shape is fixed.  A model that
+explicitly accounts for strain-specific transmission could improve
+real-data fits.
+
+Second, we focused on a two-region model with symmetric coupling;
+extensions to asymmetric coupling or larger networks may reveal
+additional identifiability challenges. Third, our observation model
+uses a Gaussian approximation to the binomial, which may be
+inadequate for small states where weekly excess death counts are low.
+Fourth, we compute excess deaths by subtracting a simple pre-season
+baseline following the approach of~\citet{serfling1963}; more
+sophisticated baseline models could improve the influenza-specific
+signal.
 
 \subsection*{Broader Implications}
+
+Our results offer a partial explanation for the well-documented
+difficulty of epidemic
+forecasting~\citep{wilke2020, rosenkrantz2022}. When regional
+epidemics are synchronized, the data cannot distinguish variability
+due to seasonal forcing from variability due to importation from
+connected regions. A model that attributes a surge to strong local
+forcing with weak coupling fits the data just as well as one that
+attributes the same surge to moderate forcing with strong coupling.
+This unresolved confound propagates into forecasts: any prediction
+that depends on the connectivity structure inherits the full
+uncertainty of the unidentified coupling parameter. The problem is
+not merely that connectivity is unknown---it is that the data are
+fundamentally silent about it when the system is synchronized.
 
 The mathematical structure underlying our results---coupled
 oscillators with shared periodic forcing---extends beyond
 epidemiology. Neural circuits receiving common input exhibit
-synchronization that may similarly obscure functional connectivity.
-Metapopulations driven by shared environmental cycles face analogous
-challenges when researchers attempt to infer dispersal rates from
-abundance time series. In each case, the core insight applies:
-synchronization induced by common forcing destroys the information
-needed to identify coupling, creating a fundamental confound between
-``connected but synchronized'' and ``unconnected but similarly
-driven.''
+synchronization that may similarly obscure functional
+connectivity~\citep{reid2019, pikovsky2001}. Metapopulations driven by shared
+environmental cycles face analogous challenges when researchers
+attempt to infer dispersal rates from abundance time
+series~\citep{bjornstad1999spatial}. In each case, the core insight
+applies: \emph{it is not synchronization alone that destroys
+  identifiability, but the combination of synchronization with
+  symmetric initial states}. Any observable asymmetry---different
+initial conditions, different intrinsic frequencies, or different
+responses to forcing---provides leverage for distinguishing coupled
+from uncoupled dynamics.
 
-Our discrete-time CRLB framework provides a computationally efficient
-tool for assessing inference feasibility before committing to costly
-estimation procedures. We advocate a ``look before you leap''
-approach: compute the CRLB for parameters of interest, and only
-proceed with inference when the bound indicates that meaningful
-precision is achievable.
+The practical implication is cautionary. When fitting models of
+coupled systems to synchronized data, one should not trust the point
+estimate alone. The CRLB provides a cheap diagnostic: if the
+theoretical lower bound on estimator variance is large relative to
+the estimate, then the estimate is unreliable no matter how good
+the fit appears. We advocate computing the CRLB before investing
+effort in optimization, and reporting it alongside any connectivity
+estimate as a measure of the information content of the data.

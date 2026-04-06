@@ -18,7 +18,7 @@ parameter between regions. Our strategy is as follows:
   (Section \ref{subsec:crlb}).
 \end{enumerate}
 We apply this approach to estimate connectivity $\theta$ between US
-states and find accompanying a lower bound on the variance of the
+states and find an accompanying lower bound on the variance of the
 estimator.
 
 
@@ -234,12 +234,11 @@ J_{kl} = \mathbb{E}\left[\frac{\partial \ell}{\partial \phi_k}
 We can easily verify that $\mathbb{E}[A_i(t)]= 0$ and
 $\mathbb{E}[A_i(t) A_j(s)]= 0$ for $(i,t) \neq (j,s)$, since
 observations are independent across time and regions. Therefore
-\begin{align}\begin{split}\label{eq:our fim}
-J_{kl} = \mathbb{E}\left[\frac{\partial \ell}{\partial \phi_k}
-\frac{\partial \ell}{\partial \phi_l}\right] = \sum_{t,i}
-\mathbb{E}[A^2_i(t)] \frac{\partial \mu_i(t)}{\partial \phi_k}
-\frac{\partial \mu_j(s)}{\partial \phi_l}
-\end{split}\end{align}
+\begin{equation}\label{eq:our fim}
+J_{kl} = \sum_{t,i}
+\mathbb{E}[A_i(t)^2] \frac{\partial \mu_i(t)}{\partial \phi_k}
+\frac{\partial \mu_i(t)}{\partial \phi_l}
+\end{equation}
 To find $\mathbb{E}[A_i(t)^2]$ we first expand $A_i(t)^2$:
 \begin{align*}
 A_i(t)^2 &= \frac{1}{4\mu_i(t)^2} - \frac{\epsilon_i(t)}{(1-\rho)\mu_i(t)^2}
@@ -274,7 +273,7 @@ J_{kl} = \frac{1+\rho}{2(1-\rho)}\sum_{t=0}^{T-1}\sum_{i=1}^{2}
 \frac{\partial \mu_i(t)}{\partial \phi_l}
 \end{equation}
 Define the Jacobian $\mathbf{G} \in \mathbb{R}^{2T \times 5}$ with
-entries $G_{(i,t),k} = \partial \mu_i(t)/\partial \phi_k$and denote 
+entries $G_{(i,t),k} = \partial \mu_i(t)/\partial \phi_k$ and denote 
 \begin{equation*}
 \mathbf{W} = \frac{1+\rho}{2(1-\rho)} \,
 \text{diag}\left(\mu_1(0)^{-2}, \ldots, \mu_2(T-1)^{-2}\right)

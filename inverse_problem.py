@@ -40,14 +40,13 @@ def main(add_noise):
     rows = []
     trajectories = {}
 
-    # Similar (not identical) ICs for both regions so synchronized epidemics
-    # have approximately the same trajectories
+    # Similar ICs: both regions start near the same point
     n_seasons = len(seasons)
     np.random.seed(42)
-    S_base = np.random.uniform(0.80, 0.90, size=n_seasons)
-    I_base = np.random.uniform(1e-4, 5e-4, size=n_seasons)
-    S_init = np.column_stack([S_base, S_base * np.random.uniform(0.98, 1.02, size=n_seasons)])
-    I_init = np.column_stack([I_base, I_base * np.random.uniform(0.8, 1.2, size=n_seasons)])
+    S_init = np.column_stack([np.random.uniform(*disease.slim_similar, size=n_seasons),
+                              np.random.uniform(*disease.slim_similar, size=n_seasons)])
+    I_init = np.column_stack([np.random.uniform(*disease.ilim_similar, size=n_seasons),
+                              np.random.uniform(*disease.ilim_similar, size=n_seasons)])
 
     for phase2 in [0, np.pi]:
         phase[1] = phase2

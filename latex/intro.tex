@@ -1,224 +1,106 @@
 \section*{Introduction}
-Inferring coupling strength between synchronized dynamical systems is a
-fundamental challenge across the sciences. When oscillators are driven
-by common forcing or coupled strongly enough to synchronize, their
-dynamics become nearly indistinguishable---and the very coupling one
-seeks to measure becomes invisible in the observations. This problem
-arises in neural systems exhibiting coherent oscillations, ecological
-communities driven by shared environmental cycles, and spatially
-connected epidemics synchronized by seasonal forcing. Here we address
-this challenge in the context of infectious disease epidemiology, where
-abundant surveillance data and well-characterized dynamics provide an
-ideal setting to develop and validate a theoretical framework for
-assessing identifiability.
+Inferring coupling strength between dynamical systems is difficult
+when shared forcing synchronizes their dynamics. Once two oscillators
+move in lockstep, observations from the coupled system look the same
+as observations from two independent systems driven by the same
+external signal---the coupling becomes invisible. This confound arises
+in neural systems exhibiting coherent oscillations~\citep{pikovsky2001},
+ecological communities driven by shared environmental
+cycles~\citep{grenfell1998}, and spatially connected epidemics
+synchronized by seasonal forcing. Here we study this problem in the
+context of infectious disease epidemiology, where abundant
+surveillance data and well-characterized transmission dynamics make it
+possible to quantify exactly when coupling can and cannot be inferred.
 
-Inferring interactions from epidemic surveillance data is a central
-challenge in infectious disease epidemiology. While the behavior of a
-single infectious disease in an isolated population is fairly well
-understood~\citep{keeling2008}, the behavior of multiple co-circulating
-pathogens depends critically on their interactions~\citep{rohani2003,
-  shrestha2013, domenech2019, kramer2024}. Childhood infections
-exemplify the importance of such interactions: increased susceptibility
-to pertussis following measles infection~\citep{coleman2015},
-co-occurrence of scarlet fever and varicella~\citep{coleman2016},
-immune suppression following measles causing increased mortality from
-various infections~\citep{mina2015}, and competition for susceptible
-individuals between measles and whooping cough~\citep{rohani2003}.
-Similar complexity arises in mosquito-borne diseases, where
-interactions between dengue, Zika, and chikungunya remain poorly
-characterized despite extensive modeling efforts~\citep{reiner2013,
-  estofolete2023}. Beyond pathogen-pathogen interactions, spatial
-interactions governing disease spread between geographical regions are
-equally fundamental to understanding disease ecology and designing
-effective interventions.
+The natural approach---fitting a mechanistic transmission model to
+case data from two or more regions and estimating connectivity as a
+model parameter---has a long history in epidemiology and related
+fields.  Time-series methods such as Convergent Cross
+Mapping~\citep{sugihara2012} have been applied to identify
+environmental drivers of influenza~\citep{deyle2016} and climatic
+modulation of dengue~\citep{rypdal2019}. Likelihood-based approaches
+have been used to estimate pathogen interaction
+strengths~\citep{shrestha2011} and spatial coupling
+parameters~\citep{kiss2024towards, kiss2023parameter}. Outside
+epidemiology, analogous strategies are routine: neuroscientists infer
+functional connectivity from synchronized neural
+recordings~\citep{reid2019, friston2011}, ecologists estimate dispersal from
+spatially replicated population time
+series~\citep{bjornstad1999spatial}, and climate scientists quantify
+teleconnections from correlated regional
+indices~\citep{tsonis2004architecture}.
 
-Yet inferring interactions from surveillance data has proven remarkably
-difficult. Convergent Cross Mapping (CCM), a method designed for causal
-inference in nonlinear systems~\citep{sugihara2012}, was applied to
-epidemiological settings to identify environmental drivers of
-influenza~\citep{deyle2016} and climatic modulation of
-dengue~\citep{rypdal2019}.
-However,\cite{cobey2016} found the method ``extremely sensitive to
-periodic fluctuations, inferring interactions between independent
-strains that oscillate with similar frequencies.'' In response, the developers of CCM noted that such
-results may reflect ``mistaking synchrony for
-causation''~\citep{sugihara2017}---a fundamental identifiability
-problem that we address directly in this study. Even likelihood-based
-approaches face challenges: \citet{shrestha2011} found that while some
-interaction parameters were ``extremely well identified,'' others
-remained poorly constrained despite extensive data. These mixed results
-highlight a recurring theme: shared seasonal forcing and synchronized
-dynamics can create spurious signals or mask true interactions.
+Yet results from these approaches have been mixed, and the reasons are
+instructive. \citet{cobey2016} found that CCM was ``extremely
+sensitive to periodic fluctuations, inferring interactions between
+independent strains that oscillate with similar frequencies.'' The
+developers of CCM acknowledged that such findings may reflect
+``mistaking synchrony for causation''~\citep{sugihara2017}.
+\citet{shrestha2011} found that some pathogen-interaction parameters
+were ``extremely well identified'' while others remained poorly
+constrained despite extensive data. In spatial epidemiology,
+\citet{welch2011} showed that transmission rate and network structure
+are fundamentally confounded, making it ``difficult to distinguish
+between a mildly transmissible disease on a highly connected network
+from a highly transmissible infection on a sparse network.'' These
+results point to a common failure mode: when systems are synchronized,
+an analyst can obtain a point estimate of coupling that looks
+perfectly reasonable yet carries no statistical support.  The
+optimizer converges, the fit looks good, but the confidence interval
+spans the entire parameter space.
 
-A similar challenge arises in spatial epidemiology, where researchers
-attempt to infer connectivity between regions from case data. If
-connectivity could be reliably estimated from surveillance data alone,
-it would obviate the need for external mobility data sources. Several
-studies have attempted such inference, with mixed results
-\cite{kiss2024towards, kiss2023parameter}. A recurring finding is that transmission
-rate and network connectivity are fundamentally confounded: ``the
-product $p\beta$ can always be estimated but the individual factors
-may be unidentifiable, making it difficult to distinguish between a
-mildly transmissible disease on a highly connected network from a
-highly transmissible infection on a sparse
-network''\cite{welch2011}.
+Most spatial epidemic studies have sidestepped this problem by relying
+on external mobility data---commuting surveys~\citep{viboud2006},
+gravity models~\citep{charu2017}, or mobile phone
+records~\citep{kraemer2020}---rather than estimating connectivity from
+case counts. Yet such proxy measures may not accurately reflect
+disease transmission pathways, and are not universally
+available~\citep{wu2013sensitivity}. A principled understanding of
+\emph{when} connectivity can be inferred from surveillance data---and
+when it cannot---would help researchers avoid wasted effort and,
+more importantly, prevent publication of spurious estimates.
 
-These identifiability challenges have led most spatial epidemic
-studies to rely on external mobility data---from commuting surveys
-\cite{viboud2006}, gravity models \cite{charu2017} or mobile phone
-records~\cite{kraemer2020}---rather than attempting to infer
-connectivity from case data. Yet such proxy measures may not
-accurately reflect disease transmission pathways, and are not always
-available~\cite{wu2013sensitivity}. The fundamental question remains:
-under what conditions, if any, can connectivity be inferred directly
-from epidemic surveillance data?
+The Cram\'er-Rao Lower Bound (CRLB) provides exactly this kind of
+guarantee. Derived from the Fisher Information
+Matrix~\citep{casella2024statistical}, the CRLB gives a lower bound
+on the variance of any unbiased estimator~\citep{wilke2020}. If the
+CRLB for a parameter is large relative to the parameter itself, then
+no estimation method---however sophisticated---can produce a reliable
+estimate from the data at hand. Structural identifiability analysis
+can determine whether parameters are in principle recoverable from
+ideal data~\citep{tuncer2018, chowell2023structural}, but it provides
+only a binary answer. The CRLB quantifies \emph{how much} information
+the data actually contain, giving a practical assessment that accounts
+for sample size, noise level, and the specific parameter values.
+Recent work has shown that neglecting practical identifiability can
+severely hamper epidemic predictions~\citep{gallo2022}.
 
-What determines whether interactions---be they between pathogens or
-between regions---can be reliably inferred? Structural identifiability
-analysis can determine whether parameters are theoretically
-recoverable from ideal data~\cite{tuncer2018, chowell2023structural}
-(!!!!!!!chowell was originally cited as villaverde WTF???). However,
-structural identifiability is a binary classification that does not
-quantify estimation precision. The \emph{Cram\'er-Rao Lower Bound}
-(CRLB) provides exactly this: a theoretical lower bound on the
-variance of any unbiased estimator, derived from the Fisher
-Information Matrix (find another ref for CRLB). If the CRLB for a
-parameter is large, no estimation method---however sophisticated---can
-reliably recover that parameter from the available data. Recent work
-has shown that practical unidentifiability can severely hamper
-epidemic predictions~\cite{gallo2022}. Computing the CRLB before
-optimization can save substantial effort and prevent
-overinterpretation of unreliable estimates.
+We formulate the epidemic model in discrete time, matching the natural
+resolution of weekly surveillance data. This yields exact, closed-form
+sensitivity equations that enable efficient computation of the Fisher
+Information Matrix and CRLB in a single forward pass alongside the
+state equations. We apply this framework to a two-region SIR model
+with seasonal forcing, deriving the complete sensitivity equations for
+the connectivity parameter $\theta$.
 
-Computing the CRLB requires the Jacobian matrix of model outputs with
-respect to parameters, typically obtained via sensitivity equations.
-For a system $\dot{x} = f(x, t, \beta)$, the sensitivities $s =
-\partial x / \partial \beta$ satisfy $\dot{s} = (\partial f / \partial
-x) s + \partial f / \partial \beta$, which can be solved jointly with
-the original system~\cite{mester2022}. Previous implementations have
-used numerical differentiation, perturbing each parameter and running
-multiple simulations to approximate derivatives
-\cite{eisenberg2014}. For continuous-time ODE models, software
-packages such as \cite{mester2022} solve sensitivity equations
-alongside the state equations using numerical integration. However,
-these approaches face practical challenges: numerical differentiation
-introduces approximation errors and requires $2p$ model evaluations
-for $p$ parameters; continuous-time sensitivity analysis accumulates
-integration errors over long time horizons and can suffer from
-numerical instabilities in stiff systems.
+Our central finding is that \textbf{identifiability of $\theta$
+  depends on the degree of symmetry between the two regions}. When
+both regions experience epidemics in phase \emph{and} start from
+similar initial conditions, their incidence trajectories are nearly
+indistinguishable regardless of the value of $\theta$, and the CRLB
+diverges. Any source of asymmetry---different seasonal phasing or
+different initial susceptibility---breaks this degeneracy and restores
+identifiability. The practical danger is that a maximum-likelihood
+optimizer will still converge to some $\hat\theta$ in the
+symmetric case; only the CRLB reveals that this estimate is
+meaningless.
 
-In this study, we take a different approach. We formulate the epidemic
-model in discrete time, matching the natural resolution of weekly
-surveillance data. This discrete formulation yields \emph{exact,
-  closed-form update equations} for both the state variables and their
-sensitivities. Our approach offers several advantages:
-
-\begin{enumerate}
-\item \textbf{Computational efficiency}: Sensitivities are computed in
-  a single forward pass alongside the state, with no additional model
-  evaluations required.
-
-\item \textbf{Numerical stability}: Discrete updates avoid the
-  accumulated integration errors of continuous-time solvers. There is
-  no step-size selection, no stiffness to manage, and no solver
-  tolerances to tune.
-
-\item \textbf{Exact derivatives}: Unlike finite-difference
-  approximations, our analytically-derived sensitivity equations
-  introduce no approximation error. The Jacobian is computed to
-  machine precision.
-
-\item \textbf{Avoiding vanishing gradients}: In continuous systems,
-  sensitivities can decay exponentially over long time horizons,
-  particularly for stable systems. Our discrete formulation with
-  bounded update coefficients (e.g., $e^{-\gamma} < 1$) maintains
-  well-behaved sensitivity propagation.
-
-\item \textbf{Natural alignment with data}: Surveillance data are
-  reported in discrete intervals (daily, weekly). A discrete-time
-  model matches this structure directly, avoiding the additional
-  discretization step required when fitting continuous models to
-  discrete observations.
-\end{enumerate}
-
-We apply this framework to a fundamental question in spatial
-epidemiology: \emph{can regional connectivity be inferred from
-  epidemic surveillance data?} Using a two-region SIR model with
-seasonal forcing, we derive the complete sensitivity equations for the
-connectivity parameter $\theta$ and compute the associated CRLB. We
-then validate these theoretical predictions with multi-start
-optimization experiments on synthetic data.
-
-Our central finding is that \textbf{connectivity inference depends
-  critically on epidemic synchrony}. When two regions experience
-epidemics in phase---rising and falling together due to shared
-seasonal forcing---the data contain almost no information about their
-connectivity. Mathematically, the incidence patterns from connected
-and unconnected populations become nearly indistinguishable, leading
-to a large CRLB for $\theta$. In contrast, when epidemics are out of
-phase (e.g., due to different seasonal timing or staggered
-introductions), the differential epidemic dynamics reveal the
-connectivity signal, and $\theta$ becomes identifiable.
-
-This result provides a theoretical explanation for the difficulties
-encountered in previous studies. \cite{cobey2016} observation that convergent cross-mapping
-fails for ``strains that oscillate with similar frequencies'' reflects
-the same phenomenon. Our CRLB analysis provides a unified theoretical
-foundation: synchronized dynamics destroy the Fisher Information for
-coupling parameters, making inference fundamentally impossible
-regardless of the statistical method employed.
-
-Our findings have immediate practical implications. Attempts to infer
-connectivity from synchronized epidemics---such as influenza across
-temperate regions with similar winter peaks---are likely to fail
-regardless of the estimation method employed. This explains why
-studies like \cite{viboud2006, kraemer2020} have relied on external
-mobility data rather than inferring connectivity from case counts: for
-synchronized seasonal epidemics, case data simply do not contain the
-necessary information.  Conversely, connectivity inference may be
-feasible when comparing regions with different epidemic timing, such
-as Northern and Southern Hemisphere locations, or during the early
-invasion phase of a pandemic when regional epidemics are naturally
-asynchronous. More broadly, this ``look before you leap'' approach can
-guide study design, temper expectations, and prevent the
-misinterpretation of poorly identified parameter estimates as
-meaningful epidemiological quantities.
-
-The mathematical structure underlying our results---coupled oscillators
-with shared periodic forcing---arises throughout the biological and
-physical sciences. Neural populations receiving common input exhibit
-synchronization that may similarly obscure their connectivity. Predator-prey
-systems and metapopulations driven by shared seasonality face analogous
-identifiability challenges when researchers attempt to infer dispersal
-or interaction strengths from population time series. Our discrete-time
-CRLB framework provides a computationally efficient tool for assessing
-inference feasibility in any such system. While we focus here on
-epidemiological applications, where the practical stakes are high and
-validation data are abundant, we anticipate that the core
-insight---that synchronization fundamentally limits identifiability of
-coupling parameters---will prove broadly applicable across domains where
-coupled oscillatory dynamics arise.
-
-
-
-
-where $J(\phi)$ is the \emph{Fisher Information}. The Fisher
-information measures how sharply the (log-)likelihood changes with the
-parameter $\phi$. When the Fisher information is large, small changes
-in $\phi$ produce large changes in the likelihood, so $\phi$ can be
-estimated precisely. When the Fisher information is low, the
-likelihood is relatively flat in $\phi$, so many nearby values of
-$\phi$ explain the data almost equally well, making estimation less
-tractable. Thus, high Fisher info means the likelihood contains a
-“narrow peak” around the true parameter; low Fisher information
-implies the likelihood has a ``broad, flat peak''.
-
-
-$\hat{\phi}$ of a
-scalar parameter $\phi$, the CRLB states:
-\begin{equation}\label{eq:crlb_statement}
-\text{Var}(\hat{\phi}) \geq \frac{1}{J(\phi)}
-\end{equation}
-
-For a vector of parameters $\boldsymbol{\phi} = (\phi_1, \ldots,
-\phi_p)$, the bound generalizes to:
+We validate these predictions on synthetic data and then apply the
+framework to pneumonia and influenza (P\&I) excess mortality across
+the 20 largest US states.  Despite 12 seasons of data, connectivity
+estimates for nearly all state pairs cannot be distinguished from
+zero. This is consistent with the strong epidemic synchronization
+driven by shared winter forcing across temperate North America:
+seasonal phases are nearly identical, and population-level
+susceptibility follows similar patterns from state to state, placing
+the data squarely in the regime where the CRLB is largest.
