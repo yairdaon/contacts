@@ -1,177 +1,86 @@
-\section*{Results}
+\section{Results}
 
-\subsection*{Statistical Power Depends on Synchronization}
+\subsection{Data}
 
-Figure~\ref{fig:power} shows the statistical power for detecting
-non-zero connectivity $\theta$ as a function of the true connectivity
-and seasonal amplitude, comparing synchronized (in-phase) and
-asynchronous (out-of-phase) epidemics.
+We analyze excess P\&I mortality from the 20 largest US states over 12
+flu seasons (2010--2018 and 2023--2025, excluding the COVID-19
+pandemic years). Figure~\ref{fig:seasons} shows the raw weekly death
+counts for four representative states, with the flu seasons used for
+inference highlighted.
 
-\begin{figure}%[h]
+\begin{figure}[h]
 \centering
-\includegraphics[width=\textwidth]{../pix/power.pdf}
-\caption{Statistical power for detecting connectivity $\theta > 0$ at
-  5\% significance level. Left: synchronized epidemics (both regions
-  in-phase). Right: asynchronous epidemics (regions out-of-phase by
-  $\pi$). Rows correspond to $\log_{10}(\theta)$; columns to seasonal
-  amplitude. Power is computed from the CRLB assuming an efficient
-  estimator achieves the theoretical bound. Darker shading indicates
-  higher power. When epidemics are synchronized, power remains low
-  even for large $\theta$, indicating that connectivity cannot be
-  reliably detected regardless of estimation method.}
-\label{fig:power}
+\includegraphics[width=\textwidth]{../pix/seasons_highlighted.pdf}
+\caption{Weekly P\&I deaths for four US states. Light traces show the
+  full time series; darker segments indicate the flu seasons (November
+  onward) included in the analysis. COVID-19 pandemic years
+  (2020--2022) are excluded. A year-round non-influenza pneumonia
+  baseline is subtracted before fitting (Methods).}
+\label{fig:seasons}
 \end{figure}
 
-The contrast is striking. For asynchronous epidemics (right panel),
-power increases rapidly with $\theta$: connectivity values above
-$\theta \approx 0.01$ can be reliably detected across all seasonal
-amplitudes. In contrast, synchronized epidemics (left panel) show
-uniformly low power across the entire parameter space. Even large
-connectivity values ($\theta = 0.1$) cannot be reliably distinguished
-from zero when both regions experience epidemics in phase.
-
-\subsection*{CRLB Ratio}
-
-To quantify the effect of synchronization on estimation precision, we
-computed the ratio of median CRLB values between synchronized
-(in-phase) and reverse-phase epidemics across all combinations of
-connectivity $\theta$ and seasonal amplitude. Since the CRLB bounds
-the variance of any unbiased estimator, this ratio directly indicates
-how many times more samples would be required under synchronization to
-achieve the same estimation precision as the reverse-phase case.
-
-\begin{figure}%[h]
-\centering
-\includegraphics[width=0.75\textwidth]{../pix/crlb_ratio.pdf}
-\caption{Ratio of median CRLB (in-phase / reverse-phase) as a function
-  of connectivity $\theta$ and seasonal forcing amplitude. The color
-  scale is truncated at the 90th percentile to improve visibility.
-  Values greater than 1 indicate that synchronized epidemics require
-  more data to achieve the same estimation precision. Throughout nearly
-  all of the parameter space, the ratio substantially exceeds 1,
-  demonstrating that synchronization consistently degrades
-  identifiability.}
-\label{fig:crlb}
-\end{figure}
-
-Figure~\ref{fig:crlb} reveals that across nearly the entire parameter
-space, the CRLB ratio substantially exceeds 1. This means that
-estimating connectivity from synchronized epidemics would require
-correspondingly more data to match the precision achievable with
-asynchronous epidemics. The effect is robust: regardless of the true
-connectivity or seasonal amplitude, synchronization consistently
-inflates the theoretical lower bound on estimation variance.
-
-\subsection*{Likelihood Surface}
+\subsection{Synchronization and Initial Conditions Control Identifiability}
 
 Figure~\ref{fig:likelihood} directly visualizes how both phase
 asymmetry and initial-condition asymmetry affect the likelihood
 surface. We generate synthetic data with true connectivity $\theta =
 0.05$ and evaluate the likelihood at the true initial conditions
-across a grid of $\theta$ values, sweeping over four phase differences.
+across a grid of $\theta$ values for four phase differences. The CRLB
+ratio between synchronized and asynchronous epidemics exceeds 1
+throughout the parameter space, often by orders of magnitude
+(SI~Fig.~S1).
 
-\begin{figure}%[h]
+\begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../pix/likelihood_surface.pdf}
-\caption{Log-likelihood as a function of connectivity $\theta$ for
-  four phase offsets between regions. Left: both regions start with
-  similar initial conditions. Right: regions start with substantially
-  different initial conditions. The vertical dashed line indicates the
-  true $\theta = 0.05$. With similar initial conditions (left),
-  synchronized epidemics ($\varphi_1 - \varphi_2 = 0$) produce a
-  nearly flat likelihood; increasing the phase difference progressively
-  sharpens the peak. With different initial conditions (right), even
-  synchronized epidemics show a clear peak, because the asymmetric
-  initial states create distinguishable trajectories that depend on
-  $\theta$.}
+\caption{Log-likelihood as a function of $\theta$ for four phase
+  offsets. Left: similar initial conditions for both regions. Right:
+  different initial conditions. Dashed line: true $\theta = 0.05$.
+  With similar ICs (left), synchronized epidemics produce a flat
+  likelihood; phase asymmetry progressively sharpens the peak. With
+  different ICs (right), even synchronized epidemics show a clear peak
+  because asymmetric initial states create distinguishable
+  trajectories.}
 \label{fig:likelihood}
 \end{figure}
 
-The two panels illustrate the interplay between phase asymmetry and
-initial-condition asymmetry. With similar initial conditions (left),
-the synchronized curve ($\varphi_1 - \varphi_2 = 0$) is nearly
-flat---the optimizer would return some $\hat\theta$, but the
-likelihood barely changes across the parameter space, meaning the
-estimate is unreliable. Increasing the phase difference progressively
-restores a peak near the true value. With different initial conditions
-(right), even perfectly synchronized forcing produces a clear
-likelihood peak, because the differing initial states cause the two
-regional epidemics to follow different trajectories whose interaction
-depends on $\theta$. In practice, US states sharing a winter flu
-season have both similar phases and similar initial conditions,
-placing them in the left-panel regime where an analyst could easily
-obtain a misleading estimate.
+With similar initial conditions (left panel), the synchronized curve
+is nearly flat---an optimizer would return some $\hat\theta$, but the
+likelihood barely changes across the parameter space. This is the
+regime where an analyst could easily obtain a misleading estimate:
+the fit converges, the reconstruction looks reasonable, yet the
+parameter is completely uninformed by the data. Increasing the phase
+difference progressively restores a peak near the true value. With
+different initial conditions (right panel), even perfectly
+synchronized forcing produces a clear likelihood peak, because the
+differing initial states cause the two epidemics to follow different
+trajectories whose interaction depends on $\theta$.
 
-\subsection*{Real Data: P\&I Mortality}
+\subsection{Real Data: Connectivity Cannot Be Inferred}
 
-We applied our methodology to pneumonia and influenza (P\&I) mortality
-data from the United States. Figure~\ref{fig:raw_deaths} shows the
-raw weekly P\&I death counts for four large states.
+We estimated connectivity $\theta$ and its CRLB for all $\binom{20}{2}
+= 190$ state pairs. Figure~\ref{fig:theta_vs_crlb} shows
+$\hat{\theta}$ against $\sqrt{\text{CRLB}}$ for each pair.
+Representative reconstructions are shown in SI~Fig.~S4.
 
-\begin{figure}%[h]
-\centering
-\includegraphics[width=\textwidth]{../pix/raw_deaths.pdf}
-\caption{Weekly P\&I death counts for California, New York, Texas, and
-  Florida. The data exhibit clear seasonal peaks corresponding to
-  winter influenza seasons, superimposed on a year-round baseline of
-  non-influenza pneumonia deaths.}
-\label{fig:raw_deaths}
-\end{figure}
-
-Since P\&I deaths include a substantial non-influenza baseline
-(bacterial pneumonia, aspiration, other respiratory
-infections~\citep{serfling1963}), we compute excess deaths by
-subtracting the mean pre-season (July--October) death count from each
-flu season. Figure~\ref{fig:seasons} shows the data with the flu
-seasons used for inference highlighted.
-
-\begin{figure}%[h]
-\centering
-\includegraphics[width=\textwidth]{../pix/seasons_highlighted.pdf}
-\caption{P\&I deaths for four states with flu seasons used for
-  inference highlighted. Light shading shows the full time series;
-  darker segments indicate the flu seasons (November through March)
-  included in the analysis. COVID-19 pandemic years (2020--2022) are
-  excluded.}
-\label{fig:seasons}
-\end{figure}
-
-Figure~\ref{fig:reconstruction} shows the fitted excess deaths
-(red) against the observed excess deaths (black) for California and
-New York across three representative flu seasons. The model captures
-the seasonal epidemic shape but the fit is imperfect, reflecting both
-model misspecification and the difficulty of fitting a simple SIR model
-to real mortality data.
-
-\begin{figure}%[h]
-\centering
-\includegraphics[width=\textwidth]{../pix/rec_CAxNY.pdf}
-\caption{Reconstruction of excess P\&I deaths for California (top) and
-  New York (bottom) for three flu seasons. Black dots: observed weekly
-  excess deaths. Red line: fitted model $\rho\mu_i(t)$.}
-\label{fig:reconstruction}
-\end{figure}
-
-We estimated connectivity $\theta$ and its CRLB for all pairs among
-the 20 largest US states. Figure~\ref{fig:theta_vs_crlb} shows
-$\hat{\theta}$ against $\sqrt{\text{CRLB}}$ for each state pair. The
-dashed line marks the significance boundary $\sqrt{\text{CRLB}} =
-\hat{\theta}/1.96$: points above the line have 95\% confidence
-intervals that include zero. Significant pairs (below the line) are
-marked as red stars.
-
-\begin{figure}%[h]
+\begin{figure}[h]
 \centering
 \includegraphics[width=0.75\textwidth]{../pix/theta_vs_crlb.pdf}
-\caption{Estimated connectivity $\hat{\theta}$ vs.\ Cram\'er-Rao
-  lower bound on its standard deviation for all pairs of the 20
-  largest US states. The dashed line is the significance boundary:
-  points above it cannot reject $\theta = 0$ at the 5\% level.
-  Significant pairs are marked as red stars. The blue-shaded region
-  indicates non-significance; the orange-shaded region indicates
-  significance. Nearly all state pairs fall in the non-significant
-  region, confirming that connectivity cannot be reliably inferred from
-  synchronized P\&I mortality data.}
+\caption{Estimated connectivity $\hat{\theta}$ vs.\
+  $\sqrt{\text{CRLB}}$ for all pairs of the 20 largest US states.
+  Dashed line: significance boundary ($\sqrt{\text{CRLB}} =
+  \hat\theta / 1.96$). Points above it cannot reject $\theta = 0$ at
+  the 5\% level. Red stars: significant pairs. Blue region:
+  non-significant. Orange region: significant. Nearly all pairs fall
+  in the non-significant region.}
 \label{fig:theta_vs_crlb}
 \end{figure}
 
+Nearly all state pairs fall above the significance boundary: the CRLB
+standard deviation exceeds the estimate divided by 1.96, so the 95\%
+confidence interval includes zero. The optimizer converges and returns
+$\hat\theta$ values that span $[0, 0.5]$ (SI~Fig.~S1), but the CRLB
+reveals that none of these estimates carry statistical support. US
+states share both similar seasonal phases and similar initial
+conditions---the regime our theoretical analysis identifies as most
+problematic for connectivity inference.

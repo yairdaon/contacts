@@ -57,12 +57,12 @@ def compute_one_crlb(theta, delta, gamma, beta0, rho, Ts, phase):
 def main():
     disease = flu.Mortality
 
-    N = 50
+    N = 200
     thetas = 10 ** np.linspace(-4, -1, N, endpoint=True)
     deltas = np.linspace(0, 1, N, endpoint=False)
 
     # Time array for one season.  2000 is an arbitrary reference season
-    Ts = 2000 + np.arange(disease.n_weeks) * disease.step_size
+    Ts = 4000 + np.arange(disease.n_weeks) * disease.step_size
 
 
     tasks = []

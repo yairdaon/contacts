@@ -1,354 +1,82 @@
 \section{Methods}
-Our goal is to find a lower bound for estimation of a connectivity
-parameter between regions. Our strategy is as follows:
-\begin{enumerate}
-\item Formulate a discrete SIR model for regional connectivity in
-  terms of a connectivity parameter $\theta \in[0,0.5]$ (Section
-  \ref{subsec:model}).
-\item Calculate sensitivities for this model, i.e.~the derivatives of
-  model output with respect to initial conditions and $\theta$
-  (Section \ref{subsec:sens}).
-\item Derive an observation model based on a constant reporting rate
-  and approximate it as multiplicative Gaussian noise (Section
-  \ref{subsec:noise}).
-\item Find a maximum-likelihood estimate for $\theta$ and the initial
-  conditions over several seasons (Section \ref{subsec:mle}).
-\item Calculate a Cramer-Rao lower bound for the variance of the
-  maximum-likelihood estimate of the connectivity parameter $\theta$
-  (Section \ref{subsec:crlb}).
-\end{enumerate}
-We apply this approach to estimate connectivity $\theta$ between US
-states and find an accompanying lower bound on the variance of the
-estimator.
 
+\subsection{Model}\label{subsec:model}
 
-\subsection{Discrete-Time Connectivity Model}\label{subsec:model}
-Consider $2$ interconnected regions with known population sizes $N_1$
-and $N_2$ (not necessarily equal). Let $S_i(t)$, $I_i(t)$, and
-$R_i(t)$ denote the number of Susceptible, Infected, and Recovered
-individuals in region $i$ at time $t$, with $S_i(t) + I_i(t) + R_i(t)
-= N_i$. We let $\beta_i(t)$ be a region-specific time-varying
-transmission rate with seasonal forcing:
-\begin{equation*}
-\beta_i(t) = \beta_0\left(1 + \delta\sin\left(2\pi t + \varphi_i\right)\right).
-\end{equation*}
-Here, $\beta_0$ is the baseline transmission rate, $\delta$ is the
-seasonal amplitude, and $\varphi_i$ is a phase offset for region
-$i$. We assume time $t$ is measured in years.
-
-We denote by $\mathbf{C} \in \mathbb{R}^{2 \times 2}$ a contact matrix
-with entries $C_{ij} \in [0,1]$ that represents relative connectivity
-from region $j$ to region $i$:
-\begin{equation}\label{eq:contact}
-\mathbf{C} = \begin{bmatrix} 1-\theta & \theta \\ \theta & 1-\theta \end{bmatrix}.
-\end{equation}
-Here, $\theta \in [0, 0.5]$ is the connectivity parameter representing
-the fraction of contacts that occur between regions. When $\theta =
-0$, the regions are isolated; when $\theta = 0.5$, contacts are
-equally distributed within and between regions. We enforce $\theta <
-0.5$ since we do not expect more individuals to travel from region 1 to 2
-than the number of individuals staying in 1.
-
-The force of infection $\lambda_i(t)$~\citep{keeling2008} is the
-per-capita rate at which susceptible individuals in region $i$ acquire
-infection:
-\begin{equation*}
-\lambda_i(t) = \beta_i(t) \sum_{j=1}^{2} C_{ij} \frac{I_j(t)}{N_j}.
-\end{equation*}
-Treating $\lambda_i(t)$ as a constant hazard rate over one time step,
-the probability that a susceptible individual \emph{escapes} infection
-is $\exp(-\lambda_i(t))$, so the expected number of new infections in
-region $i$ is:
-\begin{equation}\label{eq:incidence}
-\mu_i(t) = S_i(t) \left[1 - \exp(-\lambda_i(t))\right]
-\end{equation}
-
-Similarly, the probability an infected individual remains infected
-over one time step is $\exp(-\gamma)$, where $\gamma$ is the recovery
-rate. The discrete-time SIR dynamics are thus:
+Consider two interconnected regions with populations $N_1$ and $N_2$.
+Let $S_i(t)$, $I_i(t)$, $R_i(t)$ denote the number of susceptible,
+infected, and recovered individuals in region $i$ at time $t$, with
+$S_i + I_i + R_i = N_i$. The transmission rate has seasonal forcing:
+$\beta_i(t) = \beta_0(1 + \delta\sin(2\pi t + \varphi_i))$, where
+$t$ is measured in years. Regional coupling is governed by the contact
+matrix
+$\mathbf{C} = \begin{bmatrix} 1{-}\theta & \theta \\ \theta &
+  1{-}\theta \end{bmatrix}$,
+where $\theta \in [0, 0.5]$ is the connectivity parameter. The force
+of infection~\citep{keeling2008} is $\lambda_i(t) = \beta_i(t)
+\sum_j C_{ij} I_j(t)/N_j$, and the discrete-time SIR dynamics are:
 \begin{align}\begin{split}\label{eq:discrete_sir}
-S_i(t+1) &= S_i(t) \exp(-\lambda_i(t)) \\
-I_i(t+1) &= I_i(t) \exp(-\gamma) + \mu_i(t) \\
-R_i(t+1) &= R_i(t) + I_i(t) [1 - \exp(-\gamma)]
+S_i(t{+}1) &= S_i(t) \exp(-\lambda_i(t)) \\
+I_i(t{+}1) &= I_i(t) \exp(-\gamma) + S_i(t)[1 - \exp(-\lambda_i(t))]
 \end{split}\end{align}
+We use SIR rather than SIRS dynamics because we conduct inference for
+each influenza season separately. Model parameters are calibrated to
+seasonal influenza following~\citet{shaman2010}; see Table~S1.
 
-We model influenza via a SIR dynamics and not SIRS dynamics because
-later we will conduct inference for every influenza season separately.
+\subsection{Observation Model and Likelihood}\label{subsec:noise}
 
-\subsubsection{Model Parameters}\label{subsub:params}
-We calibrate model parameters to seasonal influenza; see
-Table~\ref{tab:params} for parameters, sources and calculations. Note
-that these parameters are not statistical parameters and are thus not
-inferred.
-\begin{table}[h]
-\centering
-\begin{tabular}{llll}
-\toprule
-Parameter & Value & Description & Source or calculation\\
-\midrule
-$R^{\text{max}}_0$ & 3.52 & $R_0$ at peak season & \cite{shaman2010} \\
-$R^{\text{min}}_0$ & 1.12 & $R_0$ during the summer & \cite{shaman2010} \\
-$D$ & 3.24 & Mean infection period (days) & \cite{shaman2010} \\
-$\gamma$ & $2.16$ & Weekly recovery rate & $7 /  D $ \\
-$\beta_{\text{max}}$ & $3.11$ & Transmission rate at peak season & $R_0^{\text{max}} (1 - e^{-\gamma})$\\
-$\beta_{\text{min}}$ & $0.99$ & Transmission rate at low season & $R_0^{\text{min}} (1 - e^{-\gamma})$ \\
-$\beta_0$ & $2.05$ & Mean transmission rate & $(\beta_{\text{min}} + \beta_{\text{max}})/2$ \\
-$\delta$ & $0.517$ & Seasonal amplitude & $\beta_{\text{max}} / \beta_0 - 1$\\
-$\rho$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate (IFR) & \citet{rolfes2018}\\
-$\varphi$ & & Phase of seasonal forcing & separately for each state \\
-\bottomrule
-\end{tabular}
-\caption{Model parameters calibrated to seasonal influenza. Recall
-  that the seasonal forcing is taken as $\beta(t) = \beta_0(1+\delta
-  \sin(2\pi t + \varphi))$.}
-\label{tab:params}
-\end{table}
-
-
-\subsection{Observation Model}\label{subsec:noise}
-We assume a constant reporting rate $\rho$ so that each infection is
-reported independently with probability $\rho$. Thus, observations
-follow a binomial distribution:
-\begin{equation}\label{eq:obs_binomial}
-Y_i(t) \sim \text{Binomial}(\mu_i(t), \rho)
-\end{equation}
-with mean $\mathbb{E}[Y_i(t)] = \rho \mu_i(t)$ and variance
-$\text{Var}[Y_i(t)] = \rho(1-\rho) \mu_i(t)$.
-
-We approximate this distribution by a Gaussian via the central limit
-theorem:
-\begin{equation}\label{eq:obs_gaussian}
-Y_i(t) = \rho \mu_i(t) + \epsilon_i(t), \quad
-\epsilon_i(t) \sim \mathcal{N}(0, \sigma_i^2(t))
-\end{equation}
-where $\sigma_i^2(t) = \rho(1-\rho)\mu_i(t)$ is the observation
-variance. This approximation holds when $\rho\mu_i(t)$ is large.
-
-We collect the unknown parameters pertaining to a single influenza
-season in a vector:
-\begin{equation}\label{eq:params}
-  \boldsymbol{\phi} = \left( \theta, S_1(0), I_1(0), S_2(0),
-  I_2(0)\right )
-\end{equation}
-The log-likelihood of observing data $\{Y_i(t)\}$ is:
+Each infection is reported independently with probability $\rho$,
+approximated as Gaussian: $Y_i(t) = \rho\mu_i(t) + \epsilon_i(t)$
+with $\epsilon_i(t) \sim \mathcal{N}(0, \rho(1{-}\rho)\mu_i(t))$,
+where $\mu_i(t) = S_i(t)[1 - \exp(-\lambda_i(t))]$ is the expected
+incidence. The unknown parameters for a single season are
+$\boldsymbol{\phi} = (\theta, S_1(0), I_1(0), S_2(0), I_2(0))$,
+giving the log-likelihood:
 \begin{equation}\label{eq:loglik}
 \ell(\boldsymbol{\phi}) = -\frac{1}{2}\sum_{t=0}^{T-1}\sum_{i=1}^{2}
 \left[\log(2\pi \sigma_i^2(t)) + \frac{(Y_i(t) -
     \rho\mu_i(t))^2}{\sigma_i^2(t)}\right]
 \end{equation}
-where $T$ is the length of the influenza season.
+where $\sigma_i^2(t) = \rho(1{-}\rho)\mu_i(t)$.
 
+\subsection{Cram\'er-Rao Lower Bound}\label{subsec:crlb}
 
-\subsection{Sensitivity equations}\label{subsec:sens}
-Computing the Cram\'er-Rao lower bound and optimizing the likelihood
-both require derivatives of model outputs with respect to
-parameters. Let $\phi \in \{\theta, S_1(0), S_2(0), I_1(0), I_2(0)\}$,
-(i.e.~$\phi=\phi_k$ for some $k=1,\dots,5$, e.g.~$\phi_3=I_1(0)$ from
-eq.~\eqref{eq:params}) denote a parameter. Denote:
-\begin{align*}
-  \mathbf{S}(t)&=\left (S_1(t), S_2(t)\right )\\
-  \mathbf{I}(t)&=\left (I_1(t), I_2(t)\right )
-\end{align*}
-the vectors of Susceptibles and Infecteds; $\mathbf{C}$ still denotes
-the connectivity matrix. Define $\mathbf{N}^{-1} = \text{diag}(1/N_1,
-1/N_2)$ as the diagonal matrix of inverse population sizes.
-
-The sensitivity of the force
-of infection is:
-\begin{equation}\label{eq:sens_lambda}
-\frac{\partial \lambda_i(t)}{\partial \phi} = \beta_i(t) \left(
-\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{N}^{-1} \mathbf{I}(t) + \mathbf{C} \mathbf{N}^{-1}
-\frac{\partial \mathbf{I}(t)}{\partial \phi} \right)_i.
-\end{equation}
-Note that:
-\begin{equation*}
-\frac{\partial \mathbf{C}}{\partial \theta} =
-\begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix}
-\end{equation*}
-while $\partial \mathbf{C}/\partial \phi = \mathbf{0}$ for $\phi \neq
-\theta$.
-
-The sensitivity of the expected incidence follows from
-Eq.~\eqref{eq:incidence} by the product rule:
-\begin{equation}\label{eq:sens_mu}
-\frac{\partial \mu_i(t)}{\partial \phi} =
-\frac{\partial S_i(t)}{\partial \phi} \left[1 - \exp(-\lambda_i(t))\right]
-+ S_i(t) \exp(-\lambda_i(t)) \frac{\partial \lambda_i(t)}{\partial \phi}.
-\end{equation}
-
-The state sensitivities propagate, using eq.~\eqref{eq:discrete_sir},
-according to:
-\begin{align}\begin{split}\label{eq:sens}
-\frac{\partial S_i(t+1)}{\partial \phi} &= \exp(-\lambda_i(t))
-\frac{\partial S_i(t)}{\partial \phi} - S_i(t) \exp(-\lambda_i(t))
-\frac{\partial \lambda_i(t)}{\partial \phi} \\
-\frac{\partial I_i(t+1)}{\partial \phi} &= \exp(-\gamma)
-\frac{\partial I_i(t)}{\partial \phi} +
-\frac{\partial \mu_i(t)}{\partial \phi}
-\end{split}\end{align}
-
-Initial conditions for the sensitivities are: $\partial
-S_i(0)/\partial S_j(0) = \delta_{ij}$, $\partial I_i(0)/\partial
-I_j(0) = \delta_{ij}$, and zero otherwise. We solve the sensitivity
-equations jointly with the state equations in a single forward pass.
-
-\subsection{The Cram\'er-Rao Lower Bound}\label{subsec:crlb}
-Cram\'er and Rao derived a lower bound for the achievable variance of
-an estimator, and here we focus on a bound for
-$\text{Var}(\theta)$. The Cram\'er-Rao Lower Bound, applied for a
-single influenza season, states that
-\begin{equation}\label{eq:crlb_vector}
-\text{Var}(\hat{\phi}_k) \geq [\mathbf{J}^{-1}]_{kk}
-\end{equation}
-where $\mathbf{J}$ is the $5 \times 5$ \emph{Fisher Information
-Matrix} with entries
-\begin{equation*}
-J_{kl} = \mathbb{E}\left[\frac{\partial \ell}{\partial \phi_k}
-  \frac{\partial \ell}{\partial \phi_l}\right].
-\end{equation*}
-We let $\phi \in \{\theta, S_1(0), S_2(0), I_1(0), I_2(0)\}$ and use
-eq.~\eqref{eq:loglik}:
-\begin{equation*}
-\frac{\partial \ell}{\partial \phi} = -\frac{1}{2}\sum_{t,i} \left[
-\frac{1}{\mu_i(t)} - \frac{2\rho(Y_i(t) - \rho\mu_i(t))}{\rho(1-\rho)\mu_i(t)}
-- \frac{(Y_i(t) - \rho\mu_i(t))^2}{\rho(1-\rho)\mu_i(t)^2}\right]
-\frac{\partial \mu_i(t)}{\partial \phi}
-\end{equation*}
-Denote
-\begin{equation*}
-A_i(t) := -\frac{1}{2\mu_i(t)} + \frac{Y_i(t) - \rho\mu_i(t)}{(1-\rho)\mu_i(t)}
-+ \frac{(Y_i(t) - \rho\mu_i(t))^2}{2\rho(1-\rho)\mu_i(t)^2}.
-\end{equation*}
-Then
-\begin{equation}\label{eq:gradient}
-\frac{\partial \ell}{\partial \phi} = \sum_{t,i} A_i(t)
-\frac{\partial \mu_i(t)}{\partial \phi}.
-\end{equation}
-The Fisher Information Matrix is thus:
-\begin{equation*}
-J_{kl} = \mathbb{E}\left[\frac{\partial \ell}{\partial \phi_k}
-\frac{\partial \ell}{\partial \phi_l}\right] = \sum_{t,i}\sum_{s,j}
-\mathbb{E}[A_i(t) A_j(s)] \frac{\partial \mu_i(t)}{\partial \phi_k}
-\frac{\partial \mu_j(s)}{\partial \phi_l}
-\end{equation*}
-We can easily verify that $\mathbb{E}[A_i(t)]= 0$ and
-$\mathbb{E}[A_i(t) A_j(s)]= 0$ for $(i,t) \neq (j,s)$, since
-observations are independent across time and regions. Therefore
-\begin{equation}\label{eq:our fim}
-J_{kl} = \sum_{t,i}
-\mathbb{E}[A_i(t)^2] \frac{\partial \mu_i(t)}{\partial \phi_k}
-\frac{\partial \mu_i(t)}{\partial \phi_l}
-\end{equation}
-To find $\mathbb{E}[A_i(t)^2]$ we first expand $A_i(t)^2$:
-\begin{align*}
-A_i(t)^2 &= \frac{1}{4\mu_i(t)^2} - \frac{\epsilon_i(t)}{(1-\rho)\mu_i(t)^2}
-- \frac{\epsilon_i(t)^2}{2\rho(1-\rho)\mu_i(t)^3} \\
-&\quad + \frac{\epsilon_i(t)^2}{(1-\rho)^2\mu_i(t)^2}
-+ \frac{\epsilon_i(t)^3}{\rho(1-\rho)^2\mu_i(t)^3}
-+ \frac{\epsilon_i(t)^4}{4\rho^2(1-\rho)^2\mu_i(t)^4}
-\end{align*}
-where $\epsilon_i(t) = Y_i(t) - \rho\mu_i(t) \sim \mathcal{N}(0,
-\rho(1-\rho)\mu_i(t))$. Using the moments of $\epsilon_i(t)$:
-\begin{align*}
-  \mathbb{E}[\epsilon] &= 0, \\
-  \mathbb{E}[\epsilon^2] &= \rho(1-\rho)\mu_i(t), \\
-  \mathbb{E}[\epsilon^3] &= 0, \\
-  \mathbb{E}[\epsilon^4] &= 3[\rho(1-\rho)\mu_i(t)]^2.
-\end{align*}
-Then
-\begin{align*}
-\mathbb{E}[A_i(t)^2] &= \frac{1}{4\mu_i(t)^2}
-- \frac{\rho(1-\rho)\mu_i(t)}{2\rho(1-\rho)\mu_i(t)^3}
-+ \frac{\rho(1-\rho)\mu_i(t)}{(1-\rho)^2\mu_i(t)^2}
-+ \frac{3[\rho(1-\rho)\mu_i(t)]^2}{4\rho^2(1-\rho)^2\mu_i(t)^4} \\
-&= \frac{1}{4\mu_i(t)^2} - \frac{1}{2\mu_i(t)^2}
-+ \frac{\rho}{(1-\rho)\mu_i(t)^2} + \frac{3}{4\mu_i(t)^2} \\
-&= \frac{1}{2\mu_i(t)^2} + \frac{\rho}{(1-\rho)\mu_i(t)^2} \\
-&= \frac{1+\rho}{2(1-\rho)\mu_i(t)^2}
-\end{align*}
-and substituting in eq.~\eqref{eq:our fim}:
-\begin{equation}\label{eq:fim_scalar}
-J_{kl} = \frac{1+\rho}{2(1-\rho)}\sum_{t=0}^{T-1}\sum_{i=1}^{2}
-\frac{1}{\mu_i(t)^2} \frac{\partial \mu_i(t)}{\partial \phi_k}
-\frac{\partial \mu_i(t)}{\partial \phi_l}
-\end{equation}
-Define the Jacobian $\mathbf{G} \in \mathbb{R}^{2T \times 5}$ with
-entries $G_{(i,t),k} = \partial \mu_i(t)/\partial \phi_k$ and denote 
-\begin{equation*}
-\mathbf{W} = \frac{1+\rho}{2(1-\rho)} \,
-\text{diag}\left(\mu_1(0)^{-2}, \ldots, \mu_2(T-1)^{-2}\right)
-\end{equation*}
-and then
+The CRLB states that $\text{Var}(\hat\phi_k) \geq
+[\mathbf{J}^{-1}]_{kk}$, where $\mathbf{J}$ is the $5 \times 5$
+Fisher Information Matrix. We derive exact sensitivity equations for
+$\partial \mu_i(t)/\partial \phi_k$ (SI~Section~S1) and show that
+(SI~Section~S2):
 \begin{equation}\label{eq:fim}
-\mathbf{J} = \mathbf{G}^T \mathbf{W} \mathbf{G}.
+\mathbf{J} = \mathbf{G}^T \mathbf{W} \mathbf{G}
 \end{equation}
-We find the Cramer-Rao lower bound for the variance of $\theta$ for a
-single season as $\text{Var}(\hat{\theta}) \geq
-[\mathbf{J}^{-1}]_{11}$.
+where $\mathbf{G} \in \mathbb{R}^{2T \times 5}$ is the Jacobian of
+incidence with respect to parameters and $\mathbf{W}$ is a diagonal
+weight matrix with entries proportional to $\mu_i(t)^{-2}$.
 
-When data from multiple influenza seasons are available, we exploit
-the additivity of Fisher Information. We assume that seasons are
-independent (each season has its own initial conditions but shares
-$\theta$). Let $\mathbf{J}(s)$ denote the $5 \times 5$ Fisher
-Information Matrix for season $s$. We treat the initial conditions as
-nuisance parameters and find the Fisher Information for $\theta$ alone
-as $1/ [\mathbf{J}^{-1}(s)]_{11}$. Since Fisher information is
-additive for independent observations:
+When multiple seasons are available, we assume independence across
+seasons and aggregate:
 \begin{equation}\label{eq:crlb_multi}
 \text{Var}(\hat{\theta}) \geq \left(\sum_{s} \frac{1}{
-  \left[\mathbf{J}^{-1}(s)\right]_{11}}\right)^{-1}.
+  [\mathbf{J}^{-1}(s)]_{11}}\right)^{-1}
 \end{equation}
+treating each season's initial conditions as nuisance parameters.
 
+\subsection{Estimation}\label{subsec:mle}
 
-\subsection{Maximum-likelihood}\label{subsec:mle}
-For given observed incidence over several seasons, we find
-maximum-likelihood estimates of $\theta$ and initial conditions of
-each season via eq.~\eqref{eq:loglik}. This optimization problem is
-constrained: $\theta \in [0, 0.5]$, $S_i(0), I_i(0) \in [0, N_i]$, and
-$S_i(0) + I_i(0) \leq N_i$. The gradient of the log-likelihood was
-found in eq.~\eqref{eq:gradient}.
+We maximize the likelihood using gradient-based optimization (SLSQP
+via NLopt) with a multi-start strategy of 200 random initial points.
+Analytical gradients are obtained from the sensitivity equations.
 
-We use the \texttt{NLopt} library with the SLSQP algorithm for
-gradient-based optimization. To handle potential local minima, we
-employ a multi-start strategy selecting the solution with lowest
-objective value. In experiments, results were identical for $20$ and
-$200$ starting points but we take $200$ initial points for good
-measure.
+\subsection{Influenza Mortality Data}\label{subsec:real_data}
 
-\subsection{Influenza mortality data}\label{subsec:real_data}
-We analyze pneumonia and influenza (P\&I) mortality in the United
-States. We integrate two publicly available data sources from the
-Centers for Disease Control and Prevention (CDC). Data for years
-2010--2018 was obtained from the National Center for Health Statistics
-(NCHS) Mortality Surveillance Data via the CDC FluView interactive
-system \cite{cdcfluview2024}. More recent data (2017--2025) is sourced
-from the Weekly Mortality Surveillance Data available on
-HealthData.gov \cite{healthdatagov2024}. We discard data for the years
-of the COVID-19 pandemic (2020--2022). Where the sources overlap
-temporally (2017--2018) and geographically, we average the reported
-death counts, as the two datasets are quite consistent. State
-populations were obtained from the CDC WONDER database
-\cite{cdcwonder2024} for July 1$^{\text{st}}$ of every year.
-
-We follow common practice and estimate influenza burden as excess
-mortality above a baseline mortality determined by averaging mortality
-in months prior to each influenza season.
-
-We take the infection fatality rate (IFR) as the
-reporting rate $\rho$. Following \citet{rolfes2018}, we estimate the
-IFR for seasonal influenza as $\rho \approx 5.36 \times 10^{-4}$
-(0.0536\%), computed from the ratio of reported P\&I deaths to
-estimated total infections.
-
-The seasonal phase $\varphi_i$ for each state was estimated from
-absolute humidity data which we have extracted before \cite{daon2025,
-  shaman2009}. We find the phase offset that maximizes the correlation
-between the negative of the absolute humidity and $\sin(2\pi t +
-\varphi)$.
-
-We split the data into seasons of $T=20$ weekly observations starting
-each November 1$^{\text{st}}$ and find maximum likelihood estimates
-for a single $\theta$ and per-season initial conditions,
-simultaneously. We aggregate the CRLB across seasons using
-eq.~\eqref{eq:crlb_multi}.
-
+We analyze P\&I mortality from the 20 largest US states, integrating
+CDC FluView data (2010--2018)~\citep{cdcfluview2024} and
+HealthData.gov data (2017--2025)~\citep{healthdatagov2024}, excluding
+pandemic years 2020--2022. We estimate influenza burden as excess
+mortality above a pre-season
+baseline~\citep{serfling1963}. The infection fatality rate $\rho
+\approx 5.36 \times 10^{-4}$ follows~\citet{rolfes2018}. Seasonal
+phases $\varphi_i$ are estimated from absolute humidity
+data~\citep{daon2025, shaman2009}. We fit 12 seasons of $T = 20$
+weekly observations, estimating a single $\theta$ with per-season
+initial conditions, and aggregate the CRLB via
+Eq.~\eqref{eq:crlb_multi}.

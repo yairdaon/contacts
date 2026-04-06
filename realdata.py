@@ -70,9 +70,13 @@ def main():
 
         # Build populations dictionary from MultiIndex dataframe
         populations = {}
-        for season in seasons:
-            for region in regions:
-                populations[(season, region)] = pop_df.loc[(season, region), 'population']
+        try:
+            for season in seasons:
+                for region in regions:
+                    populations[(season, region)] = pop_df.loc[(season, region), 'population']
+        except KeyError:
+            print(f"Missing population data for {s1_abbr}x{s2_abbr}, skipping")
+            continue
                 
 
         print(f"\n\nInversion for {s1_abbr} X {s2_abbr}", current())
