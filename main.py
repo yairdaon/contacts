@@ -54,41 +54,33 @@ def compute_one_crlb(theta, delta, gamma, beta0, rho, Ts, phase):
     }
 
 
-@plac.annotations(
-    n_runs=('Number of runs per parameter combination', 'option', 'r', int),
-    n_jobs=('Number of parallel jobs', 'option', 'j', int)
-)
-def main(n_runs=1000, n_jobs=-1):
-    disease = flu.ILI
-
-    beta0 = disease.beta0
-    gamma = disease.gamma
-    rho = disease.rho
-
-    # Time array for one season
-    season = 2000  # arbitrary reference season
-    Ts = season + np.arange(disease.n_weeks) * disease.step_size
+def main():
+    disease = flu.Mortality
 
     N = 50
     thetas = 10 ** np.linspace(-4, -1, N, endpoint=True)
     deltas = np.linspace(0, 1, N, endpoint=False)
 
+    # Time array for one season.  2000 is an arbitrary reference season
+    Ts = 2000 + np.arange(disease.n_weeks) * disease.step_size
+
+
     tasks = []
     for delta in deltas:
         for phase2 in [0, np.pi]:
-            for _ in range(n_runs):
-                for theta in thetas:
-                    tasks.append({
-                        'theta': theta,
-                        'delta': delta,
-                        'gamma': gamma,
-                        'beta0': beta0,
-                        'rho': rho,
-                        'Ts': Ts,
-                        'phase': np.array([0, phase2])
-                    })
+            for theta in thetas:
+                tasks.append({
+                    'theta': theta,
+                    'delta': delta,
+                    'gamma': disease.gamma,
+                    'beta0': disease.beta0,
+                    'rho': disease.rho,
+                    'Ts': Ts,
+                    'phase': np.array([0, phase2])
+                })
 
-    results = Parallel(n_jobs=n_jobs)(
+    tasks = tasks  * 1000
+    results = Parallel(n_jobs=-3)(
         delayed(compute_one_crlb)(**task) for task in tqdm(tasks)
     )
 
@@ -99,9 +91,10 @@ def main(n_runs=1000, n_jobs=-1):
 
 
 if __name__ == "__main__":
-    try:
-        plac.call(main)
-    except:
-        _, _, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+    main()
+    # try:
+    #     plac.call(main)
+    # except:
+    #     _, _, tb = sys.exc_info()
+    #     traceback.print_exc()
+    #     pdb.post_mortem(tb)

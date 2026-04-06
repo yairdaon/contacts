@@ -12,8 +12,8 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Default population sizes for synthetic regions
 DEFAULT_N = {
-    "A": 1e5,
-    "B": 1e5
+    "A": 1e7,
+    "B": 1e6
 }
 
 
@@ -24,7 +24,8 @@ def main(add_noise):
     phase = np.zeros(2)
 
     regions = list(DEFAULT_N.keys())
-    seasons = list(range(1995, 2008))
+    seasons = list(range(2010, 2019)) + [2023, 2024, 2025]
+
 
     # Build populations dictionary
     populations = {}
@@ -39,6 +40,15 @@ def main(add_noise):
     rows = []
     trajectories = {}
 
+    # Similar (not identical) ICs for both regions so synchronized epidemics
+    # have approximately the same trajectories
+    n_seasons = len(seasons)
+    np.random.seed(42)
+    S_base = np.random.uniform(0.80, 0.90, size=n_seasons)
+    I_base = np.random.uniform(1e-4, 5e-4, size=n_seasons)
+    S_init = np.column_stack([S_base, S_base * np.random.uniform(0.98, 1.02, size=n_seasons)])
+    I_init = np.column_stack([I_base, I_base * np.random.uniform(0.8, 1.2, size=n_seasons)])
+
     for phase2 in [0, np.pi]:
         phase[1] = phase2
 
@@ -50,6 +60,8 @@ def main(add_noise):
             theta=theta,
             phase=phase,
             populations=populations,
+            S_init=S_init,
+            I_init=I_init,
             add_noise=add_noise
         )
 
@@ -155,14 +167,14 @@ def main(add_noise):
     fig.savefig(f"pix/inverse_problem_{noise_tag}.png", dpi=150, bbox_inches='tight')
     fig.savefig(f"pix/inverse_problem_{noise_tag}.pdf", bbox_inches='tight')
     plt.close()
-    print(f"Synchronized:   theta_fit={trajectories[0]['theta_fit']:.4f}, CRLB std={crlb_std[0]:.4f}")
-    print(f"Unsynchronized: theta_fit={trajectories[np.pi]['theta_fit']:.4f}, CRLB std={crlb_std[np.pi]:.4f}")
+    print(f"Synchronized {noise_tag}:   theta_fit={trajectories[0]['theta_fit']:.4f}, CRLB std={crlb_std[0]:.4f}")
+    print(f"Unsynchronized {noise_tag}: theta_fit={trajectories[np.pi]['theta_fit']:.4f}, CRLB std={crlb_std[np.pi]:.4f}")
 
 
 if __name__ == "__main__":
     try:
-        main(add_noise=False)
         main(add_noise=True)
+        main(add_noise=False)
     except:
         import sys, traceback, pdb
         _, _, tb = sys.exc_info()

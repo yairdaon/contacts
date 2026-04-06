@@ -129,42 +129,25 @@ seasons used for inference highlighted.
 \end{figure}
 
 We estimated connectivity $\theta$ and its CRLB for all pairs among
-the four largest states (CA, NY, TX, FL).
-Figure~\ref{fig:crlb_states} shows the ratio $\sqrt{\text{CRLB}} /
-\hat{\theta}$ for each state pair, quantifying the relative
-uncertainty in the connectivity estimate.
+the 20 largest US states. Figure~\ref{fig:theta_vs_crlb} shows
+$\hat{\theta}$ against $\sqrt{\text{CRLB}}$ for each state pair. The
+dashed line marks the significance boundary $\sqrt{\text{CRLB}} =
+\hat{\theta}/1.96$: points above the line have 95\% confidence
+intervals that include zero. Significant pairs (below the line) are
+marked as red stars.
 
 \begin{figure}%[h]
 \centering
-\includegraphics[width=0.75\textwidth]{../pix/crlb_ratio_states.pdf}
-\caption{Relative uncertainty $\sqrt{\text{CRLB}} / \hat{\theta}$ for
-  connectivity estimates between US states. Values near or above 1
-  indicate that the CRLB standard deviation is comparable to the
-  estimate itself, meaning connectivity cannot be reliably
-  distinguished from zero. The color scale is truncated at 3.}
-\label{fig:crlb_states}
+\includegraphics[width=0.75\textwidth]{../pix/theta_vs_crlb.pdf}
+\caption{Estimated connectivity $\hat{\theta}$ vs.\ Cram\'er-Rao
+  lower bound on its standard deviation for all pairs of the 20
+  largest US states. The dashed line is the significance boundary:
+  points above it cannot reject $\theta = 0$ at the 5\% level.
+  Significant pairs are marked as red stars. The blue-shaded region
+  indicates non-significance; the orange-shaded region indicates
+  significance. Nearly all state pairs fall in the non-significant
+  region, confirming that connectivity cannot be reliably inferred from
+  synchronized P\&I mortality data.}
+\label{fig:theta_vs_crlb}
 \end{figure}
 
-Figure~\ref{fig:theta_heatmap} shows the estimated connectivity
-$\hat{\theta}$ between each pair of states.
-
-\begin{figure}%[h]
-\centering
-\includegraphics[width=0.75\textwidth]{../pix/theta_heatmap.pdf}
-\caption{Estimated connectivity $\hat{\theta}$ between US states.}
-\label{fig:theta_heatmap}
-\end{figure}
-
-Figure~\ref{fig:crlb_season} shows how the per-season CRLB varies
-across flu seasons for each state pair, revealing which seasons
-contribute most to the aggregate information about connectivity.
-
-\begin{figure}%[h]
-\centering
-\includegraphics[width=\textwidth]{../pix/crlb_by_season.pdf}
-\caption{Per-season $\sqrt{\text{CRLB}}$ for each state pair. Shorter
-  bars indicate seasons where connectivity is more precisely
-  identifiable. Variation across seasons reflects differences in
-  epidemic intensity and timing.}
-\label{fig:crlb_season}
-\end{figure}

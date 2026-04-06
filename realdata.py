@@ -33,10 +33,6 @@ def main():
     pop_df = pop_df[['season', 'state', 'population']].set_index(['season', 'state'])
 
     
-    states = ['CA' ,'NY', 'TX', 'FL', ## Largest
-              'DE', 'RI', 'MO', ## Small but > 1e6 population
-              'AL', 'LA', 'KY'
-              ]
     for state1, state2 in combinations(us.STATES, 2):
         if state1 == state2:
             continue
@@ -48,12 +44,10 @@ def main():
             state1, state2 = state2, state1
             s1_abbr, s2_abbr = s2_abbr, s1_abbr
 
-        if s1_abbr not in states or s2_abbr not in states:
-            continue
         
         filename = f"{OUTPUT_DIR}/{s1_abbr}x{s2_abbr}.csv"
-        # if os.path.exists(filename):
-        #     continue
+        if os.path.exists(filename):
+            continue
 
         regions = [state1.name, state2.name]
     
