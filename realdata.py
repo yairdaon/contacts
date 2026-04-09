@@ -46,9 +46,6 @@ def main():
 
         
         filename = f"{OUTPUT_DIR}/{s1_abbr}x{s2_abbr}.csv"
-        if os.path.exists(filename):
-            continue
-
         regions = [state1.name, state2.name]
     
         # Load real data
@@ -110,9 +107,8 @@ def main():
             rows.append(row)
         
         res = pd.DataFrame(rows)
-        res['crlb4std'] = np.sqrt(1 / sum(1/res.crlb))
         res.to_csv(filename, index=False)
-        print(res.set_index(['state1', 'state2'], drop=True)[['season', 'theta', 'crlb', 'crlb4std']])
+        print(res.set_index(['state1', 'state2'], drop=True)[['season', 'theta', 'crlb']])
         print(f"Ran {filename} at {current()}")
 
 if __name__ == "__main__":

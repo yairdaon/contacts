@@ -7,9 +7,9 @@ class Flu:
     slim = (0.4, 0.95)
     ilim = (5e-5, 1e-2)
 
-    # Similar ICs: both regions draw from these narrow ranges
-    slim_similar = (0.84, 0.86)
-    ilim_similar = (8e-5, 1.2e-4)
+    # Similar ICs: both regions draw from these ranges
+    slim_similar = (0.7, 0.95)
+    ilim_similar = (1e-5, 1e-3)
 
     # Different ICs: regions draw independently from these wide ranges
     slim_different = (0.5, 0.95)

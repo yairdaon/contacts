@@ -59,24 +59,53 @@ seasons and aggregate:
   [\mathbf{J}^{-1}(s)]_{11}}\right)^{-1}
 \end{equation}
 treating each season's initial conditions as nuisance parameters.
+Seasons where the CRLB computation fails (e.g., due to near-zero
+incidence producing a singular Fisher matrix) contribute no
+information and are assigned $[\mathbf{J}^{-1}(s)]_{11} = \infty$.
+
+\subsection{Simulated CRLB Analysis}\label{subsec:sim_crlb}
+
+To assess how synchronization and initial-condition similarity affect
+identifiability, we compute the CRLB across a grid of connectivity
+values $\theta \in [10^{-4}, 10^{-1}]$ and seasonal forcing
+amplitudes $\delta \in [0, 1)$, comparing synchronized ($\varphi_1 =
+\varphi_2$) and asynchronous ($\varphi_1 - \varphi_2 = \pi$)
+epidemics. For each grid point, we draw random initial conditions
+from one of two regimes: \emph{similar} ($S_i(0)/N_i \in [0.7,
+0.95]$, $I_i(0)/N_i \in [10^{-5}, 10^{-3}]$, drawn independently
+for both regions from the same range) and \emph{different} ($S_i(0)/N_i
+\in [0.5, 0.95]$, $I_i(0)/N_i \in [10^{-5}, 10^{-2}]$). We repeat
+each configuration many times with fresh random initial conditions and
+report the average statistical power for a one-sided test of $\theta >
+0$ at the 5\% significance level, assuming an efficient estimator that
+achieves the CRLB.
 
 \subsection{Estimation}\label{subsec:mle}
 
 We maximize the likelihood using gradient-based optimization (SLSQP
-via NLopt) with a multi-start strategy of 200 random initial points.
-Analytical gradients are obtained from the sensitivity equations.
+via NLopt) with analytical gradients from the sensitivity equations.
+To handle potential local minima, we employ a multi-start strategy
+with 200 random initial points, selecting the solution with lowest
+objective value.
 
 \subsection{Influenza Mortality Data}\label{subsec:real_data}
 
-We analyze P\&I mortality from the 20 largest US states, integrating
-CDC FluView data (2010--2018)~\citep{cdcfluview2024} and
-HealthData.gov data (2017--2025)~\citep{healthdatagov2024}, excluding
-pandemic years 2020--2022. We estimate influenza burden as excess
-mortality above a pre-season
-baseline~\citep{serfling1963}. The infection fatality rate $\rho
+We analyze pneumonia and influenza (P\&I) mortality across all US
+states, integrating CDC FluView data
+(2010--2018)~\citep{cdcfluview2024} and HealthData.gov data
+(2017--2025)~\citep{healthdatagov2024}, excluding pandemic years
+2020--2022. Since P\&I deaths include a year-round non-influenza
+baseline (bacterial pneumonia, aspiration, other respiratory
+infections), we estimate influenza burden as excess mortality above a
+pre-season baseline, computed as the mean weekly death count during
+July--October preceding each flu
+season~\citep{serfling1963}. The infection fatality rate $\rho
 \approx 5.36 \times 10^{-4}$ follows~\citet{rolfes2018}. Seasonal
 phases $\varphi_i$ are estimated from absolute humidity
-data~\citep{daon2025, shaman2009}. We fit 12 seasons of $T = 20$
-weekly observations, estimating a single $\theta$ with per-season
-initial conditions, and aggregate the CRLB via
-Eq.~\eqref{eq:crlb_multi}.
+data~\citep{daon2025, shaman2009}. We define each flu season as $T =
+20$ weekly observations starting November~1$^{\text{st}}$ and fit a
+single connectivity $\theta$ shared across all seasons, with
+per-season initial conditions $(S_i(0), I_i(0))$ as free
+parameters. We then aggregate the per-season CRLBs via
+Eq.~\eqref{eq:crlb_multi} to obtain a bound on the overall estimator
+variance.

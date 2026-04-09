@@ -1,4 +1,16 @@
+import numpy as np
 from datetime import datetime
+
+
+def crlb4std(crlbs):
+    """Aggregate per-season CRLBs into a single standard deviation bound.
+
+    crlbs: array-like of per-season CRLB values for Var(theta).
+    Returns: sqrt of the harmonic-mean aggregation (Eq. crlb_multi in the paper).
+    """
+    crlbs = np.asarray(crlbs, dtype=float)
+    crlbs = np.where(np.isfinite(crlbs), crlbs, np.inf)
+    return np.sqrt(1.0 / np.sum(1.0 / crlbs))
 
 
 def current():
