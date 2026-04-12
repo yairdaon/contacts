@@ -85,11 +85,11 @@ def build_tasks(disease, thetas, deltas, Ts, ic_regime, n_reps):
 def main():
     disease = flu.Mortality
 
-    N = 200
+    N = 100
     thetas = 10 ** np.linspace(-4, -1, N, endpoint=True)
     deltas = np.linspace(0, 1, N, endpoint=False)
     Ts = 2000 + np.arange(disease.n_weeks) * disease.step_size
-    n_reps = 2500
+    n_reps = 500
 
     # Similar ICs (the standard case — synchronized epidemics with similar starting points)
     tasks_sim = build_tasks(disease, thetas, deltas, Ts, 'similar', n_reps)

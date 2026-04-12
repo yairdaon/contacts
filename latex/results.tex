@@ -50,38 +50,31 @@ the penalty imposed by synchronization.
 
 \subsection{Asymmetry Restores Identifiability}
 
-Figure~\ref{fig:likelihood} directly visualizes how both phase
-asymmetry and initial-condition asymmetry affect the likelihood
-surface. We generate synthetic data from the SIR model with true
-connectivity $\theta = 0.05$ and evaluate the log-likelihood at the
-true initial conditions across a grid of $\theta$ values, sweeping
-over four phase differences.
+Figure~\ref{fig:single_likelihood} visualizes how phase asymmetry and
+initial-condition asymmetry each independently restore
+identifiability. With identical initial conditions and synchronized
+forcing ($\Delta\varphi = 0$), the likelihood is completely flat.
+Introducing a phase offset ($\Delta\varphi = \pi/2$ or $\pi$)
+progressively sharpens the peak. Alternatively, keeping synchronized
+forcing but using different initial conditions also produces a clear
+peak---demonstrating that asymmetry in \emph{either} the forcing or
+the initial state suffices to restore identifiability. This has
+practical implications: for diseases like measles, where vaccination
+coverage and outbreak history differ substantially between regions,
+connectivity inference from case data may be feasible even when
+seasonal forcing is shared.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=\textwidth]{../pix/likelihood_surface.pdf}
-\caption{Log-likelihood as a function of $\theta$ for four phase
-  offsets between regions. Left: similar initial conditions
-  ($S_i(0)/N_i \in [0.7, 0.95]$). Right: different initial conditions
-  ($S_i(0)/N_i \in [0.5, 0.95]$). Dashed line: true $\theta = 0.05$.
-  With similar ICs (left), synchronized epidemics produce a flat
-  likelihood; increasing phase difference sharpens the peak. With
-  different ICs (right), even synchronized epidemics show a clear
-  peak.}
-\label{fig:likelihood}
+\includegraphics[width=0.75\textwidth]{../pix/single_likelihood_surface.pdf}
+\caption{Log-likelihood as a function of $\theta$ under four
+  scenarios. When both initial conditions and seasonal phase are
+  identical, the likelihood is flat (blue). Phase asymmetry
+  ($\Delta\varphi = \pi/2$, $\pi$) or initial-condition asymmetry
+  (different ICs with $\Delta\varphi = 0$) each independently restore
+  a peak near the true $\theta = 0.05$ (red dashed line).}
+\label{fig:single_likelihood}
 \end{figure}
-
-With similar initial conditions (left panel), the synchronized curve
-($\varphi_1 - \varphi_2 = 0$) is nearly flat: the likelihood barely
-changes across the parameter space. An optimizer would converge to
-some $\hat\theta$, and the fit might look reasonable, but the
-parameter is uninformed by the data. This is the regime where an
-analyst could obtain a misleading estimate without realizing it.
-Increasing the phase difference progressively sharpens a peak near
-the true value. With different initial conditions (right panel), even
-synchronized forcing produces a clear likelihood peak, because the
-differing initial states cause the two epidemics to follow different
-trajectories whose interaction depends on $\theta$.
 
 \subsection{US Influenza: Connectivity Cannot Be Inferred}
 
