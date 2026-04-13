@@ -1,16 +1,40 @@
 \section{Results}
+\subsection{Synchronization Inflates CRLB}
+Figure~\ref{fig:crlb_ratio} shows the ratio of median CRLB
+(synchronized / asynchronous) under the two IC regimes. When initial
+conditions are similar (left), the ratio is large throughout the
+parameter space: synchronization inflates the data requirement by
+orders of magnitude. When initial conditions differ (right), the ratio
+is much smaller. Interestingly, the two panels look qualitatively
+similar but the color scales differ dramatically (note the colorbar
+values). Different initial conditions break the symmetry that makes
+synchronized and unsynchronized epidemics indistinguishable, reducing
+the penalty imposed by synchronization.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../pix/crlb_ratio.pdf}
+\caption{Ratio of median CRLB (synchronized / asynchronous) as a
+  function of connectivity $\theta$ and seasonal forcing amplitude
+  $\delta$. Left panel shows results for similar initial conditions
+  and right panel shows results for different initial conditions. In
+  both cases, synchronization inflates the CRLB, i.e.~for every
+  $\theta$ and $\delta$ the ratio of medians is $>1$. The two panels
+  look qualitatively similar, but the color scales differ by orders of
+  magnitude: with similar ICs (left), synchronization inflates the
+  CRLB far more than with different ICs. That is, a large difference
+  in initial conditions mitigates the confounding caused by a
+  synchronized seasonal driver.}
+\label{fig:crlb_ratio}
+\end{figure}
+
 
 \subsection{Data}
-
-We analyze excess P\&I mortality from all US states over 12 flu
-seasons (2010--2018 and 2023--2025, excluding the COVID-19 pandemic
-years). Figure~\ref{fig:seasons} shows the raw weekly death counts
-for four representative states, with the flu seasons used for
-inference highlighted. The synchronized winter peaks across states are
-clearly visible: all four time series rise and fall together each
-year, precisely the regime our analysis predicts will confound
-connectivity inference.
-
+We analyze excess P\&I mortality from 47 US states over 12 flu seasons
+(2010--2018 and 2023--2025, excluding the COVID-19 pandemic
+years). Figure~\ref{fig:seasons} shows the raw weekly death counts for
+four representative states, with the flu seasons used for inference
+highlighted.
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../pix/seasons_highlighted.pdf}
@@ -22,34 +46,37 @@ connectivity inference.
 \label{fig:seasons}
 \end{figure}
 
-\subsection{Synchronization Inflates Data Requirements}
 
-Figure~\ref{fig:crlb_ratio} shows the ratio of median CRLB
-(synchronized / asynchronous) under the two IC regimes. When initial
-conditions are similar (left), the ratio is large throughout the
-parameter space: synchronization inflates the data requirement by
-orders of magnitude. When initial conditions differ (right), the
-ratio is much smaller---the two panels look qualitatively similar but
-the color scales differ dramatically (note the colorbar values).
-Different initial conditions break the symmetry that makes
-synchronized and unsynchronized epidemics indistinguishable, reducing
-the penalty imposed by synchronization.
+\subsection{US Influenza: Connectivity Cannot Be Inferred}
+We estimated $\theta$ and its CRLB for $\binom{47}{2} = 1081$ state
+pairs across 12 seasons. Figure~\ref{fig:theta_vs_crlb}~(left) shows
+$\hat{\theta}$ against $\sqrt{\text{CRLB}}$, the theoretical lower
+bound on the standard deviation of any unbiased estimator of
+$\theta$. The dashed line marks the 5\% significance boundary: points
+above it cannot reject $\theta = 0$. The vast majority of state pairs
+fall in the non-significant region. Therefore, we observe the lack of
+statistical power in identifying $\theta > 0$.
+
+It is also interesting to observe the relatively uniform distribution
+of $\theta$'s in $[0, 0.5]$. This implies that 
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=\textwidth]{../pix/crlb_ratio.pdf}
-\caption{Ratio of median CRLB (synchronized / asynchronous) as a
-  function of connectivity $\theta$ and seasonal forcing amplitude
-  $\delta$, for similar (left) and different (right) initial
-  conditions. Darker shading indicates a larger ratio. The two panels
-  look qualitatively similar, but the color scales differ by orders of
-  magnitude: with similar ICs, synchronization inflates the CRLB far
-  more than with different ICs.}
-\label{fig:crlb_ratio}
+\includegraphics[width=\textwidth]{../pix/theta_vs_crlb.pdf}
+\caption{Left: estimated connectivity $\hat{\theta}$ vs.\
+  $\sqrt{\text{CRLB}}$ for all US state pairs. The dashed line is the
+  significance boundary: points above it cannot reject $\theta = 0$
+  at the 5\% level. Non-significant pairs are black circles;
+  significant pairs are red stars. Right: distribution of
+  $\hat\theta$ across all state pairs, showing an approximately
+  uniform spread consistent with uninformative data.}
+\label{fig:theta_vs_crlb}
 \end{figure}
 
-\subsection{Likelihood Surfaces: Simulated and Real Data}
+Representative model reconstructions for individual state pairs are
+shown in SI~Fig.~S4.
 
+\subsection{Likelihood Surfaces}
 Figure~\ref{fig:likelihood} shows log-likelihood surfaces for both
 simulated (left) and real (right) data. In the simulated panel, we
 use initial conditions drawn from the empirical distribution of
@@ -93,37 +120,3 @@ case data may be feasible.
   restores identifiability.}
 \label{fig:likelihood}
 \end{figure}
-
-\subsection{US Influenza: Connectivity Cannot Be Inferred}
-
-We estimated $\theta$ and its CRLB for all $\binom{47}{2} = 1081$
-state pairs across 12 seasons. Figure~\ref{fig:theta_vs_crlb}~(left)
-shows $\hat{\theta}$ against $\sqrt{\text{CRLB}}$, the theoretical
-lower bound on the standard deviation of any unbiased estimator of
-$\theta$. The dashed line marks the 5\% significance boundary: points
-above it cannot reject $\theta = 0$. The vast majority of state pairs
-fall in the non-significant region.
-
-Figure~\ref{fig:theta_vs_crlb}~(right) shows the distribution of
-$\hat\theta$ values across all state pairs. The estimates span the
-full range $[0, 0.5]$ with an approximately uniform distribution,
-consistent with the flat likelihood surfaces predicted by the
-CRLB analysis: when the data contain no information about $\theta$,
-the optimizer returns whatever value it happens to converge to, with
-no tendency toward the truth.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{../pix/theta_vs_crlb.pdf}
-\caption{Left: estimated connectivity $\hat{\theta}$ vs.\
-  $\sqrt{\text{CRLB}}$ for all US state pairs. The dashed line is the
-  significance boundary: points above it cannot reject $\theta = 0$
-  at the 5\% level. Non-significant pairs are black circles;
-  significant pairs are red stars. Right: distribution of
-  $\hat\theta$ across all state pairs, showing an approximately
-  uniform spread consistent with uninformative data.}
-\label{fig:theta_vs_crlb}
-\end{figure}
-
-Representative model reconstructions for individual state pairs are
-shown in SI~Fig.~S4.
