@@ -49,16 +49,16 @@ highlighted.
 
 \subsection{US Influenza: Connectivity Cannot Be Inferred}
 We estimated $\theta$ and its CRLB for $\binom{47}{2} = 1081$ state
-pairs across 12 seasons. Figure~\ref{fig:theta_vs_crlb}~(left) shows
-$\hat{\theta}$ against $\sqrt{\text{CRLB}}$, the theoretical lower
-bound on the standard deviation of any unbiased estimator of
-$\theta$. The dashed line marks the 5\% significance boundary: points
-above it cannot reject $\theta = 0$. The vast majority of state pairs
-fall in the non-significant region. Therefore, we observe the lack of
-statistical power in identifying $\theta > 0$.
-
-It is also interesting to observe the relatively uniform distribution
-of $\theta$'s in $[0, 0.5]$. This implies that 
+pairs across 12 seasons. Representative model reconstructions for
+individual state pairs are shown in
+SI~Fig.~S4. Figure~\ref{fig:theta_vs_crlb} (left) shows $\hat{\theta}$
+against $\sqrt{\text{CRLB}}$. The dashed line marks the 5\%
+significance boundary: points above it cannot reject $\theta = 0$. The
+vast majority of state pairs fall in the non-significant
+region. Therefore, we observe the lack of statistical power in
+identifying $\theta > 0$. It is also interesting to observe the
+relatively uniform distribution of $\theta$'s in $[0, 0.5]$, implying,
+again, a lack of statistical power.
 
 \begin{figure}[h]
 \centering
@@ -73,36 +73,30 @@ of $\theta$'s in $[0, 0.5]$. This implies that
 \label{fig:theta_vs_crlb}
 \end{figure}
 
-Representative model reconstructions for individual state pairs are
-shown in SI~Fig.~S4.
 
-\subsection{Likelihood Surfaces}
-Figure~\ref{fig:likelihood} shows log-likelihood surfaces for both
-simulated (left) and real (right) data. In the simulated panel, we
-use initial conditions drawn from the empirical distribution of
-fitted values from the real-data analysis. Three scenarios are
-compared: synchronized forcing with identical initial conditions
-($\Delta\varphi = 0$), which produces a flat likelihood; a small
-phase difference ($\Delta\varphi = \pi/45$), corresponding to the
-median phase difference between US state pairs (excluding Alaska,
-Hawaii, and Arizona, for which reliable absolute humidity data are
-unavailable); and a large phase difference ($\Delta\varphi = \pi$),
-which sharply peaks at the true $\theta$.
+\subsection{Log-likelihood Curves}
+Figure~\ref{fig:likelihood} shows log-likelihood curves for both
+simulated (left) and real (right) data. In the simulated panel, we use
+initial conditions drawn from the empirical distribution of fitted
+values from the real-data analysis. Three scenarios are compared:
+synchronized forcing with identical initial conditions ($\Delta\varphi
+= 0$), which produces a flat likelihood; a small phase difference
+($\Delta\varphi = \pi/45$), corresponding to the median phase
+difference between the US state pairs (excluding Alaska, Hawaii, and
+Arizona; and a large phase difference ($\Delta\varphi = \pi$).
 
 The right panel shows profile likelihood surfaces for real state
 pairs. California and New York ($N_{\text{CA}} \approx 2
 N_{\text{NY}}$) and Georgia and Ohio ($N_{\text{GA}} \approx
-N_{\text{OH}}$) are chosen to illustrate the effect of population
-size differences. In all cases, the likelihood is nearly flat with
-respect to $\theta$, confirming the theoretical prediction that
-synchronized temperate influenza epidemics carry insufficient
-information for connectivity inference. However, our simulated
-analysis reveals that symmetry breaking---whether through phase
+N_{\text{OH}}$) are chosen to illustrate the effect of population size
+differences.
+
+Our analysis reveals that symmetry breaking---whether through phase
 differences, different initial conditions, or even different
-population sizes---can restore identifiability
-(SI~Fig.~S5). This suggests that for disease systems where
-such asymmetries are naturally present, connectivity inference from
-case data may be feasible.
+population sizes---can restore identifiability (see also SI~Fig.~S5
+for further simulatio results). This suggests that for disease systems
+where such asymmetries are naturally present, connectivity inference
+from case data might be feasible.
 
 \begin{figure}[h]
 \centering
