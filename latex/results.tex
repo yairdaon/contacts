@@ -48,37 +48,55 @@ the penalty imposed by synchronization.
 \label{fig:crlb_ratio}
 \end{figure}
 
-\subsection{Asymmetry Restores Identifiability}
+\subsection{Likelihood Surfaces: Simulated and Real Data}
 
-Figure~\ref{fig:single_likelihood} visualizes how phase asymmetry and
-initial-condition asymmetry each independently restore
-identifiability. With identical initial conditions and synchronized
-forcing ($\Delta\varphi = 0$), the likelihood is completely flat.
-Introducing a phase offset ($\Delta\varphi = \pi/2$ or $\pi$)
-progressively sharpens the peak. Alternatively, keeping synchronized
-forcing but using different initial conditions also produces a clear
-peak---demonstrating that asymmetry in \emph{either} the forcing or
-the initial state suffices to restore identifiability. This has
-practical implications: for diseases like measles, where vaccination
-coverage and outbreak history differ substantially between regions,
-connectivity inference from case data may be feasible even when
-seasonal forcing is shared.
+Figure~\ref{fig:likelihood} shows log-likelihood surfaces for both
+simulated (left) and real (right) data. In the simulated panel, we
+use initial conditions drawn from the empirical distribution of
+fitted values from the real-data analysis. Three scenarios are
+compared: synchronized forcing with identical initial conditions
+($\Delta\varphi = 0$), which produces a flat likelihood; a small
+phase difference ($\Delta\varphi = \pi/45$), corresponding to the
+median phase difference between US state pairs (excluding Alaska,
+Hawaii, and Arizona, for which reliable absolute humidity data are
+unavailable); and a large phase difference ($\Delta\varphi = \pi$),
+which sharply peaks at the true $\theta$.
+
+The right panel shows profile likelihood surfaces for real state
+pairs. California and New York ($N_{\text{CA}} \approx 2
+N_{\text{NY}}$) and Georgia and Ohio ($N_{\text{GA}} \approx
+N_{\text{OH}}$) are chosen to illustrate the effect of population
+size differences. In all cases, the likelihood is nearly flat with
+respect to $\theta$, confirming the theoretical prediction that
+synchronized temperate influenza epidemics carry insufficient
+information for connectivity inference. However, our simulated
+analysis reveals that symmetry breaking---whether through phase
+differences, different initial conditions, or even different
+population sizes---can restore identifiability
+(SI~Fig.~S5). This suggests that for disease systems where
+such asymmetries are naturally present, connectivity inference from
+case data may be feasible.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.75\textwidth]{../pix/single_likelihood_surface.pdf}
-\caption{Log-likelihood as a function of $\theta$ under four
-  scenarios. When both initial conditions and seasonal phase are
-  identical, the likelihood is flat (blue). Phase asymmetry
-  ($\Delta\varphi = \pi/2$, $\pi$) or initial-condition asymmetry
-  (different ICs with $\Delta\varphi = 0$) each independently restore
-  a peak near the true $\theta = 0.05$ (red dashed line).}
-\label{fig:single_likelihood}
+\includegraphics[width=\textwidth]{../pix/likelihood_surface.pdf}
+\caption{Log-likelihood as a function of $\theta$. Left: simulated
+  data with initial conditions drawn from the empirical distribution
+  of real-data fits. Synchronized forcing with identical ICs produces
+  a flat likelihood; increasing the phase difference ($\pi/45$
+  corresponds to the median US state-pair difference) or using a large
+  phase offset ($\pi$) progressively sharpens the peak around the
+  true $\theta = 0.05$ (red dashed line). Right: profile likelihoods
+  for real US state pairs. GA$\times$OH (similar populations) shows a
+  flat surface; CA$\times$NY ($N_{\text{CA}} \approx 2 N_{\text{NY}}$)
+  shows more curvature, suggesting that population asymmetry partially
+  restores identifiability.}
+\label{fig:likelihood}
 \end{figure}
 
 \subsection{US Influenza: Connectivity Cannot Be Inferred}
 
-We estimated $\theta$ and its CRLB for all $\binom{50}{2} = 1225$
+We estimated $\theta$ and its CRLB for all $\binom{47}{2} = 1081$
 state pairs across 12 seasons. Figure~\ref{fig:theta_vs_crlb}~(left)
 shows $\hat{\theta}$ against $\sqrt{\text{CRLB}}$, the theoretical
 lower bound on the standard deviation of any unbiased estimator of

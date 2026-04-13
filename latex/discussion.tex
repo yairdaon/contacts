@@ -9,9 +9,16 @@ parameter approaches zero. A maximum-likelihood optimizer will still
 converge in this regime, potentially returning an estimate that
 appears well-determined but is in fact meaningless---the likelihood
 surface is flat, and any value of $\theta$ fits the data equally well.
-Any source of asymmetry---different seasonal phasing or different
-initial epidemic states---breaks this degeneracy and restores
-identifiability.
+
+Perhaps surprisingly, any source of asymmetry---different seasonal
+phasing, different initial conditions, or even different population
+sizes---breaks this degeneracy and restores identifiability
+(SI~Fig.~S5). The likelihood surface for California and New York,
+whose populations differ by roughly a factor of two, shows more
+curvature than that of Georgia and Ohio, whose populations are
+similar. This means that the impossibility of connectivity inference
+is not inherent to the estimation problem itself, but rather to the
+specific symmetric configuration that temperate influenza presents.
 
 \subsection{The Role of Symmetry Breaking}
 
@@ -126,7 +133,7 @@ synchronization that may similarly obscure functional
 connectivity~\citep{reid2019, pikovsky2001}. Metapopulations driven by shared
 environmental cycles face analogous challenges when researchers
 attempt to infer dispersal rates from abundance time
-series~\citep{bjornstad1999spatial}. In each case, the core insight
+series~\citep{bjornstad1999}. In each case, the core insight
 applies: \emph{it is not synchronization alone that destroys
   identifiability, but the combination of synchronization with
   symmetric initial states}. Any observable asymmetry---different

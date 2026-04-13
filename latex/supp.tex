@@ -3,16 +3,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{bm}
 \usepackage{graphicx}
 \usepackage{natbib}
-\usepackage{url}
 \usepackage{hyperref}
 \usepackage{geometry}
-\usepackage{booktabs}
-\usepackage{array}
 \usepackage{float}
 
 \geometry{margin=1in}
@@ -21,7 +15,6 @@
 \renewcommand{\thesection}{S\arabic{section}}
 \renewcommand{\thefigure}{S\arabic{figure}}
 \renewcommand{\thetable}{S\arabic{table}}
-\renewcommand{\theequation}{S\arabic{equation}}
 
 \title{Supplementary Information:\\
   Synchronization confounds inference of coupling in dynamical systems}
@@ -30,142 +23,7 @@
 \begin{document}
 \maketitle
 
-\section{Sensitivity Equations}\label{sec:si_sens}
-
-Computing the Cram\'er-Rao lower bound and optimizing the likelihood
-both require derivatives of model outputs with respect to parameters.
-Let $\phi \in \{\theta, S_1(0), S_2(0), I_1(0), I_2(0)\}$ denote a
-parameter ($\phi = \phi_k$ for some $k = 1, \dots, 5$). Denote
-$\mathbf{S}(t) = (S_1(t), S_2(t))$, $\mathbf{I}(t) = (I_1(t),
-I_2(t))$, and $\mathbf{N}^{-1} = \text{diag}(1/N_1, 1/N_2)$.
-
-The sensitivity of the force of infection is:
-\begin{equation}\label{eq:si_sens_lambda}
-\frac{\partial \lambda_i(t)}{\partial \phi} = \beta_i(t) \left(
-\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{N}^{-1}
-\mathbf{I}(t) + \mathbf{C} \mathbf{N}^{-1} \frac{\partial
-  \mathbf{I}(t)}{\partial \phi} \right)_i
-\end{equation}
-where
-$\frac{\partial \mathbf{C}}{\partial \theta} =
-\begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix}$
-and $\partial \mathbf{C}/\partial \phi = \mathbf{0}$ for $\phi \neq
-\theta$.
-
-The sensitivity of the expected incidence follows by the product rule:
-\begin{equation}\label{eq:si_sens_mu}
-\frac{\partial \mu_i(t)}{\partial \phi} =
-\frac{\partial S_i(t)}{\partial \phi} [1 - \exp(-\lambda_i(t))]
-+ S_i(t) \exp(-\lambda_i(t)) \frac{\partial \lambda_i(t)}{\partial \phi}
-\end{equation}
-
-The state sensitivities propagate according to:
-\begin{align}\begin{split}\label{eq:si_sens}
-\frac{\partial S_i(t+1)}{\partial \phi} &= \exp(-\lambda_i(t))
-\frac{\partial S_i(t)}{\partial \phi} - S_i(t) \exp(-\lambda_i(t))
-\frac{\partial \lambda_i(t)}{\partial \phi} \\
-\frac{\partial I_i(t+1)}{\partial \phi} &= \exp(-\gamma)
-\frac{\partial I_i(t)}{\partial \phi} +
-\frac{\partial \mu_i(t)}{\partial \phi}
-\end{split}\end{align}
-with initial conditions $\partial S_i(0)/\partial S_j(0) =
-\delta_{ij}$, $\partial I_i(0)/\partial I_j(0) = \delta_{ij}$, and
-zero otherwise. These are solved jointly with the state equations in a
-single forward pass.
-
-
-\section{Derivation of the Fisher Information Matrix}\label{sec:si_fim}
-
-Differentiating the log-likelihood with respect to $\phi$ and
-defining $A_i(t) := -\frac{1}{2\mu_i(t)} + \frac{Y_i(t) -
-  \rho\mu_i(t)}{(1-\rho)\mu_i(t)} + \frac{(Y_i(t) -
-  \rho\mu_i(t))^2}{2\rho(1-\rho)\mu_i(t)^2}$, we obtain $\partial
-\ell / \partial \phi = \sum_{t,i} A_i(t)\, \partial
-\mu_i(t)/\partial \phi$. Since $\mathbb{E}[A_i(t)] = 0$ and
-observations are independent across $(i,t)$:
-\begin{equation*}
-J_{kl} = \sum_{t,i} \mathbb{E}[A_i(t)^2]\,
-\frac{\partial \mu_i(t)}{\partial \phi_k}
-\frac{\partial \mu_i(t)}{\partial \phi_l}
-\end{equation*}
-
-Writing $\epsilon_i(t) = Y_i(t) - \rho\mu_i(t) \sim
-\mathcal{N}(0,\rho(1-\rho)\mu_i(t))$ and expanding $A_i(t)^2$:
-\begin{align*}
-A_i(t)^2 &= \frac{1}{4\mu_i(t)^2} -
-\frac{\epsilon_i(t)}{(1-\rho)\mu_i(t)^2} -
-\frac{\epsilon_i(t)^2}{2\rho(1-\rho)\mu_i(t)^3} \\
-&\quad + \frac{\epsilon_i(t)^2}{(1-\rho)^2\mu_i(t)^2} +
-\frac{\epsilon_i(t)^3}{\rho(1-\rho)^2\mu_i(t)^3} +
-\frac{\epsilon_i(t)^4}{4\rho^2(1-\rho)^2\mu_i(t)^4}
-\end{align*}
-
-Using Gaussian moments ($\mathbb{E}[\epsilon^2] =
-\rho(1-\rho)\mu_i(t)$, $\mathbb{E}[\epsilon^3] = 0$,
-$\mathbb{E}[\epsilon^4] = 3[\rho(1-\rho)\mu_i(t)]^2$):
-\begin{align*}
-\mathbb{E}[A_i(t)^2] &= \frac{1}{4\mu_i(t)^2} -
-\frac{1}{2\mu_i(t)^2} + \frac{\rho}{(1-\rho)\mu_i(t)^2} +
-\frac{3}{4\mu_i(t)^2} = \frac{1+\rho}{2(1-\rho)\mu_i(t)^2}
-\end{align*}
-
-Therefore:
-\begin{equation}\label{eq:si_fim_scalar}
-J_{kl} = \frac{1+\rho}{2(1-\rho)}\sum_{t=0}^{T-1}\sum_{i=1}^{2}
-\frac{1}{\mu_i(t)^2} \frac{\partial \mu_i(t)}{\partial \phi_k}
-\frac{\partial \mu_i(t)}{\partial \phi_l}
-\end{equation}
-In matrix form, $\mathbf{J} = \mathbf{G}^T \mathbf{W} \mathbf{G}$
-where $\mathbf{G} \in \mathbb{R}^{2T \times 5}$ has entries
-$G_{(i,t),k} = \partial \mu_i(t)/\partial \phi_k$ and $\mathbf{W} =
-\frac{1+\rho}{2(1-\rho)}\,\text{diag}(\mu_1(0)^{-2}, \ldots,
-\mu_2(T{-}1)^{-2})$.
-
-
-\section{Model Parameters}\label{sec:si_params}
-
-\begin{table}[h]
-\centering
-\begin{tabular}{llll}
-\toprule
-Parameter & Value & Description & Source or calculation\\
-\midrule
-$R^{\text{max}}_0$ & 3.52 & $R_0$ at peak season & \cite{shaman2010} \\
-$R^{\text{min}}_0$ & 1.12 & $R_0$ during the summer & \cite{shaman2010} \\
-$D$ & 3.24 & Mean infection period (days) & \cite{shaman2010} \\
-$\gamma$ & $2.16$ & Weekly recovery rate & $7 / D$ \\
-$\beta_{\text{max}}$ & $3.11$ & Peak-season transmission & $R_0^{\text{max}}(1 - e^{-\gamma})$\\
-$\beta_{\text{min}}$ & $0.99$ & Low-season transmission & $R_0^{\text{min}}(1 - e^{-\gamma})$ \\
-$\beta_0$ & $2.05$ & Mean transmission rate & $(\beta_{\text{min}} + \beta_{\text{max}})/2$ \\
-$\delta$ & $0.517$ & Seasonal amplitude & $\beta_{\text{max}} / \beta_0 - 1$\\
-$\rho$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate & \citet{rolfes2018}\\
-$\varphi$ & & Phase of seasonal forcing & per state \\
-\bottomrule
-\end{tabular}
-\caption{Model parameters calibrated to seasonal influenza with
-  $\beta(t) = \beta_0(1+\delta \sin(2\pi t + \varphi))$.}
-\label{tab:si_params}
-\end{table}
-
-
-\section{Statistical Power Heatmap}\label{sec:si_power}
-
-Figure~\ref{fig:si_power} shows the statistical power for detecting
-non-zero connectivity as a function of the true connectivity and
-seasonal amplitude.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{../pix/power.pdf}
-\caption{Statistical power for detecting $\theta > 0$ at the 5\%
-  significance level. Left: synchronized (in-phase). Right:
-  asynchronous (out-of-phase by $\pi$). When epidemics are
-  synchronized, power remains low even for large $\theta$.}
-\label{fig:si_power}
-\end{figure}
-
-
-\section{Data and Reconstruction}\label{sec:si_data}
+\section{Data}\label{sec:si_data}
 
 \begin{figure}[h]
 \centering
@@ -178,15 +36,6 @@ seasonal amplitude.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=\textwidth]{../pix/seasons_highlighted.pdf}
-\caption{P\&I deaths with flu seasons used for inference highlighted
-  (darker segments). COVID-19 pandemic years (2020--2022) are
-  excluded.}
-\label{fig:si_seasons}
-\end{figure}
-
-\begin{figure}[h]
-\centering
 \includegraphics[width=\textwidth]{../pix/rec_CAxNY.pdf}
 \caption{Reconstruction of excess P\&I deaths for California (top) and
   New York (bottom) for three flu seasons. Black dots: observed weekly
@@ -194,6 +43,63 @@ seasonal amplitude.
 \label{fig:si_reconstruction}
 \end{figure}
 
+\section{Empirical Distribution of Fitted Initial Conditions}\label{sec:si_ics}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../pix/ic_distribution.pdf}
+\caption{Distribution of fitted initial conditions across all US
+  state pairs and seasons. Left: susceptible fraction $S_i(0)/N_i$.
+  Right: $\log_{10}$ of infected fraction $I_i(0)/N_i$. These
+  distributions are used to generate realistic initial conditions for
+  the simulated likelihood surface analysis.}
+\label{fig:si_ics}
+\end{figure}
+
+\section{Initial-Condition Asymmetry Restores Identifiability}\label{sec:si_ic_asymmetry}
+
+Figure~\ref{fig:si_ic_asymmetry} explores the effect of
+initial-condition asymmetry on the likelihood surface under
+synchronized (left, $\Delta\varphi = 0$) and asynchronous (right,
+$\Delta\varphi = \pi$) forcing. Three IC regimes are compared:
+identical ICs for both regions, similar ICs drawn from the empirical
+distribution of real-data fits (SI~Fig.~\ref{fig:si_ics}), and very
+different ICs drawn from wide ranges.
+
+Under synchronized forcing (left), identical ICs produce a completely
+flat likelihood. Similar ICs---representative of the variation
+observed between US states---produce only a marginal improvement.
+Very different ICs restore a clear peak, demonstrating that
+substantial IC asymmetry can compensate for the lack of phase
+asymmetry. Under asynchronous forcing (right), all three IC regimes
+produce a sharp peak near the true $\theta$, confirming that phase
+asymmetry alone is sufficient for identifiability regardless of IC
+similarity.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../pix/ic_asymmetry_sync_unsync.pdf}
+\caption{Log-likelihood as a function of $\theta$ for three
+  initial-condition regimes. Left: synchronized forcing
+  ($\Delta\varphi = 0$). Right: asynchronous forcing ($\Delta\varphi
+  = \pi$). Red dashed line: true $\theta = 0.05$. Under
+  synchronization, only very different ICs restore identifiability.
+  Under asynchronous forcing, identifiability is robust to IC
+  similarity.}
+\label{fig:si_ic_asymmetry}
+\end{figure}
+
+\section{Phase Difference and Identifiability}\label{sec:si_phase}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{../pix/phase_diff_vs_crlb.pdf}
+\caption{Phase difference $|\varphi_1 - \varphi_2|$ between state
+  pairs vs.\ $\sqrt{\text{CRLB}}$. The narrow range of phase
+  differences (all below $\sim\pi/10$) reflects the strong
+  synchronization of temperate US influenza seasons.}
+\label{fig:si_phase}
+\end{figure}
 
 \bibliographystyle{plainnat}
 \bibliography{refs.bib, ~/lib.bib}

@@ -1,15 +1,5 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import sys
-import traceback
-import pdb
-import os
-import uuid
-from typing import Callable, Dict, List
-from scipy.linalg import cho_factor, cho_solve
-
-from numba import njit
 
 
 def contacts(S0: np.ndarray,
@@ -23,170 +13,99 @@ def contacts(S0: np.ndarray,
              N: np.ndarray
              ) -> pd.DataFrame:
     """
-    Compute the Jacobian matrix G = ∂μ/∂φ for the exponential discretization SIR model.
-
-    This function uses the exponential formulation:
-        S(t+1) = S(t) exp(-λ(t))
-        I(t+1) = I(t) exp(-γ) + μ(t)
-    where μ(t) = S(t)[1 - exp(-λ(t))] and λ(t) = β(t) C (I(t)/N)
+    Compute the Jacobian matrix G = ∂μ/∂φ for the exponential discretization SIR model
+    with force of infection: λ_i = β_i * (C @ I)_i / (C @ N)_i.
 
     All S, I, μ are in counts (not fractions).
-
-    Parameters:
-    -----------
-    S0 : np.ndarray
-        Initial susceptible counts (shape: n_regions)
-    I0 : np.ndarray
-        Initial infected counts (shape: n_regions)
-    gamma : float
-        Recovery rate parameter (not probability - can exceed 1)
-    theta : float
-        Connectivity parameter (off-diagonal elements of contact matrix)
-    T : int
-        Number of time steps to simulate
-    beta0 : float
-        Base transmission rate
-    delta : float
-        Seasonal delta
-    phase : float, default=0.0
-        Phase offset for seasonal forcings (in radians). Applied to both regions.
-        β₁(t) = β₀(1 + A·sin(2πt/P + φ))
-        β₂(t) = β₀(1 + A·sin(2πt/P + φ₂)) if phase2 is not None
-    N : np.ndarray
-        Population sizes for each region (shape: n_regions)
-
-    Returns:
-    --------
-    pd.DataFrame
-        DataFrame with MultiIndex (t, j) where:
-        - t ∈ {0, 1, ..., T-1} (time steps)
-        - j ∈ {1, 2} (regions)
-        Columns: ['S', 'I', 'mu', 'theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']
-        Entry (t,j,param) = ∂μⱼ(t)/∂param
-        S, I, mu are counts (not fractions)
     """
 
-    # Initialize arrays to store results
     G = []
 
-    # Current state vectors
-    S = S0.copy()  # [S1(0), S2(0), ...]
-    I = I0.copy()  # [I1(0), I2(0), ...]
-    n_regions = len(S)
+    S = S0.copy()
+    I = I0.copy()
 
-    # Connectivity matrix and its derivative (2 regions only)
+    # Connectivity matrix and its derivative
     C = np.array([[1-theta, theta], [theta, 1-theta]])
     Omega = np.array([[-1.0, 1.0], [1.0, -1.0]])  # ∂C/∂θ
 
-    # Initialize sensitivity matrices (2x2 each) at t=0
-    dS_dS0 = np.eye(2)        # ∂S(t)/∂S(0) = Id
-    dI_dS0 = np.zeros((2, 2)) # ∂I(t)/∂S(0) = 0
-    dS_dI0 = np.zeros((2, 2)) # ∂S(t)/∂I(0) = 0
-    dI_dI0 = np.eye(2)        # ∂I(t)/∂I(0) = Id
+    # Effective population seen by each region: n_i = sum_j C_ij N_j
+    n_eff = C @ N          # shape (2,)
+    dn_eff_dtheta = Omega @ N  # ∂n_eff/∂θ, shape (2,)
 
-    # Initialize sensitivity vectors for theta
-    dS_dtheta = np.zeros(2)   # ∂S(t)/∂θ = 0 at t=0
-    dI_dtheta = np.zeros(2)   # ∂I(t)/∂θ = 0 at t=0
+    # Initialize sensitivities
+    dS_dS0 = np.eye(2)
+    dI_dS0 = np.zeros((2, 2))
+    dS_dI0 = np.zeros((2, 2))
+    dI_dI0 = np.eye(2)
+    dS_dtheta = np.zeros(2)
+    dI_dtheta = np.zeros(2)
 
-    # Compute observations for Ts time steps where all 0 <= t < 1
     for t in Ts:
-        # Seasonal transmission rate (vector for each region)
-        # β₁(t) = β₀(1 + A·sin(2πt/P + φ))
-        # β₂(t) = β₀(1 + A·sin(2πt/P + φ₂))
         beta_t = beta0 * (1 + delta * np.sin(2 * np.pi * t + phase))
-       
-        # Force of infection: λ(t) = β(t) ∘ (C (I(t)/N))
-        # Element-wise multiplication of beta_t with contact-weighted prevalence
-        lambda_t = beta_t * (C @ (I / N))
 
-        # Mean incidence: μ(t) = S(t) [1 - exp(-λ(t))]
+        # FOI: λ_i = β_i * (C @ I)_i / n_eff_i
+        CI = C @ I               # contact-weighted infected, shape (2,)
+        lambda_t = beta_t * CI / n_eff
+
         mu = S * (1 - np.exp(-lambda_t))
 
-        # === Compute ∂μ(t)/∂θ ===
-        # ∂λ(t)/∂θ = β(t) [Ω (I(t)/N) + C (∂I(t)/∂θ / N)]
-        dlambda_dtheta = beta_t * (Omega @ (I / N) + C @ (dI_dtheta / N))
+        # === Sensitivities of λ w.r.t. θ ===
+        # λ_i = β_i * (C @ I)_i / (C @ N)_i
+        # ∂λ_i/∂θ = β_i * [ (Ω @ I + C @ ∂I/∂θ)_i / n_eff_i
+        #                   - (C @ I)_i * (Ω @ N)_i / n_eff_i^2 ]
+        dlambda_dtheta = beta_t * (
+            (Omega @ I + C @ dI_dtheta) / n_eff
+            - CI * dn_eff_dtheta / n_eff**2
+        )
 
-        # ∂μ(t)/∂θ = ∂S(t)/∂θ [1 - exp(-λ(t))] + S(t) exp(-λ(t)) ∂λ(t)/∂θ
-        dmu_dtheta = dS_dtheta * (1 - np.exp(-lambda_t)) + S * np.exp(-lambda_t) * dlambda_dtheta
+        dmu_dtheta = (dS_dtheta * (1 - np.exp(-lambda_t))
+                      + S * np.exp(-lambda_t) * dlambda_dtheta)
 
-        # === Compute ∂μ(t)/∂S(0) ===
-        # ∂λ(t)/∂S(0) = β(t) ∘ C (∂I(t)/∂S(0) / N)
-        # Broadcasting: beta_t[:, None] has shape (2, 1), (C @ dI_dS0) has shape (2, 2)
-        dlambda_dS0 = beta_t[:, None] * (C @ (dI_dS0 / N[:, None]))  # Shape (2, 2)
+        # === Sensitivities of λ w.r.t. S(0) ===
+        # ∂λ_i/∂S_j(0) = β_i * (C @ ∂I/∂S(0))_i / n_eff_i
+        # (no denominator derivative since N doesn't depend on S(0))
+        dlambda_dS0 = beta_t[:, None] * (C @ dI_dS0) / n_eff[:, None]
 
-        # ∂μ(t)/∂S(0) = ∂S(t)/∂S(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂S(0)
-        # Broadcasting: (2,2) * (2,) -> each row gets multiplied
-        dmu_dS0 = dS_dS0 * (1 - np.exp(-lambda_t))[:, None] + (S * np.exp(-lambda_t))[:, None] * dlambda_dS0
-        
-        # === Compute ∂μ(t)/∂I(0) ===
-        # ∂λ(t)/∂I(0) = β(t) ∘ C (∂I(t)/∂I(0) / N)
-        # Broadcasting: beta_t[:, None] has shape (2, 1), (C @ dI_dI0) has shape (2, 2)
-        dlambda_dI0 = beta_t[:, None] * (C @ (dI_dI0 / N[:, None]))  # Shape (2, 2)
+        dmu_dS0 = (dS_dS0 * (1 - np.exp(-lambda_t))[:, None]
+                   + (S * np.exp(-lambda_t))[:, None] * dlambda_dS0)
 
-        # ∂μ(t)/∂I(0) = ∂S(t)/∂I(0) ∘ [1 - exp(-λ(t))] + S(t) ∘ exp(-λ(t)) ∘ ∂λ(t)/∂I(0)
-        dmu_dI0 = dS_dI0 * (1 - np.exp(-lambda_t))[:, None] + (S * np.exp(-lambda_t))[:, None] * dlambda_dI0
+        # === Sensitivities of λ w.r.t. I(0) ===
+        # Same structure as S(0): only numerator depends on I via ∂I/∂I(0)
+        dlambda_dI0 = beta_t[:, None] * (C @ dI_dI0) / n_eff[:, None]
 
-        # Store results for both regions (j=0,1)
+        dmu_dI0 = (dS_dI0 * (1 - np.exp(-lambda_t))[:, None]
+                   + (S * np.exp(-lambda_t))[:, None] * dlambda_dI0)
+
+        # Store results
         for j in range(2):
-            row_data = {
-                't': t,
-                'j': j,  # Regions numbered 0,1
-                'S': S[j],   # Current susceptible count
-                'I': I[j],   # Current infected count
-                'mu': mu[j], # Incidence count μⱼ(t)
+            G.append({
+                't': t, 'j': j,
+                'S': S[j], 'I': I[j], 'mu': mu[j],
                 'theta': dmu_dtheta[j],
-                'S1_0': dmu_dS0[j, 0],  # ∂μⱼ(t)/∂S₁(0)
-                'I1_0': dmu_dI0[j, 0],  # ∂μⱼ(t)/∂I₁(0)
-                'S2_0': dmu_dS0[j, 1],  # ∂μⱼ(t)/∂S₂(0)
-                'I2_0': dmu_dI0[j, 1]   # ∂μⱼ(t)/∂I₂(0)
-            }
-            G.append(row_data)
+                'S1_0': dmu_dS0[j, 0], 'I1_0': dmu_dI0[j, 0],
+                'S2_0': dmu_dS0[j, 1], 'I2_0': dmu_dI0[j, 1]
+            })
 
-        # Update states for next time step (only if not last time step)
+        # Update states
         if t < Ts[-1]:
-            # === Update state variables ===
-            # S(t+1) = S(t) exp(-λ(t))
-            # I(t+1) = I(t) exp(-γ) + μ(t)
-            next_S = S * np.exp(-lambda_t)
+            exp_neg_lambda = np.exp(-lambda_t)
+            next_S = S * exp_neg_lambda
             next_I = I * np.exp(-gamma) + mu
 
-            # === Update ∂S(t+1)/∂θ ===
-            # ∂S(t+1)/∂θ = exp(-λ(t)) ∂S(t)/∂θ - S(t) exp(-λ(t)) ∂λ(t)/∂θ
-            next_dS_dtheta = np.exp(-lambda_t) * dS_dtheta - S * np.exp(-lambda_t) * dlambda_dtheta
-
-            # === Update ∂I(t+1)/∂θ ===
-            # ∂I(t+1)/∂θ = exp(-γ) ∂I(t)/∂θ + ∂μ(t)/∂θ
+            next_dS_dtheta = exp_neg_lambda * dS_dtheta - S * exp_neg_lambda * dlambda_dtheta
             next_dI_dtheta = np.exp(-gamma) * dI_dtheta + dmu_dtheta
 
-            # === Update ∂S(t+1)/∂S(0) ===
-            # ∂S(t+1)/∂S(0) = diag(exp(-λ(t))) ∂S(t)/∂S(0) - diag(S(t) exp(-λ(t))) ∂λ(t)/∂S(0)
-            exp_neg_lambda = np.exp(-lambda_t)
             next_dS_dS0 = exp_neg_lambda[:, None] * dS_dS0 - (S * exp_neg_lambda)[:, None] * dlambda_dS0
-
-            # === Update ∂I(t+1)/∂S(0) ===
-            # ∂I(t+1)/∂S(0) = exp(-γ) ∂I(t)/∂S(0) + ∂μ(t)/∂S(0)
             next_dI_dS0 = np.exp(-gamma) * dI_dS0 + dmu_dS0
 
-            # === Update ∂S(t+1)/∂I(0) ===
-            # ∂S(t+1)/∂I(0) = diag(exp(-λ(t))) ∂S(t)/∂I(0) - diag(S(t) exp(-λ(t))) ∂λ(t)/∂I(0)
             next_dS_dI0 = exp_neg_lambda[:, None] * dS_dI0 - (S * exp_neg_lambda)[:, None] * dlambda_dI0
-
-            # === Update ∂I(t+1)/∂I(0) ===
-            # ∂I(t+1)/∂I(0) = exp(-γ) ∂I(t)/∂I(0) + ∂μ(t)/∂I(0)
             next_dI_dI0 = np.exp(-gamma) * dI_dI0 + dmu_dI0
 
-            # Update all variables
-            S = next_S
-            I = next_I
-            dS_dtheta = next_dS_dtheta
-            dI_dtheta = next_dI_dtheta
-            dS_dS0 = next_dS_dS0
-            dI_dS0 = next_dI_dS0
-            dS_dI0 = next_dS_dI0
-            dI_dI0 = next_dI_dI0
+            S, I = next_S, next_I
+            dS_dtheta, dI_dtheta = next_dS_dtheta, next_dI_dtheta
+            dS_dS0, dI_dS0 = next_dS_dS0, next_dI_dS0
+            dS_dI0, dI_dI0 = next_dS_dI0, next_dI_dI0
 
-    # Create DataFrame with MultiIndex
     G = pd.DataFrame(G)
     G = G.set_index(['t', 'j'])
-
     return G
