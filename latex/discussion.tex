@@ -5,23 +5,28 @@ epidemic systems depends on the degree of symmetry between their
 dynamics. Using the Cram\'er-Rao Lower Bound, we quantified this
 precisely: when two regions experience synchronized epidemics with
 similar initial conditions, the Fisher Information for the coupling
-parameter approaches zero. A maximum-likelihood optimizer will still
-converge in this regime, potentially returning an estimate that
-appears well-determined but is in fact meaningless---the likelihood
-surface is flat, and any value of $\theta$ fits the data equally well.
+parameter is not even sufficient to determine whether or not the
+parameter is zero. A maximum-likelihood optimizer will potentially
+returne an estimate that appears well-determined but is in fact
+meaningless---the likelihood surface is too flat, and may different
+values of $\theta$ fit the data similarly well.
 
 Perhaps surprisingly, any source of asymmetry---different seasonal
 phasing, different initial conditions, or even different population
-sizes---breaks this degeneracy and restores identifiability
-(SI~Fig.~S5). The likelihood surface for California and New York,
-whose populations differ by roughly a factor of two, shows more
-curvature than that of Georgia and Ohio, whose populations are
-similar. This means that the impossibility of connectivity inference
-is not inherent to the estimation problem itself, but rather to the
-specific symmetric configuration that temperate influenza presents.
+sizes--- can break this degeneracy and restores identifiability
+(SI~Fig.~S5). The question is how much asymmetry is introduced. We
+demonstrated this effect by looking at likelihood curves. California
+and New York, are likely the most connected statesand their
+populations differ by roughly a factor of two. This gives rise to a
+peaked likelihood curve. In contrast, Georgia and Ohio are not
+strongly connected and their populations are similar. Indeed, the
+likelihood curve for Georgia and Ohio is relatively flat.
+%% This means that the impossibility of connectivity inference is not
+%%  necessarily inherent to the estimation problem itself, but rather
+%%  to the specific symmetric configuration that temperate influenza
+%%  presents.
 
 \subsection{The Role of Symmetry Breaking}
-
 Our analysis identifies two independent mechanisms that restore
 identifiability. First, when the seasonal forcing phases differ
 between regions, the epidemics peak at different times, and the
@@ -46,19 +51,18 @@ cannot be reliably inferred from influenza mortality data despite over
 a decade of observations.
 
 \subsection{Implications Beyond Influenza}
-
 Although our real-data analysis focuses on influenza, the framework
-applies to any coupled epidemic system. For diseases where regional
-initial conditions differ substantially, our analysis predicts that
-connectivity inference may succeed even under synchronized forcing.
-Measles is a natural candidate: vaccination coverage varies widely
-between regions (and between countries), creating large differences
-in the susceptible fraction at the start of each outbreak. These
-differences break the symmetry that confounds influenza inference.
-Similarly, diseases with spatially heterogeneous prior
-immunity---whether from natural infection or targeted vaccination
-campaigns---may offer more favorable conditions for estimating
-spatial coupling from surveillance data alone.
+may be applied to any coupled epidemic system. For diseases where
+regional initial conditions differ substantially, our analysis
+predicts that connectivity inference may succeed even under
+synchronized forcing. Measles is a natural candidate: vaccination
+coverage varies widely between regions (and between countries),
+creating large differences in the susceptible fraction at the start of
+each outbreak. These differences break the symmetry that confounds
+influenza inference.  Similarly, diseases with spatially heterogeneous
+prior immunity---whether from natural infection or targeted
+vaccination campaigns---may offer more favorable conditions for
+estimating spatial coupling from surveillance data alone.
 
 \subsection{Implications for Influenza Surveillance}
 
@@ -86,19 +90,18 @@ analysis provides a theoretical explanation for these practical
 failures.
 
 \subsection{Limitations}
-
 Several limitations warrant discussion. First, our model assumes a
 single influenza strain with uniform transmission parameters
-($\beta_0$, $\delta$, $\gamma$) across all seasons. In reality, the
-basic reproduction number varies substantially across influenza
-subtypes: H3N2 seasons tend to be more severe and transmissible than
-H1N1 or influenza B seasons~\citep{biggerstaff2014}. This
-variability is partially mitigated by allowing the initial susceptible
-fraction $S_i(0)$ to vary freely across seasons---a lower effective
-$R_0$ can be compensated by a higher initial susceptible pool, and
-vice versa---but the seasonal forcing shape is fixed.  A model that
-explicitly accounts for strain-specific transmission could improve
-real-data fits.
+($\beta_0$, $\delta$, $\gamma$) across all seasons and regions. In
+reality, the basic reproduction number varies substantially across
+influenza subtypes: H3N2 seasons tend to be more severe and
+transmissible than H1N1 or influenza B
+seasons~\citep{biggerstaff2014}. This variability is partially
+mitigated by allowing the initial susceptible fraction $S_i(0)$ to
+vary freely across seasons---a lower effective $R_0$ can be
+compensated by a higher initial susceptible pool, and vice versa---but
+the seasonal forcing shape is fixed.  A model that explicitly accounts
+for strain-specific transmission could improve real-data fits.
 
 Second, we focused on a two-region model with symmetric coupling;
 extensions to asymmetric coupling or larger networks may reveal
