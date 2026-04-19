@@ -1,23 +1,21 @@
 \begin{abstract}
-When shared forcing synchronizes coupled dynamical systems, the
-coupling itself becomes difficult to infer---an optimizer may converge
-to a plausible-looking estimate that carries no statistical support.
-We quantify this risk in the context of spatial epidemiology using the
-Cram\'er-Rao Lower Bound (CRLB). For a discrete-time two-region SIR
-model with seasonal forcing, we derive exact sensitivity equations and
-compute the Fisher Information for the connectivity parameter
-$\theta$. Identifiability depends on the degree of symmetry between
-regions: when both seasonal phases and initial epidemic states are
-similar, the CRLB diverges and $\theta$ cannot be reliably estimated.
-Surprisingly, any source of asymmetry---different seasonal timing,
-different initial conditions, or even different population
-sizes---restores identifiability. We validate these predictions on
-synthetic data and apply the framework to pneumonia and influenza
-excess mortality across US states. Despite 12 flu seasons of data,
-connectivity estimates for nearly all state pairs cannot be
-distinguished from zero, consistent with the strong synchronization
-of temperate influenza epidemics. For diseases where regional
-asymmetries are naturally present, such as measles with heterogeneous
-vaccination coverage, our analysis predicts that connectivity
-inference from case data may be feasible.
+Spatial forecasting models for seasonal-influenza preparedness encode
+inter-regional connectivity from external mobility data.
+%%
+%%~\citep{reich2019, johansson2019}
+%%
+We ask whether the surveillance data that train such models carry any
+information about this parameter. Using the Cram\'er-Rao Lower Bound
+on a connectivity parameter, we find that seasonal entrainment causes
+inter-regional-coupling to be unidentifiable in epidemic
+models. Because the CRLB bounds every unbiased estimator and is
+computed from the model alone, this vanishing is established at the
+design stage, without fitting messy surveillance data or iterating
+through alternative inference pipelines. A validation on 12~seasons of
+excess pneumonia and influenza mortality across 47~US states confirms
+the prediction: 95\% confidence intervals around estimated
+connectivity overlap zero for nearly all 1081~state pairs. The
+operational implication is concrete: inter-regional coupling carries
+very liitle information and should be dropped from seasonal-influenza
+preparedness forecasting models.
 \end{abstract}

@@ -23,7 +23,7 @@
 \setlength{\parskip}{6pt}
 
 % Title and authors
-\title{Synchronization confounds inference of coupling in dynamical systems}
+\title{Seasonal entrainment makes inter-regional coupling unidentifiable in influenza forecasting}
 
 %\author{Yair Daon}
 
@@ -37,21 +37,20 @@
 
 \input{abstract}
 
-\bigskip
-\noindent\textbf{Significance Statement.}
-Estimating how infectious diseases spread between regions from
-outbreak data is a natural goal, but our analysis shows it can produce
-misleading results.  When regional epidemics are synchronized---as
-influenza is across the United States each winter---a standard
-maximum-likelihood fit will return a connectivity estimate that looks
-reasonable yet has a confidence interval spanning nearly the entire
-parameter space.  We derive a theoretical bound showing exactly when
-this happens: synchronization combined with similar initial epidemic
-conditions destroys the information needed to identify coupling.  Any
-asymmetry between regions---different epidemic timing or different
-starting immunity---restores identifiability.  These results extend to
-any system of coupled oscillators driven by common forcing, including
-neural circuits and ecological networks.
+%% Significance Statement (for PNAS; comment out for Nature Comm)
+%% \bigskip
+%% \noindent\textbf{Significance Statement.}
+%% Spatial epidemic models routinely include connectivity between
+%% regions, but we show this parameter is fundamentally unidentifiable
+%% for synchronized seasonal diseases. Using the Cram\'er-Rao Lower
+%% Bound, we prove that when influenza epidemics rise and fall together
+%% across US states each winter, no statistical method can reliably
+%% estimate inter-state connectivity from mortality data. This carries a
+%% practical message for modelers: if a parameter cannot be learned from
+%% data, it should not be in the model. For established seasonal
+%% pathogens, simpler models without spatial coupling are equally
+%% justified. Connectivity remains identifiable for novel pathogens
+%% during their initial asynchronous spread.
 
 \input{intro}
 \input{methods}
