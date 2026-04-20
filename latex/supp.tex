@@ -17,7 +17,7 @@
 \renewcommand{\thetable}{S\arabic{table}}
 
 \title{Supplementary Information:\\
-  Synchronization confounds inference of coupling in dynamical systems}
+  Seasonal entrainment makes inter-regional coupling unidentifiable in influenza forecasting}
 \date{}
 
 \begin{document}
@@ -54,39 +54,6 @@
   distributions are used to generate realistic initial conditions for
   the simulated likelihood surface analysis.}
 \label{fig:si_ics}
-\end{figure}
-
-\section{Initial-Condition Asymmetry Restores Identifiability}\label{sec:si_ic_asymmetry}
-
-Figure~\ref{fig:si_ic_asymmetry} explores the effect of
-initial-condition asymmetry on the likelihood surface under
-synchronized (left, $\Delta\varphi = 0$) and asynchronous (right,
-$\Delta\varphi = \pi$) forcing. Three IC regimes are compared:
-identical ICs for both regions, similar ICs drawn from the empirical
-distribution of real-data fits (SI~Fig.~\ref{fig:si_ics}), and very
-different ICs drawn from wide ranges.
-
-Under synchronized forcing (left), identical ICs produce a completely
-flat likelihood. Similar ICs---representative of the variation
-observed between US states---produce only a marginal improvement.
-Very different ICs restore a clear peak, demonstrating that
-substantial IC asymmetry can compensate for the lack of phase
-asymmetry. Under asynchronous forcing (right), all three IC regimes
-produce a sharp peak near the true $\theta$, confirming that phase
-asymmetry alone is sufficient for identifiability regardless of IC
-similarity.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{../pix/ic_asymmetry_sync_unsync.pdf}
-\caption{Log-likelihood as a function of $\theta$ for three
-  initial-condition regimes. Left: synchronized forcing
-  ($\Delta\varphi = 0$). Right: asynchronous forcing ($\Delta\varphi
-  = \pi$). Red dashed line: true $\theta = 0.05$. Under
-  synchronization, only very different ICs restore identifiability.
-  Under asynchronous forcing, identifiability is robust to IC
-  similarity.}
-\label{fig:si_ic_asymmetry}
 \end{figure}
 
 \section{Phase Difference and Identifiability}\label{sec:si_phase}

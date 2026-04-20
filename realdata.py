@@ -13,6 +13,7 @@ from itertools import combinations
 
 from src.data_loader import load_real
 from src.inverter import Inverter
+from src.coordinate import Coordinate
 from src.helpers import current
 from src.flu import Mortality as flu
 from joblib import Parallel, delayed
@@ -43,8 +44,13 @@ def main():
         if s1_abbr > s2_abbr:
             state1, state2 = state2, state1
             s1_abbr, s2_abbr = s2_abbr, s1_abbr
-
-        
+        keep1 = s1_abbr =='CA' and s2_abbr == 'NY'
+        keep2 = s1_abbr =='GA' and s2_abbr == 'OH'
+        keep3 = s1_abbr =='IL' and s2_abbr == 'PA'
+        keep = (keep1 or keep2 or keep3)
+        if not keep:
+            continue
+            
         filename = f"{OUTPUT_DIR}/{s1_abbr}x{s2_abbr}.csv"
         regions = [state1.name, state2.name]
     

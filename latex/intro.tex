@@ -89,22 +89,13 @@ with seasonal forcing, we compute the CRLB for a connectivity
 parameter. We then fit the model to 12 seasons of pneumonia and
 influenza (P\&I) excess mortality across 47~US states.
 
-Our finding is unambiguous: \textbf{there is no statistical evidence
-  for inter-regional coupling in US influenza mortality}.
-CRLB-derived 95\% confidence intervals around the fitted connectivity
-overlap zero for nearly all 1081 state pairs. Connectivity estimates
-spread almost uniformly across $[0, 0.5]$. The CRLB analysis explains
-why: each state's epidemic is entrained to its local seasonal forcing,
-and the resulting near-symmetry in the expected trajectories makes the
-data fundamentally uninformative about connectivity.
-
-Our practical recommendation for preparedness forecasting is therefore
-to \textbf{drop inter-regional coupling from the model}. The uncoupled
-model is easier to fit, calibrate and communicate.  For novel
-pathogens during their asynchronous initial spread, by contrast,
-connectivity \emph{could} be identifiable and worth fitting to inform
-early-outbreak interventions. We can make this distinction precise
-using the CRLB analysis. More broadly, the paper demonstrates a
-design-stage identifiability check that can be applied to any spatial
-or structured epidemic model before commitment to a particular
-inference pipeline, a generalisation we return to in the discussion.
+Our finding is that \textbf{there is no statistical evidence for
+  inter-regional coupling in US influenza mortality}. CRLB-derived
+95\% confidence intervals around the fitted connectivity overlap zero
+for nearly all 1081 state pairs. Connectivity estimates spread almost
+uniformly across $[0, 0.5]$. The CRLB analysis explains why: each
+state's epidemic is entrained to its local seasonal forcing, and the
+resulting near-symmetry in the expected trajectories makes the data
+fundamentally uninformative about connectivity. Therefore, our
+practical recommendation for preparedness forecasting is therefore to
+\textbf{drop inter-regional coupling from the model}.

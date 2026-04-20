@@ -1,116 +1,86 @@
 \section{Results}
-\subsection{Synchronization Inflates CRLB}
+
+\subsection{Entrainment Inflates the CRLB}
+
 Figure~\ref{fig:crlb_ratio} shows the ratio of median CRLB
-(synchronized / asynchronous) under the two IC regimes. When initial
-conditions are similar (left), the ratio is large throughout the
-parameter space: synchronization inflates the data requirement by
-orders of magnitude. When initial conditions differ (right), the ratio
-is much smaller. Interestingly, the two panels look qualitatively
-similar but the color scales differ dramatically (note the colorbar
-values). Different initial conditions break the symmetry that makes
-synchronized and unsynchronized epidemics indistinguishable, reducing
-the penalty imposed by synchronization.
+(synchronized / asynchronous) across a grid of connectivity values
+$\theta$ and seasonal forcing amplitudes $\delta$, with initial
+conditions drawn from the empirical distribution of real-data fits
+(SI~Fig.~\ref{fig:si_ics}). The ratio exceeds unity throughout the
+parameter space, often by orders of magnitude: entrainment inflates
+the minimum achievable estimation variance of the connectivity
+parameter by factors that can exceed $10^3$ relative to the
+asynchronous regime. This confirms, in a simulated setting with
+realistic ICs, the entrainment-driven collapse of information about
+$\theta$ seen in the real data.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=\textwidth]{../pix/crlb_ratio.pdf}
+\includegraphics[width=0.75\textwidth]{../pix/crlb_ratio.pdf}
 \caption{Ratio of median CRLB (synchronized / asynchronous) as a
   function of connectivity $\theta$ and seasonal forcing amplitude
-  $\delta$. Left panel shows results for similar initial conditions
-  and right panel shows results for different initial conditions. In
-  both cases, synchronization inflates the CRLB, i.e.~for every
-  $\theta$ and $\delta$ the ratio of medians is $>1$. The two panels
-  look qualitatively similar, but the color scales differ by orders of
-  magnitude: with similar ICs (left), synchronization inflates the
-  CRLB far more than with different ICs. That is, a large difference
-  in initial conditions mitigates the confounding caused by a
-  synchronized seasonal driver.}
+  $\delta$. Initial conditions for each simulated season and region
+  are drawn independently from the empirical distribution of
+  per-season, per-state values fitted to the real data
+  (SI~Fig.~\ref{fig:si_ics}). The ratio exceeds~1 throughout the
+  parameter space.}
 \label{fig:crlb_ratio}
 \end{figure}
 
-
 \subsection{Data}
-We analyze excess P\&I mortality from 47 US states over 12 flu seasons
-(2010--2018 and 2023--2025, excluding the COVID-19 pandemic
-years). Figure~\ref{fig:seasons} shows the raw weekly death counts for
-four representative states, with the flu seasons used for inference
-highlighted.
+
+We analyze excess P\&I mortality from 47~US states over 12 flu seasons
+(2010--2018 and 2023--2025, excluding the COVID-19 pandemic years).
+Figure~\ref{fig:seasons} shows the raw weekly death counts for four
+representative states, with the flu seasons used for inference
+highlighted. The synchronized winter peaks are clearly visible: all
+four time series rise and fall together each year.
+
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../pix/seasons_highlighted.pdf}
 \caption{Weekly P\&I deaths for four US states. Light traces show the
   full time series; darker segments indicate the 20-week flu seasons
-  (starting each November) included in the analysis. COVID-19
-  pandemic years (2020--2022) are excluded. A pre-season baseline is
-  subtracted before model fitting.}
+  (starting each November) included in the analysis. COVID-19 pandemic
+  years (2020--2022) are excluded. A pre-season baseline is subtracted
+  before model fitting.}
 \label{fig:seasons}
 \end{figure}
 
+\subsection{US Influenza: No Statistical Evidence for Inter-Regional
+  Coupling}
 
-\subsection{US Influenza: Connectivity Cannot Be Inferred}
-We estimated $\theta$ and its CRLB for $\binom{47}{2} = 1081$ state
-pairs across 12 seasons. Representative model reconstructions for
-individual state pairs are shown in
-SI~Fig.~S4. Figure~\ref{fig:theta_vs_crlb} (left) shows $\hat{\theta}$
-against $\sqrt{\text{CRLB}}$. The dashed line marks the 5\%
-significance boundary: points above it cannot reject $\theta = 0$. The
-vast majority of state pairs fall in the non-significant
-region. Therefore, we observe the lack of statistical power in
-identifying $\theta > 0$. It is also interesting to observe the
-relatively uniform distribution of $\theta$'s in $[0, 0.5]$, implying,
-again, a lack of statistical power.
+We estimated $\theta$ and its CRLB for all $\binom{47}{2} = 1081$
+state pairs across 12 seasons. Figure~\ref{fig:theta_vs_crlb}~(left)
+shows $\hat\theta$ against $\sqrt{\text{CRLB}}$---the lower bound on
+the standard deviation of any unbiased estimator of $\theta$, which
+the MLE attains asymptotically. The dashed line marks the 5\%
+one-sided significance boundary: points above it have CRLB-derived
+95\% confidence intervals that overlap zero. The overwhelming
+majority of state pairs sit above the line, meaning that for nearly
+every pair of US states the surveillance data provide no statistical
+evidence for $\theta > 0$ under any unbiased estimator.
+
+Figure~\ref{fig:theta_vs_crlb}~(right) shows the empirical
+distribution of $\hat\theta$ across state pairs. The estimates spread
+approximately uniformly over $[0, 0.5]$: because the CRLB is large,
+each pair's point estimate is driven by the particular noise
+realization in its 12 seasons rather than by a signal in the data
+about coupling strength. The location of $\hat\theta$ within
+$[0, 0.5]$ is therefore itself statistically uninformative.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../pix/theta_vs_crlb.pdf}
 \caption{Left: estimated connectivity $\hat{\theta}$ vs.\
-  $\sqrt{\text{CRLB}}$ for all US state pairs. The dashed line is the
-  significance boundary: points above it cannot reject $\theta = 0$
-  at the 5\% level. Non-significant pairs are black circles;
-  significant pairs are red stars. Right: distribution of
-  $\hat\theta$ across all state pairs, showing an approximately
-  uniform spread consistent with uninformative data.}
+  $\sqrt{\text{CRLB}}$ for all 1081~US state pairs. The dashed line is
+  the significance boundary: points above it cannot reject $\theta =
+  0$ at the 5\% level. Black circles: non-significant. Red stars:
+  significant. Right: distribution of $\hat\theta$ across all pairs,
+  showing an approximately uniform spread consistent with
+  uninformative data.}
 \label{fig:theta_vs_crlb}
 \end{figure}
 
-
-\subsection{Log-likelihood Curves}
-Figure~\ref{fig:likelihood} shows log-likelihood curves for both
-simulated (left) and real (right) data. In the simulated panel, we use
-initial conditions drawn from the empirical distribution of fitted
-values from the real-data analysis. Three scenarios are compared:
-synchronized forcing with identical initial conditions ($\Delta\varphi
-= 0$), which produces a flat likelihood; a small phase difference
-($\Delta\varphi = \pi/45$), corresponding to the median phase
-difference between the US state pairs (excluding Alaska, Hawaii, and
-Arizona; and a large phase difference ($\Delta\varphi = \pi$).
-
-The right panel shows profile likelihood surfaces for real state
-pairs. California and New York ($N_{\text{CA}} \approx 2
-N_{\text{NY}}$) and Georgia and Ohio ($N_{\text{GA}} \approx
-N_{\text{OH}}$) are chosen to illustrate the effect of population size
-differences.
-
-Our analysis reveals that symmetry breaking---whether through phase
-differences, different initial conditions, or even different
-population sizes---can restore identifiability (see also SI~Fig.~S5
-for further simulatio results). This suggests that for disease systems
-where such asymmetries are naturally present, connectivity inference
-from case data might be feasible.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{../pix/likelihood_surface.pdf}
-\caption{Log-likelihood as a function of $\theta$. Left: simulated
-  data with initial conditions drawn from the empirical distribution
-  of real-data fits. Synchronized forcing with identical ICs produces
-  a flat likelihood; increasing the phase difference ($\pi/45$
-  corresponds to the median US state-pair difference) or using a large
-  phase offset ($\pi$) progressively sharpens the peak around the
-  true $\theta = 0.05$ (red dashed line). Right: profile likelihoods
-  for real US state pairs. GA$\times$OH (similar populations) shows a
-  flat surface; CA$\times$NY ($N_{\text{CA}} \approx 2 N_{\text{NY}}$)
-  shows more curvature, suggesting that population asymmetry partially
-  restores identifiability.}
-\label{fig:likelihood}
-\end{figure}
+Representative model reconstructions for individual state pairs are
+shown in the Supplementary Information.

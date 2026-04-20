@@ -1,154 +1,137 @@
 \section{Discussion}
 
-We have shown that the identifiability of connectivity between coupled
-epidemic systems depends on the degree of symmetry between their
-dynamics. Using the Cram\'er-Rao Lower Bound, we quantified this
-precisely: when two regions experience synchronized epidemics with
-similar initial conditions, the Fisher Information for the coupling
-parameter is not even sufficient to determine whether or not the
-parameter is zero. A maximum-likelihood optimizer will potentially
-returne an estimate that appears well-determined but is in fact
-meaningless---the likelihood surface is too flat, and may different
-values of $\theta$ fit the data similarly well.
+We have shown that US influenza surveillance data provide no
+statistical evidence for inter-regional coupling between states. The
+Cram\'er-Rao Lower Bound formalises this claim: for epidemics
+entrained by shared seasonal forcing with similar initial conditions,
+the Fisher Information for the coupling parameter approaches zero, so
+the variance of any unbiased estimator is large. A
+maximum-likelihood optimizer still converges and can return an
+estimate that appears well-determined, but the CRLB-derived 95\%
+confidence interval around it overlaps zero for nearly all 1081~state
+pairs; the estimate is statistically indistinguishable from the null
+hypothesis $\theta = 0$. The approximately uniform spread of
+$\hat\theta$ across state pairs is symptomatic of this
+uninformativeness rather than its definition: it is what one expects
+when each pair's point estimate is set by the noise realization in
+its 12~seasons rather than by any signal the data carry about
+coupling.
 
-Perhaps surprisingly, any source of asymmetry---different seasonal
-phasing, different initial conditions, or even different population
-sizes--- can break this degeneracy and restores identifiability
-(SI~Fig.~S5). The question is how much asymmetry is introduced. We
-demonstrated this effect by looking at likelihood curves. California
-and New York, are likely the most connected statesand their
-populations differ by roughly a factor of two. This gives rise to a
-peaked likelihood curve. In contrast, Georgia and Ohio are not
-strongly connected and their populations are similar. Indeed, the
-likelihood curve for Georgia and Ohio is relatively flat.
-%% This means that the impossibility of connectivity inference is not
-%%  necessarily inherent to the estimation problem itself, but rather
-%%  to the specific symmetric configuration that temperate influenza
-%%  presents.
+\subsection{Why Connectivity Is Unidentifiable}
 
-\subsection{The Role of Symmetry Breaking}
-Our analysis identifies two independent mechanisms that restore
-identifiability. First, when the seasonal forcing phases differ
-between regions, the epidemics peak at different times, and the
-connectivity parameter governs the cross-regional transmission that
-links these offset dynamics. Second, when initial conditions
-differ---for example, because regions enter the flu season with
-different levels of prior immunity---the resulting epidemic
-trajectories diverge even under identical forcing, again creating a
-signal that depends on $\theta$.
+The mechanism is simple. Shared seasonal forcing \emph{entrains}
+regional epidemics to a common trajectory---a form of resonance that
+looks superficially like coupling-induced synchronization but requires
+no coupling at all. When two entrained regions also start with
+similar initial susceptibility, their incidence curves are nearly
+indistinguishable regardless of $\theta$: a model with $\theta = 0$
+(isolated) and a model with $\theta = 0.5$ (fully coupled) produce the
+same trajectory, because any infection exchanged between regions is
+offset by an equal flow in the opposite direction. The CRLB formalizes
+this symmetry: $\partial\mu/\partial\theta \approx 0$, so the Fisher
+Information vanishes.
 
-For US states, both mechanisms are weak. Seasonal influenza is driven
-by winter conditions that are approximately synchronized across
-temperate North America~\citep{shaman2010}, and population-level
-susceptibility follows similar patterns nationwide. The CRLB ratio
-analysis (Fig.~\ref{fig:crlb_ratio}) quantifies the cost: with
-similar initial conditions, synchronization inflates the data
-requirement by orders of magnitude compared to asynchronous
-epidemics. With different initial conditions, the penalty is much
-smaller---but US states do not have sufficiently different initial
-conditions to benefit. This double symmetry explains why connectivity
-cannot be reliably inferred from influenza mortality data despite over
-a decade of observations.
+\subsection{Recommendation for Seasonal-Influenza Preparedness Forecasting}
 
-\subsection{Implications Beyond Influenza}
-Although our real-data analysis focuses on influenza, the framework
-may be applied to any coupled epidemic system. For diseases where
-regional initial conditions differ substantially, our analysis
-predicts that connectivity inference may succeed even under
-synchronized forcing. Measles is a natural candidate: vaccination
-coverage varies widely between regions (and between countries),
-creating large differences in the susceptible fraction at the start of
-each outbreak. These differences break the symmetry that confounds
-influenza inference.  Similarly, diseases with spatially heterogeneous
-prior immunity---whether from natural infection or targeted
-vaccination campaigns---may offer more favorable conditions for
-estimating spatial coupling from surveillance data alone.
+The practical consequences of our result lie in preparedness, not
+intervention. Seasonal-flu forecasts---organised through the CDC
+FluSight challenges~\citep{reich2019} and their analogues for other
+pathogens~\citep{johansson2019}---inform hospital staffing, vaccine
+distribution timing, antiviral stockpile management, and the timing
+of public-health communication. They are not typically used to argue
+for inter-state travel restrictions or quarantine. For this
+preparedness purpose, the operational recommendation is
+unambiguous: \textbf{drop inter-regional coupling from the model}.
+Fitted values of $\theta$ across 1081 US state pairs are
+statistically indistinguishable from zero, and the CRLB shows this is
+a structural property of entrainment rather than an artefact of any
+particular inference pipeline---no optimizer, prior, or likelihood
+approximation will rescue identifiability. Including a free
+connectivity parameter therefore adds complexity without adding
+predictive support, and risks confident-looking estimates with no
+statistical backing. The simpler uncoupled model is equally supported
+by the evidence and substantially easier to fit, calibrate, validate,
+and communicate. This also offers a partial explanation for the
+well-documented difficulty of epidemic
+forecasting~\citep{wilke2020, rosenkrantz2022}: any forecast product
+that depends on connectivity inherits the full uncertainty of an
+unidentified parameter, so removing the parameter improves not just
+model parsimony but forecast characterisation.
 
-\subsection{Implications for Influenza Surveillance}
+Our result additionally provides a theoretical basis for what has
+been standard practice in spatial epidemic forecasting: connectivity
+is typically imported from external mobility
+data~\citep{viboud2006, charu2017, kraemer2020, zhang2026} rather
+than inferred from case counts. The CRLB analysis explains why this
+practice is well-placed---the surveillance data cannot supply
+coupling information in the entrained regime---but also raises a
+sharper question: if model outputs are insensitive to $\theta$ in
+this regime, does \emph{importing} connectivity from mobility data
+buy anything for seasonal-flu preparedness forecasts, or should the
+spatial-coupling term be dropped entirely? Our analysis supports the
+latter: a model with $\theta$ imported from mobility data and one
+with $\theta = 0$ are, in the entrained regime, statistically
+indistinguishable in predictive support.
 
 The contrast between temperate and tropical influenza dynamics maps
-directly onto our identifiability framework. In temperate regions,
-shared winter forcing drives tightly synchronized epidemics, placing
-inference in the high-CRLB regime. In tropical regions, weaker and
-less coherent seasonal forcing produces asynchronous outbreak
-patterns~\citep{tamerius2013}, providing the asymmetry needed for
-identifiability. This suggests that connectivity inference from case
-data may be more feasible in tropical and subtropical settings, or
-during the early invasion phase of a pandemic when regional epidemics
-are naturally out of phase.
+directly onto our framework. In temperate regions, shared winter
+forcing entrains state-level epidemics, placing inference in the
+high-CRLB regime. In tropical regions, weaker and less coherent
+seasonal forcing produces asynchronous outbreak
+patterns~\citep{tamerius2013}, which our simulations show would
+provide the phase asymmetry needed for identifiability. Connectivity
+inference from case data may therefore be more feasible in tropical
+settings, or during the early invasion phase of a pandemic when
+regional epidemics are naturally out of phase---precisely the regime
+where early-outbreak interventions such as travel measures are
+policy-relevant. The CRLB analysis makes this distinction precise.
 
-Our results also explain why spatial epidemic studies have
-predominantly relied on external mobility data---commuting
-surveys~\citep{viboud2006}, gravity models~\citep{charu2017},
-mobile phone records~\citep{kraemer2020}, or air travel
-data~\citep{zhang2026}---rather than estimating connectivity from
-case counts. This was not necessarily a deliberate
-choice informed by identifiability theory; rather, case-data-based
-estimates were likely tried, found to be noisy or inconsistent, and
-quietly abandoned in favor of external data sources. Our CRLB
-analysis provides a theoretical explanation for these practical
-failures.
+\subsection{Beyond Influenza}
+
+The identifiability check we apply here is not specific to
+influenza or to inter-regional coupling. Contemporary spatial and
+structured epidemic models routinely carry many
+parameters---connectivity matrices, age-specific contact rates,
+behavioural-response terms, waning-immunity kernels---each of which
+requires that the surveillance data carry usable information about
+its effect on observables. Because the CRLB bounds the variance of
+every unbiased estimator and is computable from the model and a
+hypothesised parameter value alone, the same design-stage check can
+be applied parameter-by-parameter to any such model before any
+inference pipeline is committed; parameters whose CRLB exceeds the
+scale of their expected effect cannot be supported by the planned
+data and should be fixed from external sources, or removed from the
+model, rather than left as free degrees of freedom. The
+mathematical structure underlying our particular
+finding---oscillators driven by common periodic forcing---also
+arises outside epidemiology, in neural circuits receiving shared
+input~\citep{reid2019, pikovsky2001} and in metapopulations driven
+by environmental cycles~\citep{bjornstad1999}; the same
+entrainment-driven unidentifiability is plausible there, and the
+same design-stage diagnostic applies.
 
 \subsection{Limitations}
+
 Several limitations warrant discussion. First, our model assumes a
-single influenza strain with uniform transmission parameters
-($\beta_0$, $\delta$, $\gamma$) across all seasons and regions. In
-reality, the basic reproduction number varies substantially across
-influenza subtypes: H3N2 seasons tend to be more severe and
-transmissible than H1N1 or influenza B
-seasons~\citep{biggerstaff2014}. This variability is partially
-mitigated by allowing the initial susceptible fraction $S_i(0)$ to
-vary freely across seasons---a lower effective $R_0$ can be
-compensated by a higher initial susceptible pool, and vice versa---but
-the seasonal forcing shape is fixed.  A model that explicitly accounts
-for strain-specific transmission could improve real-data fits.
+single influenza strain with uniform transmission parameters across
+all seasons and regions. In reality, $R_0$ varies substantially across
+influenza subtypes~\citep{biggerstaff2014}. This variability is
+partially absorbed by allowing the initial susceptible fraction
+$S_i(0)$ to vary freely across seasons, but the seasonal forcing shape
+is fixed.
 
-Second, we focused on a two-region model with symmetric coupling;
-extensions to asymmetric coupling or larger networks may reveal
-additional identifiability challenges. Third, our observation model
-uses a Gaussian approximation to the binomial, which may be
-inadequate for small states where weekly excess death counts are low.
-Fourth, we compute excess deaths by subtracting a simple pre-season
-baseline following the approach of~\citet{serfling1963}; more
-sophisticated baseline models could improve the influenza-specific
-signal.
+Second, our observation model uses a Gaussian approximation to the
+binomial. Real mortality data likely exhibit overdispersion; a negative
+binomial model would increase the observation variance and inflate the
+CRLB further. Since the mechanism driving unidentifiability---vanishing
+sensitivity $\partial\mu/\partial\theta$ under symmetry---is
+independent of the noise model, our Gaussian CRLB represents an
+optimistic (smallest) bound. Any more realistic noise model would
+reinforce the conclusion.
 
-\subsection{Broader Implications}
-
-Our results offer a partial explanation for the well-documented
-difficulty of epidemic
-forecasting~\citep{wilke2020, rosenkrantz2022}. When regional
-epidemics are synchronized, the data cannot distinguish variability
-due to seasonal forcing from variability due to importation from
-connected regions. A model that attributes a surge to strong local
-forcing with weak coupling fits the data just as well as one that
-attributes the same surge to moderate forcing with strong coupling.
-This unresolved confound propagates into forecasts: any prediction
-that depends on the connectivity structure inherits the full
-uncertainty of the unidentified coupling parameter. The problem is
-not merely that connectivity is unknown---it is that the data are
-fundamentally silent about it when the system is synchronized.
-
-The mathematical structure underlying our results---coupled
-oscillators with shared periodic forcing---extends beyond
-epidemiology. Neural circuits receiving common input exhibit
-synchronization that may similarly obscure functional
-connectivity~\citep{reid2019, pikovsky2001}. Metapopulations driven by shared
-environmental cycles face analogous challenges when researchers
-attempt to infer dispersal rates from abundance time
-series~\citep{bjornstad1999}. In each case, the core insight
-applies: \emph{it is not synchronization alone that destroys
-  identifiability, but the combination of synchronization with
-  symmetric initial states}. Any observable asymmetry---different
-initial conditions, different intrinsic frequencies, or different
-responses to forcing---provides leverage for distinguishing coupled
-from uncoupled dynamics.
-
-The practical implication is cautionary. When fitting models of
-coupled systems to synchronized data, one should not trust the point
-estimate alone. The CRLB provides a cheap diagnostic: if the
-theoretical lower bound on estimator variance is large relative to
-the estimate, then the estimate is unreliable no matter how good
-the fit appears. We advocate computing the CRLB before investing
-effort in optimization, and reporting it alongside any connectivity
-estimate as a measure of the information content of the data.
+Third, we focused on a two-region model with symmetric coupling.
+Extensions to asymmetric coupling or larger networks may reveal
+additional identifiability challenges. Fourth, we compute excess
+deaths by subtracting a simple pre-season
+baseline~\citep{serfling1963}; more sophisticated baseline models
+could improve the influenza-specific signal.

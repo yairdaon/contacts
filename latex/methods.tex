@@ -35,7 +35,7 @@ where $t$ is measured in years. Then, following~\citet{edlund2011,
 \end{equation}
 
 The expected incidence is $\mu_i(t) = S_i(t)[1 -
-  \exp(-\lambda_i(t))]$, and the recovery probaility per time step is
+  \exp(-\lambda_i(t))]$, and the recovery probability per time step is
 $\exp(-\gamma)$. Time steps are denoted $\Delta t$, hence the
 discrete-time SIR dynamics are:
 \begin{align}\begin{split}\label{eq:discrete_sir}
@@ -47,10 +47,32 @@ each influenza season separately. Model parameters are calibrated to
 seasonal influenza following~\citet{shaman2010}; see
 Table~\ref{tab:params}.
 
+\begin{table}[h]
+\centering
+\begin{tabular}{llll}
+\toprule
+Parameter & Value & Description & Source or calculation\\
+\midrule
+$R^{\text{max}}_0$ & 3.52 & $R_0$ at peak season & \cite{shaman2010} \\
+$R^{\text{min}}_0$ & 1.12 & $R_0$ during the summer & \cite{shaman2010} \\
+$D$ & 3.24 & Mean infection period (days) & \cite{shaman2010} \\
+$\gamma$ & $2.16$ & Weekly recovery rate & $7 / D$ \\
+$\beta_{\text{max}}$ & $3.11$ & Peak-season transmission & $R_0^{\text{max}}(1 - e^{-\gamma})$\\
+$\beta_{\text{min}}$ & $0.99$ & Low-season transmission & $R_0^{\text{min}}(1 - e^{-\gamma})$ \\
+$\beta_0$ & $2.05$ & Mean transmission rate & $(\beta_{\text{min}} + \beta_{\text{max}})/2$ \\
+$\delta$ & $0.517$ & Seasonal amplitude & $\beta_{\text{max}} / \beta_0 - 1$\\
+$\rho$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate & \citet{rolfes2018}\\
+$\varphi$ & & Phase of seasonal forcing & per state \\
+\bottomrule
+\end{tabular}
+\caption{Model parameters calibrated to seasonal influenza with
+  $\beta(t) = \beta_0(1+\delta \sin(2\pi t + \varphi))$.}
+\label{tab:params}
+\end{table}
+
 \subsection{Observation Model and Likelihood}\label{subsec:noise}
 We assume each infection is reported independently with probability
-$\rho$, giving rise to binomially distributed observations which we ,
-approximate as Gaussian:
+$\rho$, giving rise to binomially distributed observations, which we approximate as Gaussian:
 %
 %
 $$
@@ -66,6 +88,18 @@ $$
 $$
 %
 %
+%% The Gaussian model is a deliberate simplification. Real
+%% surveillance data typically exhibit overdispersion; a negative
+%% binomial model with variance $\rho\mu_i + (\rho\mu_i)^2/k$ would be
+%% more realistic. At any fixed parameter value, overdispersion
+%% increases the observation variance, which reduces the FIM weights
+%% and inflates the CRLB. While the MLE itself may shift under a
+%% different noise model, the qualitative conclusion---that the CRLB
+%% for $\theta$ is large when epidemics are synchronized---is robust,
+%% since the underlying mechanism (vanishing sensitivity
+%% $\partial\mu/\partial\theta$ under symmetry) is independent of the
+%% observation model.
+
 The unknown parameters for a single season are $\boldsymbol{\phi} =
 (\theta, S_1(0), I_1(0), S_2(0), I_2(0))$, giving the log-likelihood:
 \begin{equation}\label{eq:loglik}
@@ -90,23 +124,20 @@ of infection~\eqref{eq:foi} is:
   \left(\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{N}\right)_i
 \right]
 \end{equation}
-Define
-%
-%
-$$
-\Omega := \partial \mathbf{C}/\partial \theta =
+The contact matrix derivative is
+
+\begin{align*}
+\partial \mathbf{C}/\partial \theta =
 \begin{bmatrix}
   -1 &  1 \\
-  1 & -1
-\end{bmatrix}
-$$
-%
-%
-and note $\partial \mathbf{C}/\partial \phi = \mathbf{0}$ for $\phi
-\neq \theta$. For $\phi \neq \theta$, $\partial \mathbf{C}/\partial
-\phi = 0$ and only the $\mathbf{C}\,\partial\mathbf{I}/\partial\phi$
-term survives in eq.~\eqref{eq:sens_foi}.
-
+  \phantom{-}1 & -1
+\end{bmatrix},\\
+\qquad
+\partial \mathbf{C}/\partial \phi = \mathbf{0} \text{ for } \phi \neq \theta,
+\end{align*}
+%% so for $\phi\neq\theta$ only the
+%% $\mathbf{C}\,\partial\mathbf{I}/\partial\phi$ term in
+%% eq.~\eqref{eq:sens_foi} survives.
 Partial derivatives of the expected incidence are found from the
 product rule:
 \begin{equation}\label{eq:sens_mu}
@@ -188,93 +219,95 @@ In matrix form, eq.~\eqref{eq:fim_scalar} can be written as
 
 When multiple seasons are available, we assume independence across
 seasons, treating each season's initial conditions as nuisance
-parameters. We aggregate to find the Cram\'er-Rao Lower Bound::
+parameters. We aggregate to find the Cram\'er-Rao Lower Bound:
 \begin{equation}\label{eq:crlb_multi}
 \text{Var}(\hat{\theta}) \geq \left(\sum_{s} \frac{1}{
-  [\mathbf{J}^{-1}(s)]_{11}}\right)^{-1}
+  [\mathbf{J}^{-1}(s)]_{11}}\right)^{-1},
 \end{equation}
+where $\mathbf{J}(s)$ is the Fisher information matrix for season $s$.
 Seasons where the CRLB computation fails (e.g., due to near-zero
-incidence producing a singular Fisher matrix) contribute no
-information and are assigned $[\mathbf{J}^{-1}(s)]_{11} = \infty$.
+incidence producing a singular Fisher information matrix) contribute
+no information and are assigned $[\mathbf{J}^{-1}(s)]_{11} = \infty$.
 
-\subsection{Model Parameters}\label{subsec:params}
+Under standard regularity conditions, the MLE is asymptotically
+efficient: $\hat\theta_{\text{MLE}} \sim \mathcal{N}(\theta,
+[\mathbf{J}^{-1}]_{11})$ as the number of observations
+grows~\citep{casella2024statistical}. The CRLB therefore also serves
+as a practical approximation for the variance of the
+maximum-likelihood estimate of $\theta$.
 
-\begin{table}[h]
-\centering
-\begin{tabular}{llll}
-\toprule
-Parameter & Value & Description & Source or calculation\\
-\midrule
-$R^{\text{max}}_0$ & 3.52 & $R_0$ at peak season & \cite{shaman2010} \\
-$R^{\text{min}}_0$ & 1.12 & $R_0$ during the summer & \cite{shaman2010} \\
-$D$ & 3.24 & Mean infection period (days) & \cite{shaman2010} \\
-$\gamma$ & $2.16$ & Weekly recovery rate & $7 / D$ \\
-$\beta_{\text{max}}$ & $3.11$ & Peak-season transmission & $R_0^{\text{max}}(1 - e^{-\gamma})$\\
-$\beta_{\text{min}}$ & $0.99$ & Low-season transmission & $R_0^{\text{min}}(1 - e^{-\gamma})$ \\
-$\beta_0$ & $2.05$ & Mean transmission rate & $(\beta_{\text{min}} + \beta_{\text{max}})/2$ \\
-$\delta$ & $0.517$ & Seasonal amplitude & $\beta_{\text{max}} / \beta_0 - 1$\\
-$\rho$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate & \citet{rolfes2018}\\
-$\varphi$ & & Phase of seasonal forcing & per state \\
-\bottomrule
-\end{tabular}
-\caption{Model parameters calibrated to seasonal influenza with
-  $\beta(t) = \beta_0(1+\delta \sin(2\pi t + \varphi))$.}
-\label{tab:params}
-\end{table}
+Identifiability in systems-biology models is sometimes explored via
+the profile likelihood~\citep{raue2009} which is defined, for a
+single season via
+%
+%
+$$
+\ell_{\text{PL}}(\theta) = \max_{S_1(0), S_2(0), I_1(0), I_2(0)} \ell(\theta, S_1(0), S_2(0), I_1(0), I_2(0)).
+$$
+%
+%
+The profile likelihood is calculated numerically over a grid of
+$\theta$ values, optimizing over all other parameters at each grid
+point. Such a calculation would be computationally prohibitive at
+the scale of our 1081-pair analysis and the
+$(\theta, \delta, \varphi, \text{IC})$ grid sweep used
+in~\S\ref{subsec:sim_crlb}. The CRLB is effectively a quadratic
+approximation to the profile likelihood around the maximum-likelihood
+estimate; it is cheaper to compute, at the cost of losing the full
+nonlinear shape that a profile likelihood would reveal in strongly
+non-quadratic regimes.
 
-\subsection{Simulated CRLB Analysis}\label{subsec:sim_crlb}
-
-To assess how synchronization and initial-condition similarity affect
-identifiability, we compute the CRLB across a grid of connectivity
-values $\theta \in [10^{-4}, 10^{-1}]$ and seasonal forcing
-amplitudes $\delta \in [0, 1)$, comparing synchronized ($\varphi_1 =
-\varphi_2$) and asynchronous ($\varphi_1 - \varphi_2 = \pi$)
-epidemics. For each grid point, we draw random initial conditions
-from one of two regimes: \emph{similar} ($S_i(0)/N_i \in [0.7,
-0.95]$, $I_i(0)/N_i \in [10^{-5}, 10^{-3}]$, drawn independently
-for both regions from the same range) and \emph{different} ($S_i(0)/N_i
-\in [0.5, 0.95]$, $I_i(0)/N_i \in [10^{-5}, 10^{-2}]$). We repeat
-each configuration many times with fresh random initial conditions and
-report the average statistical power for a one-sided test of $\theta >
-0$ at the 5\% significance level, assuming an efficient estimator that
-achieves the CRLB. For the likelihood surface analysis, initial
-conditions are drawn from the empirical distribution of fitted values
-obtained during the real-data inversion (SI~Fig.~S3).
-
-\subsection{Maximum-Likelihood}\label{subsec:mle}
-We maximize the likelihood using gradient-based optimization
-(\texttt{SLSQP} implemented in \texttt{NLopt}) with analytical
-gradients found in eq.~\eqref{eq:grad}.  To handle potential local
-minima, we employ a multi-start strategy with 200 random initial
-points, selecting the solution with maximal likelihood value.
+\subsection{Maximum-Likelihood Estimation}\label{subsec:mle}
+We maximize the log-likelihood using \texttt{SLSQP} from
+\texttt{NLopt}). Analytical gradients were calculated via
+eq.~\eqref{eq:grad}. To handle potential local minima, we use a
+multi-start strategy with 200 random initial points and retain the
+solution with the highest likelihood. Pilot experiments show that 20
+initial points suffice, so we take an order of magniture more just to
+be safe.
 
 \subsection{Influenza Mortality Data}\label{subsec:real_data}
 We analyze pneumonia and influenza (P\&I) mortality across 47 US
-states.
-%% We exclude Alaska and Hawaii since we do not have absolute humidity
-%% data for them, and we exclude Arizona since it is a very arid state
-%% with relatively inconsistent absolute humidity values (see
-%% Supporting Information).
-We integrate CDC FluView data (2010--2018)~\citep{cdcfluview2024} and
-HealthData.gov data (2017--2025)~\citep{healthdatagov2025}, excluding
-COVID pandemic years 2020--2022. Alaska and Hawaii are excluded
-because they lack absolute humidity data for phase estimation; Arizona
-is excluded because its arid climate produces humidity patterns
-inconsistent with the sinusoidal forcing model. Since P\&I deaths
-include a year-round non-influenza baseline, we estimate influenza
-burden as excess mortality above a pre-season baseline, computed as
-the mean weekly death count during July--October preceding each flu
+states.  We exclude Alaska and Hawaii since we do not have absolute
+humidity data for them, and we exclude Arizona since it is a very arid
+state with relatively inconsistent absolute humidity values (see
+Supporting Information). We integrate CDC FluView data
+(2010--2018)~\citep{cdcfluview2024} and HealthData.gov data
+(2017--2025)~\citep{healthdatagov2025}, excluding COVID pandemic years
+2020--2022. Alaska and Hawaii are excluded because they lack absolute
+humidity data for phase estimation; Arizona is excluded because its
+arid climate produces humidity patterns inconsistent with the
+sinusoidal forcing model. Since P\&I deaths include a year-round
+non-influenza baseline, we estimate influenza burden as excess
+mortality above a pre-season baseline, computed as the mean weekly
+death count during July--October preceding each flu
 season~\citep{serfling1963, viboud2006}. The infection fatality rate
 $\rho \approx 5.36 \times 10^{-4}$ follows from the first row of Table
 1 in~\citet{rolfes2018}. Seasonal phases $\varphi_i$ are estimated
 from absolute humidity data~\citep{daon2025, shaman2009} by maximizing
 the correlation between $-\text{AH}(t)$ and $\sin(2\pi t +
 \varphi)$. The median phase difference between state pairs is
-approximately $\pi/45$, reflecting the strong synchronization of
-temperate US influenza seasons. We define each flu season as $T = 20$
-weekly observations starting November~1$^{\text{st}}$ and fit a single
-connectivity $\theta$ shared across all seasons, with per-season
-initial conditions $(S_i(0), I_i(0))$ inferred via
-maximum-likelihood. We aggregate the per-season Cram\'er-Rao lower
-bounds via eq.~\eqref{eq:crlb_multi} to obtain a bound on the overall
-estimator variance for the connectivity $\theta$.
+approximately $\pi/45$, reflecting the near-perfect entrainment of
+temperate US influenza seasons to shared seasonal forcing. We define
+each flu season as $T = 20$ weekly observations starting
+November~1$^{\text{st}}$ and fit a single connectivity $\theta$ shared
+across all seasons, with per-season initial conditions $(S_i(0),
+I_i(0))$ inferred via maximum-likelihood. We aggregate the per-season
+Cram\'er-Rao lower bounds via eq.~\eqref{eq:crlb_multi} to obtain a
+bound on the overall estimator variance for the connectivity $\theta$.
+
+\subsection{Simulated CRLB Analysis}\label{subsec:sim_crlb}
+To verify that the lack of identifiability observed for the real
+data in~\S\ref{subsec:real_data} is driven by entrainment, we conduct
+a simulated CRLB analysis using realistic initial conditions. We
+compute the CRLB across a grid of connectivity values $\theta \in
+[10^{-4}, 10^{-1}]$ and seasonal forcing amplitudes $\delta \in [0,
+1)$, comparing synchronized ($\varphi_1 = \varphi_2$) and asynchronous
+($\varphi_1 - \varphi_2 = \pi$) epidemics. At each grid point, the
+initial conditions $(S_i(0)/N_i, I_i(0)/N_i)$ for each simulated
+season and region are drawn independently from the empirical
+distribution of per-season, per-state initial conditions fitted
+in~\S\ref{subsec:real_data} (see SI~Fig.~\ref{fig:si_ics}). We repeat
+each configuration many times with fresh IC draws and report the
+median CRLB ratio (synchronized / asynchronous) as a function of
+$(\theta, \delta)$.
