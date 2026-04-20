@@ -3,15 +3,15 @@ import numpy as np
 
 
 class Flu:
-    # Ranges for optimizer starting points
+    # Ranges for optimizer starting points (multi-start MLE)
     slim = (0.4, 0.95)
     ilim = (5e-5, 1e-2)
 
-    # Similar ICs: both regions draw from these ranges
+    # Synthetic IC ranges used by inverse_problem.py only.
+    # NOT used by the paper's simulated CRLB analysis (main.py), which
+    # draws ICs from the empirical distribution of real-data fits.
     slim_similar = (0.75, 0.85)
     ilim_similar = (5e-5, 5e-4)
-
-    # Different ICs: regions draw independently from these wide ranges
     slim_different = (0.5, 0.95)
     ilim_different = (1e-5, 1e-2)
 

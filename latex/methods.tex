@@ -311,3 +311,80 @@ in~\S\ref{subsec:real_data} (see SI~Fig.~\ref{fig:si_ics}). We repeat
 each configuration many times with fresh IC draws and report the
 median CRLB ratio (synchronized / asynchronous) as a function of
 $(\theta, \delta)$.
+
+\subsection{Linear Time-Series Benchmark: Univariate AR versus Bivariate VAR}\label{subsec:varbench}
+
+To test the paper's central claim in a model class completely
+distinct from the mechanistic SIR, we run a forecast-skill benchmark
+that compares univariate autoregressive (AR) models to bivariate
+vector autoregressive (VAR) models on weekly pneumonia and influenza
+mortality. If inter-state \emph{directed predictive} dependence is
+present in the data, it should manifest as improved out-of-sample
+forecast skill for the bivariate model relative to two independent
+univariate models.
+
+\paragraph{Data.} We use continuous year-round raw P\&I weekly death
+counts from~\citet{cdcfluview2024, healthdatagov2025} for the ten
+largest US states by 2020 population (California, Texas, Florida,
+New~York, Pennsylvania, Illinois, Ohio, Georgia, North~Carolina,
+Michigan). Counts are normalised to per-100\,000-population weekly
+rates by linearly interpolating the annual July-1 Census Bureau
+population estimates, and we retain only weeks where all ten states
+have non-missing data.
+
+\paragraph{Models.} For each of the $\binom{10}{2}=45$ state pairs
+$(y_1, y_2)$ and each candidate lag order $p$, we compare:
+\begin{itemize}
+\item \emph{Two independent univariate AR($p$) models}, each fit to
+  one state's series, with intercept, linear trend, and 51 weekly
+  seasonal dummies.
+\item \emph{A single bivariate VAR($p$) model} fit to the pair, with
+  the same intercept, trend, and seasonal-dummy structure on each
+  equation. The bivariate model differs from the two univariates only
+  by including cross-lag coefficients $a^{(k)}_{ij}$ ($i \neq j$,
+  $k=1,\ldots,p$) and estimating a full $2\times 2$ residual
+  covariance $\Sigma$.
+\end{itemize}
+Both models are fit by ordinary least squares on the same engine, so
+their point forecasts use identical optimisation machinery. Lag
+order $p$ is selected per pair by minimising AIC over
+$p\in\{0,\ldots,8\}$ on the training split: independently for the two
+univariates ($p_1, p_2$) and jointly for the bivariate ($p_\text{VAR}$).
+
+\paragraph{Training and test splits.} We train on the decade 2010-2019
+(522 weekly observations per state: continuous and pre-pandemic) and
+test on the three-year window 2023-2025 (156 weekly observations),
+skipping the COVID-19 pandemic period 2020-2022 consistent with the
+main mechanistic analysis. For each test-period observation
+$y_{i,t}$, we compute a one-step-ahead forecast~$\hat y_{i,t}$ using
+the coefficients fitted on 2010-2019 and the actual lags
+$y_{i,t-1},\ldots,y_{i,t-p}$ from the observed series; no test data
+leak into coefficient estimation. We report, for each pair, the
+training-set AIC difference $\Delta\text{AIC} = \text{AIC}_\text{VAR}
+- (\text{AIC}_1 + \text{AIC}_2)$ and the test-set one-step-ahead
+RMSE for each model pooled across both states and all test weeks.
+
+\paragraph{What the comparison isolates.} A reduced-form VAR's point
+forecast for each series uses only \emph{past} lags of both series;
+the contemporaneous residual covariance $\Sigma$ does not enter the
+forecast equation. Out-of-sample RMSE therefore isolates the
+contribution of the cross-lag coefficients $a^{(k)}_{ij}$ ($i\neq j$)
+-- whether state~A's past helps predict state~B's future beyond
+state~B's own past. This is the AR-framework analogue of the
+directed coupling parameter $\theta$ in the mechanistic SIR model.
+By contrast, AIC penalises extra parameters but credits both
+cross-lag terms \emph{and} the off-diagonal entry of $\Sigma$. The
+analytical decomposition of the log-likelihood gain of VAR over
+independent AR,
+\begin{equation}\label{eq:varar_decomp}
+  \log L_\text{VAR} - \log L_\text{indep}
+  \;=\; \underbrace{\tfrac{T}{2}\log\!\tfrac{1}{1-\rho^2}}_{\text{from } \Sigma_{12}}
+  \;+\; \text{(gain from cross-lags)},
+\end{equation}
+with $\rho$ the contemporaneous residual correlation, makes this
+explicit. Consequently an AIC-vs-RMSE divergence is diagnostic: if
+AIC prefers the bivariate model decisively but test-set RMSE is a
+tie, the multivariate advantage lives in contemporaneous residual
+correlation (a shared-forcing / entrainment signature) rather than
+in cross-lag predictive structure (the coupling signature our paper
+targets).
