@@ -237,8 +237,8 @@ as a practical approximation for the variance of the
 maximum-likelihood estimate of $\theta$.
 
 Identifiability in systems-biology models is sometimes explored via
-the profile likelihood~\citep{raue2009} which is defined, for a
-single season via
+the profile likelihood~\citep{raue2009, shrestha2011} which is defined,
+for a single season via
 %
 %
 $$
@@ -271,120 +271,88 @@ We analyze pneumonia and influenza (P\&I) mortality across 47 US
 states.  We exclude Alaska and Hawaii since we do not have absolute
 humidity data for them, and we exclude Arizona since it is a very arid
 state with relatively inconsistent absolute humidity values (see
-Supporting Information). We integrate CDC FluView data
-(2010--2018)~\citep{cdcfluview2024} and HealthData.gov data
+Supporting Information). We integrate data from CDC FluView
+(2010--2018)~\citep{cdcfluview2024} and HealthData.gov
 (2017--2025)~\citep{healthdatagov2025}, excluding COVID pandemic years
-2020--2022. Alaska and Hawaii are excluded because they lack absolute
-humidity data for phase estimation; Arizona is excluded because its
-arid climate produces humidity patterns inconsistent with the
-sinusoidal forcing model. Since P\&I deaths include a year-round
+2020--2022. Since pneumonia and influenza deaths include a year-round
 non-influenza baseline, we estimate influenza burden as excess
 mortality above a pre-season baseline, computed as the mean weekly
 death count during July--October preceding each flu
 season~\citep{serfling1963, viboud2006}. The infection fatality rate
 $\rho \approx 5.36 \times 10^{-4}$ follows from the first row of Table
 1 in~\citet{rolfes2018}. Seasonal phases $\varphi_i$ are estimated
-from absolute humidity data~\citep{daon2025, shaman2009} by maximizing
-the correlation between $-\text{AH}(t)$ and $\sin(2\pi t +
-\varphi)$. The median phase difference between state pairs is
-approximately $\pi/45$, reflecting the near-perfect entrainment of
-temperate US influenza seasons to shared seasonal forcing. We define
-each flu season as $T = 20$ weekly observations starting
-November~1$^{\text{st}}$ and fit a single connectivity $\theta$ shared
-across all seasons, with per-season initial conditions $(S_i(0),
-I_i(0))$ inferred via maximum-likelihood. We aggregate the per-season
-Cram\'er-Rao lower bounds via eq.~\eqref{eq:crlb_multi} to obtain a
-bound on the overall estimator variance for the connectivity $\theta$.
+from absolute humidity data~\citep{daon2025, shaman2009} by finding a
+phase shift $\varphi$ that maximizes the correlation between negative
+absoulute humidity values and a sine whose phase is shifted by
+$\varphi$. We define each flu season as $T = 20$ weekly observations
+starting November~1$^{\text{st}}$ and fit a single connectivity
+$\theta$ shared across all seasons, with per-season initial conditions
+$(S_i(0), I_i(0))$ inferred via maximum-likelihood. We aggregate the
+per-season Cram\'er-Rao lower bounds via eq.~\eqref{eq:crlb_multi} to
+obtain a bound on the overall estimator variance for the connectivity
+$\theta$.
 
 \subsection{Simulated CRLB Analysis}\label{subsec:sim_crlb}
-To verify that the lack of identifiability observed for the real
-data in~\S\ref{subsec:real_data} is driven by entrainment, we conduct
-a simulated CRLB analysis using realistic initial conditions. We
-compute the CRLB across a grid of connectivity values $\theta \in
+We compute the CRLB across a grid of connectivity values $\theta \in
 [10^{-4}, 10^{-1}]$ and seasonal forcing amplitudes $\delta \in [0,
-1)$, comparing synchronized ($\varphi_1 = \varphi_2$) and asynchronous
-($\varphi_1 - \varphi_2 = \pi$) epidemics. At each grid point, the
-initial conditions $(S_i(0)/N_i, I_i(0)/N_i)$ for each simulated
-season and region are drawn independently from the empirical
-distribution of per-season, per-state initial conditions fitted
-in~\S\ref{subsec:real_data} (see SI~Fig.~\ref{fig:si_ics}). We repeat
-each configuration many times with fresh IC draws and report the
-median CRLB ratio (synchronized / asynchronous) as a function of
-$(\theta, \delta)$.
+  1)$, comparing synchronized ($\varphi_1 = \varphi_2$) and
+  asynchronous ($\varphi_1 - \varphi_2 = \pi$) epidemics. At each grid
+  point, the initial conditions $(S_i(0)/N_i, I_i(0)/N_i)$ for each
+  simulated season and region are drawn independently from the
+  empirical distribution of per-season, per-state initial conditions
+  fitted in~\S\ref{subsec:real_data} (see
+  SI~Fig.~\ref{fig:si_ics}). We repeat each configuration 500 times
+  with fresh IC draws and report the median CRLB ratio (synchronized /
+  asynchronous) as a function of $(\theta, \delta)$.
 
-\subsection{Linear Time-Series Benchmark: Univariate AR versus Bivariate VAR}\label{subsec:varbench}
-
-To test the paper's central claim in a model class completely
-distinct from the mechanistic SIR, we run a forecast-skill benchmark
-that compares univariate autoregressive (AR) models to bivariate
-vector autoregressive (VAR) models on weekly pneumonia and influenza
-mortality. If inter-state \emph{directed predictive} dependence is
-present in the data, it should manifest as improved out-of-sample
-forecast skill for the bivariate model relative to two independent
-univariate models.
-
-\paragraph{Data.} We use continuous year-round raw P\&I weekly death
-counts from~\citet{cdcfluview2024, healthdatagov2025} for the ten
-largest US states by 2020 population (California, Texas, Florida,
-New~York, Pennsylvania, Illinois, Ohio, Georgia, North~Carolina,
-Michigan). Counts are normalised to per-100\,000-population weekly
-rates by linearly interpolating the annual July-1 Census Bureau
-population estimates, and we retain only weeks where all ten states
-have non-missing data.
-
-\paragraph{Models.} For each of the $\binom{10}{2}=45$ state pairs
-$(y_1, y_2)$ and each candidate lag order $p$, we compare:
-\begin{itemize}
-\item \emph{Two independent univariate AR($p$) models}, each fit to
-  one state's series, with intercept, linear trend, and 51 weekly
-  seasonal dummies.
-\item \emph{A single bivariate VAR($p$) model} fit to the pair, with
-  the same intercept, trend, and seasonal-dummy structure on each
-  equation. The bivariate model differs from the two univariates only
-  by including cross-lag coefficients $a^{(k)}_{ij}$ ($i \neq j$,
-  $k=1,\ldots,p$) and estimating a full $2\times 2$ residual
-  covariance $\Sigma$.
-\end{itemize}
-Both models are fit by ordinary least squares on the same engine, so
-their point forecasts use identical optimisation machinery. Lag
-order $p$ is selected per pair by minimising AIC over
-$p\in\{0,\ldots,8\}$ on the training split: independently for the two
-univariates ($p_1, p_2$) and jointly for the bivariate ($p_\text{VAR}$).
-
-\paragraph{Training and test splits.} We train on the decade 2010-2019
-(522 weekly observations per state: continuous and pre-pandemic) and
-test on the three-year window 2023-2025 (156 weekly observations),
-skipping the COVID-19 pandemic period 2020-2022 consistent with the
-main mechanistic analysis. For each test-period observation
-$y_{i,t}$, we compute a one-step-ahead forecast~$\hat y_{i,t}$ using
-the coefficients fitted on 2010-2019 and the actual lags
-$y_{i,t-1},\ldots,y_{i,t-p}$ from the observed series; no test data
-leak into coefficient estimation. We report, for each pair, the
-training-set AIC difference $\Delta\text{AIC} = \text{AIC}_\text{VAR}
-- (\text{AIC}_1 + \text{AIC}_2)$ and the test-set one-step-ahead
-RMSE for each model pooled across both states and all test weeks.
-
-\paragraph{What the comparison isolates.} A reduced-form VAR's point
-forecast for each series uses only \emph{past} lags of both series;
-the contemporaneous residual covariance $\Sigma$ does not enter the
-forecast equation. Out-of-sample RMSE therefore isolates the
-contribution of the cross-lag coefficients $a^{(k)}_{ij}$ ($i\neq j$)
--- whether state~A's past helps predict state~B's future beyond
-state~B's own past. This is the AR-framework analogue of the
-directed coupling parameter $\theta$ in the mechanistic SIR model.
-By contrast, AIC penalises extra parameters but credits both
-cross-lag terms \emph{and} the off-diagonal entry of $\Sigma$. The
-analytical decomposition of the log-likelihood gain of VAR over
-independent AR,
-\begin{equation}\label{eq:varar_decomp}
-  \log L_\text{VAR} - \log L_\text{indep}
-  \;=\; \underbrace{\tfrac{T}{2}\log\!\tfrac{1}{1-\rho^2}}_{\text{from } \Sigma_{12}}
-  \;+\; \text{(gain from cross-lags)},
+\subsection{Seasonal ARIMA Forecast Benchmark}\label{subsec:sarimabench}
+We fit a seasonal ARIMA model to each state's weekly per-capita
+pneumonia and influenza mortality, with and without exogenous
+covariates drawn from other states. For a target state $A$, the model
+of a $d$-times differenced time series is
+\begin{equation}\label{eq:sarima_model}
+  y_{A,t} \;=\; a_0
+    + \sum_{k=1}^{p} \phi_k\, y_{A, t-k}
+    + \sum_{j=1}^{q} \theta_j\, \varepsilon_{A, t-j}
+    + \Phi\, y_{A, t-52}
+    + \boldsymbol{\beta}^{\!\top} \mathbf{x}_{t-1}
+    + \varepsilon_{A,t},
 \end{equation}
-with $\rho$ the contemporaneous residual correlation, makes this
-explicit. Consequently an AIC-vs-RMSE divergence is diagnostic: if
-AIC prefers the bivariate model decisively but test-set RMSE is a
-tie, the multivariate advantage lives in contemporaneous residual
-correlation (a shared-forcing / entrainment signature) rather than
-in cross-lag predictive structure (the coupling signature our paper
-targets).
+which is a SARIMA$(p,d,q)(1,0,0)_{52}$ model with a one-week-lagged
+exogenous regressor vector $\mathbf{x}_{t-1}$.
+The non-seasonal orders $(p, d, q)$ and the coefficients are chosen on
+the training split by maximizing AIC\citep{hyndman2008}.
+
+For each ordered pair of states $(A, B)$ with $B \neq A$, we fit
+eq.~\eqref{eq:sarima_model} under four configurations of
+$\mathbf{x}_{t-1}$:
+\begin{align*}
+  &\text{(null)} && \boldsymbol{\beta} = 0; \\
+  &\text{(nav)}  && \mathbf{x}_{t-1} = (\bar y_{t-1}); \\
+  &\text{(biv)}  && \mathbf{x}_{t-1} = (y_{B, t-1}); \\
+  &\text{(both)} && \mathbf{x}_{t-1} = (y_{B, t-1},\; \bar y_{t-1});
+\end{align*}
+where $\bar y_{t} = (1/47)\sum_{S} y_{S, t}$ is the lag-one national
+average across all 47 states. We train on 2010--2019 and test on
+2023--2025, and report the relative change in test-period RMSE,
+\begin{equation}\label{eq:sarima_delta}
+  \Delta \;=\; \frac{\text{RMSE}_{\mathrm{alt}} - \text{RMSE}_{\mathrm{ref}}}{\text{RMSE}_{\mathrm{ref}}},
+\end{equation}
+so $\Delta < 0$ means the alternative model improves the forecast over
+the reference.
+
+Two mechanisms can produce a bilateral improvement of (biv) over
+(null): \emph{(I)}~directed predictability, in which $B$'s past
+actually forecasts $A$'s future beyond $A$'s own past and shared
+seasonality; or \emph{(II)}~shared national forcing, in which $B$'s
+lagged value is a noisy proxy for the current week's national-level
+flu-season severity that $\Phi y_{A,t-52}$ only partially absorbs. The
+two mechanisms make opposite predictions for the headline comparison
+of (both) to (nav)---i.e.\ for the question of whether adding $B$'s
+lag-one mortality further reduces RMSE on top of a SARIMA that already
+includes the national average. Under \emph{(I)}, $y_{B,t-1}$ carries
+directional information that $\bar y_{t-1}$ cannot, so adding it on
+top of the national average should still reduce RMSE. Under
+\emph{(II)}, $\bar y_{t-1}$ is a much cleaner estimator of the shared
+severity signal that $y_{B,t-1}$ proxies only noisily, so adding the
+neighbour state on top of the national average should be redundant.

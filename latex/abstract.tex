@@ -1,21 +1,25 @@
 \begin{abstract}
-Spatial forecasting models for seasonal-influenza preparedness encode
-inter-regional connectivity from external mobility data.
-%%
-%%~\citep{reich2019, johansson2019}
-%%
-We ask whether the surveillance data that train such models carry any
-information about this parameter. Using the Cram\'er-Rao Lower Bound
-on a connectivity parameter, we find that seasonal entrainment causes
-inter-regional-coupling to be unidentifiable in epidemic
-models. Because the CRLB bounds every unbiased estimator and is
-computed from the model alone, this vanishing is established at the
-design stage, without fitting messy surveillance data or iterating
-through alternative inference pipelines. A validation on 12~seasons of
-excess pneumonia and influenza mortality across 47~US states confirms
-the prediction: 95\% confidence intervals around estimated
-connectivity overlap zero for nearly all 1081~state pairs. The
-operational implication is concrete: inter-regional coupling carries
-very liitle information and should be dropped from seasonal-influenza
-preparedness forecasting models.
+Spatial epidemic models for seasonal-influenza forecasting routinely
+encode inter-regional connectivity, and standard time-series methods
+suggest that forecasts are improved by using one state's lagged
+incidence as a covariate for another's: across all 2162 ordered
+directed pairs among 47 US states, a univariate seasonal-ARIMA model
+augmented with the other state's lag-1 weekly mortality reduces
+out-of-sample RMSE in 64\% of pairs (median 0.7\%). This apparent
+gain motivates a prior question: does it reflect directed
+inter-regional coupling, or a different phenomenon? Using the
+Cram\'er-Rao Lower Bound of a discrete-time two-region SIR model we
+show that the connectivity parameter $\theta$ is fundamentally
+unidentifiable under seasonal entrainment; a validation on 12 seasons
+of excess pneumonia-and-influenza mortality across 47~US states
+confirms the prediction, with CRLB-derived 95\% confidence intervals
+around $\hat\theta$ overlapping zero for nearly all 1081 unordered
+pairs. Replacing the bilateral covariate by a leave-one-out
+national-average of per-capita weekly mortality yields an
+order-of-magnitude larger forecast improvement (median 7.5\%, 97\% of
+states helped), showing that the apparent cross-state signal is
+shared national-level seasonal severity rather than directed
+connectivity. For endemic seasonal pathogens such as influenza,
+inter-regional coupling is not a necessary component of preparedness
+forecasting models.
 \end{abstract}

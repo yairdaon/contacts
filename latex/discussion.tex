@@ -31,47 +31,80 @@ offset by an equal flow in the opposite direction. The CRLB formalizes
 this symmetry: $\partial\mu/\partial\theta \approx 0$, so the Fisher
 Information vanishes.
 
-\subsection{Recommendation for Seasonal-Influenza Preparedness Forecasting}
+\subsection{Recommendation for Endemic-Disease Preparedness Forecasting}
 
-The practical consequences of our result lie in preparedness, not
-intervention. Seasonal-flu forecasts---organised through the CDC
-FluSight challenges~\citep{reich2019} and their analogues for other
+For endemic seasonal pathogens such as
+influenza~\citep{viboud2006, tamerius2013}---pathogens that persist
+at baseline levels year-round with annual epidemics driven by shared
+environmental forcing---our two independent lines of evidence
+converge on a single operational recommendation:
+\textbf{inter-regional coupling is not a necessary component of
+  preparedness forecasting models}. The CRLB analysis makes this a
+statement about identifiability: no unbiased estimator of the
+connectivity parameter can produce confidence intervals that
+exclude zero, on any foreseeable amount of surveillance data, under
+the entrainment regime that temperate US seasonal influenza actually
+occupies. The seasonal-ARIMA benchmark makes it a statement about
+forecast skill and simultaneously localises the mechanism: when a
+bilateral cross-state covariate \emph{does} appear to help, it is a
+noisy proxy for shared national-level flu-season severity, and that
+signal is captured an order of magnitude more cleanly by a single
+leave-one-out national-average covariate (median $7.5\%$ vs $0.7\%$
+RMSE reduction; $97\%$ of states helped vs $64\%$ of pairs). The
+relevant evidence is not the absolute size of the bilateral effect,
+which would be uninformative in isolation, but its ratio to the
+national-average baseline on the same data: the small bilateral
+effect combined with the much larger pooled effect is precisely what
+one would expect in the absence of directed coupling.
+
+The implication for operational practice is direct. Seasonal-flu
+forecasts---organised through the CDC FluSight
+challenges~\citep{reich2019} and their analogues for other
 pathogens~\citep{johansson2019}---inform hospital staffing, vaccine
 distribution timing, antiviral stockpile management, and the timing
 of public-health communication. They are not typically used to argue
 for inter-state travel restrictions or quarantine. For this
-preparedness purpose, the operational recommendation is
-unambiguous: \textbf{drop inter-regional coupling from the model}.
-Fitted values of $\theta$ across 1081 US state pairs are
-statistically indistinguishable from zero, and the CRLB shows this is
-a structural property of entrainment rather than an artefact of any
-particular inference pipeline---no optimizer, prior, or likelihood
-approximation will rescue identifiability. Including a free
-connectivity parameter therefore adds complexity without adding
-predictive support, and risks confident-looking estimates with no
-statistical backing. The simpler uncoupled model is equally supported
-by the evidence and substantially easier to fit, calibrate, validate,
-and communicate. This also offers a partial explanation for the
-well-documented difficulty of epidemic
-forecasting~\citep{wilke2020, rosenkrantz2022}: any forecast product
-that depends on connectivity inherits the full uncertainty of an
-unidentified parameter, so removing the parameter improves not just
-model parsimony but forecast characterisation.
+preparedness purpose, forecasting models can safely replace
+state-pair connectivity terms with a single national-severity
+covariate (or equivalently, treat states as exchangeable conditional
+on a shared severity signal), with no loss in forecast skill and a
+substantial gain in interpretability and calibration. This also
+offers a partial explanation for the well-documented difficulty of
+epidemic forecasting~\citep{wilke2020, rosenkrantz2022}: any
+forecast product that depends on an unidentified connectivity
+parameter inherits that parameter's full uncertainty, so removing
+the parameter tightens forecast characterisation rather than
+loosening it.
 
-Our result additionally provides a theoretical basis for what has
-been standard practice in spatial epidemic forecasting: connectivity
-is typically imported from external mobility
-data~\citep{viboud2006, charu2017, kraemer2020, zhang2026} rather
-than inferred from case counts. The CRLB analysis explains why this
-practice is well-placed---the surveillance data cannot supply
-coupling information in the entrained regime---but also raises a
-sharper question: if model outputs are insensitive to $\theta$ in
-this regime, does \emph{importing} connectivity from mobility data
-buy anything for seasonal-flu preparedness forecasts, or should the
-spatial-coupling term be dropped entirely? Our analysis supports the
-latter: a model with $\theta$ imported from mobility data and one
-with $\theta = 0$ are, in the entrained regime, statistically
-indistinguishable in predictive support.
+Our result sits in productive tension with the recent empirical
+comparison of~\citet{thivierge2025}, who asked precisely whether ILI
+forecasting in US states benefits from including neighbour-state or
+US-weighted-average ILI as covariates in quantile / linear / Poisson
+autoregressions. They found modest but consistent improvements by
+both RMSE and weighted interval score, and importantly observed that
+neighbour-state and US-weighted-average covariates produce
+\emph{similar} gains---an empirical hint, at their magnitude
+resolution, that proximity is not the driving mechanism. Our results
+sharpen that qualitative observation into a quantitative and
+mechanistic claim. In our SARIMA framework the effects are not
+similar: the leave-one-out national-average covariate improves
+forecasts by an order of magnitude more than the typical bilateral
+neighbour-state covariate ($7.5\%$ vs $0.7\%$ median RMSE
+reduction; $97\%$ vs $64\%$ of forecasts helped). The CRLB analysis
+supplies the mechanism: the connectivity parameter~$\theta$ is
+structurally unidentifiable under entrainment, so the small
+bilateral effect~\citet{thivierge2025} observe cannot be carrying
+directional information about inter-regional transmission, and the
+pooled-baseline dominance we report is what one expects when the
+underlying signal is shared national-level seasonal severity rather
+than directed coupling. Our paper therefore complements
+\citet{thivierge2025} by providing both the information-theoretic
+reason for what they observe and a refined decomposition of where
+the usable signal actually lives. The related line of work that
+pools weekly flu activity across regions to build forecast
+benchmarks~\citep{viboud2003, yang2014, tsang2024} is consistent
+with this picture: those benchmarks succeed because they exploit the
+shared-severity signal, not inter-regional predictive coupling.
 
 The contrast between temperate and tropical influenza dynamics maps
 directly onto our framework. In temperate regions, shared winter

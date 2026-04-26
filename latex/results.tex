@@ -1,22 +1,19 @@
 \section{Results}
 
 \subsection{Inter Regional Connectivity in the US via Influenza}
-
-We analyze excess P\&I mortality from 47~US states over 12 flu seasons
-(2010--2018 and 2023--2025, excluding the COVID-19 pandemic years).
-Figure~\ref{fig:seasons} shows the raw weekly death counts for four
-representative states, with the flu seasons used for inference
-highlighted. The synchronized winter peaks are clearly visible: all
-four time series rise and fall together each year.
+We analyze excess pneumonia and influenza mortality from 47 US states
+over 12 flu seasons.  Figure~\ref{fig:seasons} shows the raw weekly
+death counts for four representative states, with the flu seasons used
+for inference highlighted.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../pix/seasons_highlighted.pdf}
-\caption{Weekly P\&I deaths for four US states. Light traces show the
-  full time series; darker segments indicate the 20-week flu seasons
-  (starting each November) included in the analysis. COVID-19 pandemic
-  years (2020--2022) are excluded. A pre-season baseline is subtracted
-  before model fitting.}
+\caption{Weekly pneumonia and influenza deaths for four US
+  states. Light traces show the full time series; darker segments
+  indicate the 20-week flu seasons (starting each November) included
+  in the analysis. COVID-19 pandemic years (2020--2022) are
+  excluded. A pre-season baseline is subtracted before model fitting.}
 \label{fig:seasons}
 \end{figure}
 
@@ -26,16 +23,11 @@ $\hat\theta$ against $\sqrt{\text{CRLB}}$---the lower bound on the
 standard deviation of any unbiased estimator of $\theta$, which the
 MLE attains asymptotically. The dashed line marks the 5\% one-sided
 significance boundary: points above it have CRLB-derived 95\%
-confidence intervals that overlap zero. The overwhelming majority of
-state pairs sit above the line, meaning that for nearly every pair of
-US states the surveillance data provide no statistical evidence for
-$\theta > 0$ under any unbiased estimator. The estimates
-$\hat\theta$ themselves spread approximately uniformly over
-$[0, 0.5]$: because the CRLB is large, each pair's point estimate is
-driven by the particular noise realization in its 12~seasons rather
-than by a signal in the data about coupling strength. The location of
-$\hat\theta$ within $[0, 0.5]$ is therefore itself statistically
-uninformative.
+confidence intervals that overlap zero. The majority of state pairs
+are above the line, so that for the vast majority of paris of states
+the surveillance data provide no statistical evidence for $\theta >
+0$. The estimates $\hat\theta$ themselves spread roughly uniformly
+over $[0, 0.5]$.
 
 \begin{figure}[h]
 \centering
@@ -48,22 +40,24 @@ uninformative.
 \label{fig:theta_vs_crlb}
 \end{figure}
 
-Representative model reconstructions for individual state pairs are
-shown in the Supplementary Information.
+%% Representative model reconstructions for individual state pairs are
+%% shown in the Supplementary Information.
 
 \subsection{Entrainment Inflates the CRLB}
-
 Figure~\ref{fig:crlb_ratio} shows the ratio of median CRLB
 (synchronized / asynchronous) across a grid of connectivity values
 $\theta$ and seasonal forcing amplitudes $\delta$, with initial
 conditions drawn from the empirical distribution of real-data fits
-(SI~Fig.~\ref{fig:si_ics}). The ratio exceeds unity throughout the
-parameter space, often by orders of magnitude: entrainment inflates
-the minimum achievable estimation variance of the connectivity
-parameter by factors that can exceed $10^3$ relative to the
-asynchronous regime. This confirms, in a simulated setting with
-realistic ICs, the entrainment-driven collapse of information about
-$\theta$ seen in the real data.
+(SI~Fig.~\ref{fig:si_ics}). Across the $10\,000$ grid cells, the
+median ratio is $17.3$ and the ratio exceeds unity in $97.9\%$ of
+cells, with sub-unity values confined to the weakly-forced corner
+($\delta \lesssim 0.01$) and never falling below $0.78$. The
+95th-percentile ratio is $\sim 850$ and the maximum exceeds $10^{5}$.
+Entrainment therefore inflates the minimum achievable estimation
+variance of the connectivity parameter by a typical factor of order
+ten and by factors that can exceed $10^{3}$ throughout most of the
+parameter space, confirming, in a simulated setting with realistic
+ICs, that entrainment dominates synchronization in the real data.
 
 \begin{figure}[h]
 \centering
@@ -73,55 +67,77 @@ $\theta$ seen in the real data.
   $\delta$. Initial conditions for each simulated season and region
   are drawn independently from the empirical distribution of
   per-season, per-state values fitted to the real data
-  (SI~Fig.~\ref{fig:si_ics}). The ratio exceeds~1 throughout the
-  parameter space.}
+  (SI~Fig.~\ref{fig:si_ics}). Median ratio across the
+  $100 \times 100$ grid is $17.3$; the ratio exceeds~1 in $97.9\%$ of
+  cells.}
 \label{fig:crlb_ratio}
 \end{figure}
 
-\subsection{AIC Prefers Multivariate, Forecast Skill Does Not}\label{subsec:var_results}
+\subsection{Does a neighbour state add information beyond the national average?}\label{subsec:natavg_results}
+We compared the four SARIMA configurations of
+\S\ref{subsec:sarimabench} on the $1330$ ordered (target, neighbour)
+pairs for which all four models converged. Including the lag-one
+national average $\bar y_{t-1}$ alone reduces test-period RMSE
+relative to the no-covariate baseline in $97\%$ of pairs, with a
+median reduction of $7.4\%$. The single-state covariate $y_{B,t-1}$
+alone reduces RMSE in only $65\%$ of pairs, with a median reduction of
+$0.83\%$ (Fig.~\ref{fig:sarima_heatmap}).
 
-The time-series benchmark of \S\ref{subsec:varbench} reaches the same
-conclusion as the CRLB analysis in a completely separate model class.
-Across all 45 pairs among the ten largest US states, the bivariate
-VAR is preferred on training-set AIC unanimously and by decisive
-margins ($\Delta\text{AIC}$ median $-53$, range $[-161, -2]$,
-negative values favouring the bivariate model). Yet the
-corresponding out-of-sample test on 2023-2025 shows no systematic
-forecast improvement: only 26 of 45 pairs (58\%) achieve lower
-one-step-ahead RMSE with the bivariate model, the median RMSE change
-from univariate to bivariate is a negligible $-0.87\%$, and the
-distribution spans $[-6.9\%, +21.2\%]$. The bivariate model
-\emph{hurts} forecasts for some pairs by more than twenty percent
-while the best pair-wise improvement does not exceed seven percent
--- an asymmetry consistent with cross-lag coefficients picking up
-noise that degrades out-of-sample performance rather than a
-genuine predictive signal.
+The headline test asks whether the neighbour state adds any
+information \emph{beyond} the national average---that is, whether the
+joint covariate $(y_{B,t-1}, \bar y_{t-1})$ outperforms $\bar
+y_{t-1}$ alone. It does not. Across the $1330$ pairs, the relative
+RMSE change from adding $y_{B,t-1}$ on top of $\bar y_{t-1}$ has a
+median of $+0.02\%$ and is negative in only $44\%$ of pairs
+(Fig.~\ref{fig:sarima_density}); the per-pair effect is
+indistinguishable from a coin flip. Once the national-average
+covariate is in the model, the neighbour state contributes nothing on
+average.
 
-The divergence between AIC and forecast skill is diagnostic of
-\emph{where} the multivariate statistical signal lives. Because
-reduced-form VAR point forecasts depend only on past lags of both
-series, the contemporaneous residual covariance $\Sigma_{12}$
-affects the joint likelihood (hence AIC) but not the forecast mean;
-the decomposition in eq.~\eqref{eq:varar_decomp} makes explicit that
-AIC packages the $\Sigma_{12}$ contribution together with any
-cross-lag predictive gain, while out-of-sample forecast skill sees
-only the latter. Our observation that AIC prefers the bivariate
-model by tens of units while test RMSE is essentially tied localises
-the in-sample advantage to the $\Sigma_{12}$ term: states' weekly
-mortality residuals are strongly contemporaneously correlated with
-one another, but one state's past does not add useful information
-about another state's future beyond what own-past plus shared
-seasonality already provide.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{../pix/sarima_density.pdf}
+\caption{Distribution of relative test-period RMSE change
+  (eq.~\eqref{eq:sarima_delta}) when the neighbour state's lag-one
+  mortality $y_{B,t-1}$ is added as a second exogenous covariate to a
+  SARIMA that already includes the lag-one national average $\bar
+  y_{t-1}$, across $1330$ ordered state pairs. Negative values mean
+  adding the neighbour state improves the forecast. The distribution
+  is nearly symmetric around zero (median $+0.02\%$, dashed red line),
+  showing that the neighbour state carries no information beyond the
+  national average.}
+\label{fig:sarima_density}
+\end{figure}
 
-This is the AR-framework analogue of our CRLB result, reached with a
-separate model class (linear time-series rather than mechanistic
-SIR) and a separate evaluation criterion (predictive accuracy on
-held-out data rather than a Fisher-information lower bound). Both
-analyses converge on the same operational recommendation. Cross-state
-\emph{co-movement} is real, strong, and unavoidable; it is the
-entrainment / shared-forcing signature our main analysis diagnoses.
-Cross-state \emph{directed predictive structure}---the coupling
-parameter~$\theta$ our CRLB argument targets---is not detectable by
-either test. For seasonal-influenza preparedness forecasting, spatial
-coupling carries no information the surveillance data can credibly
-support and should not be fit as a free parameter.
+This is exactly the prediction of mechanism~\emph{(II)} of
+\S\ref{subsec:sarimabench}: the modest bilateral effect visible in
+Fig.~\ref{fig:sarima_heatmap} is not a signature of directed
+inter-regional predictability, but a noisy proxy for shared
+national-level severity that the national average captures cleanly.
+Under genuine directed predictability, $y_{B,t-1}$ would carry
+information not contained in $\bar y_{t-1}$ and the joint model would
+beat the national-average-only model. We see no such effect.
+
+
+%%  This results demonstrates that
+
+%% distinguishes the two candidate mechanisms. Under
+%% genuine directed coupling (mechanism~(i) of
+%% \S\ref{subsec:sarimabench}), a LOO pooled covariate dilutes
+%% directional signal and should \emph{underperform} the best bilateral
+%% alternatives; under shared seasonal forcing (mechanism~(ii)), the
+%% pooled covariate is a cleaner estimate of the shared signal and should
+%% \emph{outperform} them.  The data resoundingly support mechanism~(ii).
+
+%% The cross-state information that appears to help flu forecasts in
+%% the bilateral benchmark is therefore not evidence of directed
+%% inter-regional coupling; it is a noisy proxy for national-level
+%% flu-season severity that the state's own annual lag cannot fully
+%% absorb. This is the SARIMA-framework analogue of the CRLB finding,
+%% reached with a different model class and a different evaluation
+%% criterion, and it converges on the same message as the CRLB and VAR
+%% analyses. For seasonal-influenza preparedness forecasting, spatial
+%% coupling carries no directional information the surveillance data
+%% can credibly support; what it appears to carry is shared national
+%% severity, which is better captured by a national-average covariate
+%% than by any single-state predictor.
