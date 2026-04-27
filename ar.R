@@ -118,12 +118,10 @@ run_all <- function() {                                                         
               nrow(pres), nrow(pairs), proc.time()["elapsed"] - t2))
 
   res <- merge(pres, tres, by = "target")                                                    # py: res = pres.merge(tres, on="target")
-  res$pct_biv  <- 100 * (res$rmse_biv  - res$rmse_null) / res$rmse_null                      # py: res['pct_biv']  = 100*(res.rmse_biv  - res.rmse_null)/res.rmse_null   # biv vs null
-  res$pct_nav  <- 100 * (res$rmse_nav  - res$rmse_null) / res$rmse_null                      # py: res['pct_nav']  = 100*(res.rmse_nav  - res.rmse_null)/res.rmse_null   # nav vs null
-  res$pct_both <- 100 * (res$rmse_both - res$rmse_null) / res$rmse_null                      # py: res['pct_both'] = 100*(res.rmse_both - res.rmse_null)/res.rmse_null   # both vs null
-  res$pct_anti <- 100 * (res$rmse_both - res$rmse_nav)  / res$rmse_nav                       # py: res['pct_anti'] = 100*(res.rmse_both - res.rmse_nav) /res.rmse_nav    # adding biv on top of nav
+  res$pct_biv  <- 100 * (res$rmse_biv  - res$rmse_null) / res$rmse_null                      # py: res['pct_biv']  = 100*(res.rmse_biv  - res.rmse_null)/res.rmse_null   # biv vs null  (Fig. 1)
+  res$pct_anti <- 100 * (res$rmse_both - res$rmse_nav)  / res$rmse_nav                       # py: res['pct_anti'] = 100*(res.rmse_both - res.rmse_nav) /res.rmse_nav    # adding biv on top of nav  (Fig. 2)
 
-  for (col in c("pct_biv", "pct_nav", "pct_both", "pct_anti")) {                             # py: for col in ['pct_biv','pct_nav','pct_both','pct_anti']:
+  for (col in c("pct_biv", "pct_anti")) {                                                    # py: for col in ['pct_biv','pct_anti']:
     v <- res[[col]]                                                                          # py:     v = res[col]
     cat(sprintf("%-9s helps %4d/%d (%5.1f%%)  median=%+6.2f%%\n",                            # py:     print(f"{col} helps {sum(v<0)}/{len(v)} ({100*np.mean(v<0):.1f}%) median={np.nanmedian(v):+.2f}%")
                 col, sum(v < 0, na.rm = TRUE), sum(!is.na(v)),
