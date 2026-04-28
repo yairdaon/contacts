@@ -6,8 +6,8 @@ Cram\'er-Rao Lower Bound formalises this claim: for epidemics
 entrained by shared seasonal forcing with similar initial conditions
 the variance of any unbiased estimator is so large that we cannot
 determine whether coupling is non-zero. Our maximum-likelihood
-optimizer converges and returns an estimate may appear informative,
-but confidence interval around the estimate overlap zero for nearly
+optimizer converges and returns an estimate that may appear informative,
+but confidence intervals around the estimate overlap zero for nearly
 all state pairs. Thus, the estimate is statistically indistinguishable
 from the null hypothesis of no coupling. The approximately uniform
 spread of inferred coupling is actually expected.
@@ -17,7 +17,7 @@ conclusions. The CRLB shows that no unbiased estimator of $\theta$ on
 US surveillance data can distinguish $\theta > 0$ from $\theta = 0$
 for almost any state pair. The SARIMA partial test shows that, in a
 forecasting framework with no mechanistic SIR machinery at all, the
-other states' lag-one mortality carry no information beyond the
+other states' lag-one mortality carries no information beyond the
 lag-one national average.
 
 For endemic seasonal pathogens such as influenza~\citep{viboud2006,
@@ -28,14 +28,14 @@ makes this a statement about identifiability: no unbiased estimator of
 the connectivity parameter can produce confidence intervals that
 exclude zero under the entrainment regime that US seasonal influenza
 actually occupies. The seasonal-ARIMA comparison makes it a statement
-about forecast skill and demonstrates that a cross-state covariate is
+about forecast skill and demonstrates that an inter-regional covariate is
 merely a noisy proxy for shared national-level flu severity.
 
 Seasonal-flu forecasts \citep{reich2019} and their analogues
 \citep{johansson2019} inform hospital staffing, vaccine distribution
 timing, antiviral stockpile management, and the timing of
 public-health communication. For preparedness purposes, forecasting
-models can safely ignore state-pair connectivity with no loss of
+models can safely ignore inter-regional connectivity with no loss of
 forecast skill and a substantial gain in interpretability and
 calibration.
 
@@ -46,29 +46,28 @@ calibration.
 %% loosening it.
 
 Recently, \citet{thivierge2025} asked whether ILI forecasting in US
-states benefits from including neighbour-state or US-weighted-average
+states benefits from including other-state or US-weighted-average
 ILI as covariates in various autoregressions. They found modest but
 consistent improvements by both RMSE and weighted interval score, and
-importantly observed that neighbour-state and US-weighted-average
-covariates produce \emph{similar} gains. In Our SARIMA framework, the
+importantly observed that other-state and US-weighted-average
+covariates produce \emph{similar} gains. In our SARIMA framework, the
 national-average covariate alone produces a median RMSE reduction of
-$7.4\%$ and improves RMSE in $97\%$ of states, while individual states
+$7.4\%$ and reduces RMSE in $97\%$ of states, while individual states
 contribute essentially nothing beyond the national average. Our CRLB
 explains why: the connectivity parameter is unidentifiable under
-entrainment, so the small bilateral effect~\citet{thivierge2025}
-observe carries very little information about inter-regional
+entrainment, so the small effect that \citet{thivierge2025}
+observed carries very little information about inter-regional
 transmission. Our study therefore complements \citet{thivierge2025} by
 providing the information-theoretic reason for what they observe.
 
-Our analysis also carries implications to influenza forecast in
-tropical regions \cite{tsang2024}. In tropical regions, weaker and
+Our analysis also carries implications for influenza forecasting in
+tropical regions~\citep{tsang2024}. In tropical regions, weaker and
 less coherent seasonal forcing produces asynchronous outbreak
-patterns~\citep{tamerius2013}, which our analysis show may give rise
+patterns~\citep{tamerius2013}, which our analysis shows may give rise
 to the phase asymmetry needed for identifiability. Connectivity
 inference from case data may therefore be more feasible in tropical
 settings, and may prove useful in forecasting as well. Our CRLB
-analysis should allow further research into the useflness of such
-makes this distinction precise.
+analysis offers a precise way to characterise this distinction.
 
 \subsection{Beyond Influenza}
 
@@ -81,7 +80,7 @@ parameter value alone, the same design-stage check can be applied
 parameter-by-parameter to any such model before any inference pipeline
 is committed; parameters whose CRLB exceeds the scale of their
 expected effect cannot be supported by the planned data and should be
-removed from the model altogether in accordance with Occam's Razor. The
+removed from the model altogether in accordance with Occam's razor. The
 mathematical structure underlying our particular finding---oscillators
 driven by common periodic forcing---also arises outside epidemiology,
 in neural circuits receiving shared input~\citep{reid2019,

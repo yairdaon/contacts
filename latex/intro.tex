@@ -18,7 +18,7 @@ help forecast a given region's flu incidence, and if so, what is the
 source of the improvement?
 
 %\subsection{Evidence for employing spatial models}
-Several flu-forecasting systems exploit cross-state structure
+Several flu-forecasting systems exploit inter-regional structure
 explicitly \citep{pei2018, osthus2021, lu2019, aiken2021, deng2020}.
 %% state-level metapopulation SIRS models with commuting-flow
 %% connectivity between states~\citep{pei2018}, multi-scale Bayesian
@@ -32,25 +32,23 @@ however, contested.  For example, \citet{kramer2020} found that a
 12-country European mechanistic metapopulation linked by commuting and
 air-travel flows did \emph{not} outperform isolated single-country
 forecasts. On the other hand, standard time-series tools suggest that
-ILI forecasting for US states benefits from including neighbour-state
-as covariates in various autoregression methods \citet{thivierge2025},
-where a modest but consistent improvement in forecast skill was
-found. This qualitative picture is reproduced in
+ILI forecasting for US states benefits from including other states
+as covariates in various autoregression methods~\citep{thivierge2025},
+with a modest but consistent improvement in forecast skill. This qualitative picture is reproduced in
 Fig.~\ref{fig:sarima_heatmap} (see Methods for details). However, the
 results presented in Fig.~\ref{fig:sarima_heatmap} are somewhat
-misleading, as we will soon observe.
+misleading, as we demonstrate below.
 
 \begin{figure}%[h]
 \centering
 \includegraphics[width=0.8\textwidth]{../pix/sarima_heatmap.pdf}
-\caption{Out-of-sample RMSE change when a second state's lagged
-  mortality is added as an exogenous covariate to a forecast of a
+\caption{Test-period RMSE change when another state's lagged
+  mortality is added as a covariate to a forecast of a
   weekly per-capita pneumonia and influenza mortality. Each cell
   corresponds to a single (target, covariate) pair. Blue indicates the
-  improves forecast, and red indicates the it improves
-  forecast. Values clipped to~$\pm 10\%$. States are sorted by the
-  median effect. Train on 2010--2019, test on 2023--2025. The
-  improvement in forecast is visibly clear.}
+  covariate deteriorates the forecast, and red indicates the covariate
+  improves the forecast. Values clipped to~$\pm 10\%$. States are sorted
+  by the median effect. Train on 2010--2019, test on 2023--2025.}
 \label{fig:sarima_heatmap}
 \end{figure}
 
@@ -82,10 +80,10 @@ One major characteristic of seasonal influenza epidemics is
 Entrainment occurs when an independent oscillator is driven by a
 periodic forcing. Entrainment can be indistinguishable from mutual
 synchronization, but unlike synchronization it requires only a
-unidirectional coupling. In the United States, all states share a
+unidirectional coupling. In the United States, all states share
 similar intrinsic transmission dynamics and are driven by similar
 annual environmental forcing. Thus, state-level mortality trajectories
-can be strongly correlated without any inter-state coupling.  The
+can be strongly correlated without any inter-regional coupling.  The
 distinction between synchronization and entrainment leads us to ask
 \textbf{are seasonal influenza epidemics synchronized or only
   entrained?} An answer to this question has immediate implications
@@ -108,7 +106,7 @@ networks \citep{tsonis2004architecture}.
 
 %% \subsection{The Cram\'er-Rao Lower Bound as a formal diagnostic.}
 In order to distinguish between entrainment and synchronization, we
-employ the Cram\'er-Rao Lower Bound (CRLB henceforth)
+employ the Cram\'er-Rao Lower Bound (CRLB hereafter)
 \citep{casella2024statistical, wilke2020}. The CRLB gives a lower
 bound on the variance of \emph{every} unbiased estimator of a model
 parameter, and can therefore rule out the existence of any usable
@@ -132,10 +130,10 @@ SARIMA forecast by a national average of per-capita weekly mortality
 and obtain a considerable improvement in forecast skill. This result
 demonstrates that the results in Fig.~\ref{fig:sarima_heatmap} are
 almost entirely due to shared national-level seasonal severity rather
-than inter-state interactions.
+than directed coupling.
 
 Our practical recommendation is direct. For endemic seasonal pathogens
 with similar drivers, connectivity is not a necessary component for
 forecasting models. Forecasts that aggregate national-level
 information into ``seasonal severity'' capture essentially all of the
-cross-state signal available in the surveillance data.
+inter-regional signal available in the surveillance data.

@@ -4,7 +4,6 @@
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
 \usepackage{graphicx}
-\usepackage{natbib}
 \usepackage{hyperref}
 \usepackage{geometry}
 \usepackage{float}
@@ -17,30 +16,33 @@
 \renewcommand{\thetable}{S\arabic{table}}
 
 \title{Supplementary Information:\\
-  Seasonal entrainment makes inter-regional coupling unidentifiable in influenza forecasting}
+  Seasonal-influenza preparedness forecasts should drop inter-regional coupling: entrainment dominates synchronization}
 \date{}
 
 \begin{document}
 \maketitle
 
-\section{Data}\label{sec:si_data}
+\section{Data Integration}\label{sec:si_data}
+
+We integrate two sources of US state-level pneumonia-and-influenza
+weekly death counts: CDC FluView, covering 2010--2018, and
+HealthData.gov, covering 2017--2025. The two sources overlap in
+2017--2018. In the overlap period we take, for each (state, week)
+pair, the simple arithmetic mean of the two reported death counts;
+outside the overlap, the value is taken from whichever source covers
+it. The two sources agree closely in the overlap period.
+
+\section{Absolute Humidity and the Arizona Exclusion}\label{sec:si_humidity}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{../pix/raw_deaths.pdf}
-\caption{Weekly P\&I death counts for California, New York, Texas, and
-  Florida, showing seasonal peaks superimposed on a year-round
-  non-influenza baseline.}
-\label{fig:si_raw}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{../pix/rec_CAxNY.pdf}
-\caption{Reconstruction of excess P\&I deaths for California (top) and
-  New York (bottom) for three flu seasons. Black dots: observed weekly
-  excess deaths. Red line: fitted model $\rho\mu_i(t)$.}
-\label{fig:si_reconstruction}
+\includegraphics[width=\textwidth]{../pix/abs_hum.pdf}
+\caption{Weekly absolute humidity for Arizona (top) and New York
+  (bottom). The Arizona series exhibits markedly different seasonality
+  than New York and other temperate states; the sinusoidal-forcing
+  assumption used in our model is therefore poorly justified for
+  Arizona, which we exclude from the empirical analysis.}
+\label{fig:si_humidity}
 \end{figure}
 
 \section{Empirical Distribution of Fitted Initial Conditions}\label{sec:si_ics}
@@ -52,24 +54,104 @@
   all US state pairs and seasons. Left: susceptible fraction
   $S_i(0)/N_i$. Right: $\log_{10}$ of infected fraction $I_i(0)/N_i$.
   These empirical distributions are the sole source of initial
-  conditions for the simulated CRLB analysis
-  (Fig.~\ref{fig:crlb_ratio}); no hand-specified IC regimes are used.}
+  conditions for the simulated CRLB analysis of the main text; no
+  hand-specified IC regimes are used.}
 \label{fig:si_ics}
 \end{figure}
 
-\section{Phase Difference and Identifiability}\label{sec:si_phase}
+\section{Model Reconstructions}\label{sec:si_reconstructions}
+
+Figures~\ref{fig:si_rec_gaoh}--\ref{fig:si_rec_nytx} show
+reconstructions of excess P\&I deaths for representative state pairs.
+Black dots: observed weekly excess deaths. Red line: fitted model
+$\rho \mu_i(t)$.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.75\textwidth]{../pix/phase_diff_vs_crlb.pdf}
-\caption{Phase difference $|\varphi_1 - \varphi_2|$ between state
-  pairs vs.\ $\sqrt{\text{CRLB}}$. The narrow range of phase
-  differences (all below $\sim\pi/10$) reflects the strong
-  synchronization of temperate US influenza seasons.}
-\label{fig:si_phase}
+\includegraphics[width=\textwidth]{../pix/rec_GAxOH.pdf}
+\caption{Reconstruction for Georgia (top) and Ohio (bottom).}
+\label{fig:si_rec_gaoh}
 \end{figure}
 
-\bibliographystyle{plainnat}
-\bibliography{refs.bib, ~/lib.bib}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/rec_ILxPA.pdf}
+\caption{Reconstruction for Illinois (top) and Pennsylvania (bottom).}
+\label{fig:si_rec_ilpa}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/rec_CAxNY.pdf}
+\caption{Reconstruction for California (top) and New York (bottom).}
+\label{fig:si_rec_cany}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/rec_CAxFL.pdf}
+\caption{Reconstruction for California (top) and Florida (bottom).}
+\label{fig:si_rec_cafl}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/rec_CAxTX.pdf}
+\caption{Reconstruction for California (top) and Texas (bottom).}
+\label{fig:si_rec_catx}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/rec_FLxNY.pdf}
+\caption{Reconstruction for Florida (top) and New York (bottom).}
+\label{fig:si_rec_flny}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/rec_FLxTX.pdf}
+\caption{Reconstruction for Florida (top) and Texas (bottom).}
+\label{fig:si_rec_fltx}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/rec_NYxTX.pdf}
+\caption{Reconstruction for New York (top) and Texas (bottom).}
+\label{fig:si_rec_nytx}
+\end{figure}
+
+\section{Phase Differences Across State Pairs}\label{sec:si_phase}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{../pix/phase_diff_vs_theta.pdf}
+\caption{Phase difference $|\varphi_1 - \varphi_2|$ between state
+  pairs vs.\ the maximum-likelihood estimate $\hat\theta$. The narrow
+  range of phase differences (all below ${\sim}\pi/10$) reflects the
+  strong entrainment of temperate US influenza seasons.}
+\label{fig:si_phase_theta}
+\end{figure}
+
+\section{Synthetic-Data Sanity Checks}\label{sec:si_inverse}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/inverse_problem_clean.pdf}
+\caption{Maximum-likelihood recovery of $\theta$ on noiseless
+  synthetic two-region SIR data, across a range of true $\theta$
+  values, for synchronized and asynchronous configurations.}
+\label{fig:si_inverse_clean}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/inverse_problem_noisy.pdf}
+\caption{Maximum-likelihood recovery of $\theta$ under the Gaussian
+  observation model with realistic noise. Same setup as
+  Fig.~\ref{fig:si_inverse_clean}.}
+\label{fig:si_inverse_noisy}
+\end{figure}
 
 \end{document}

@@ -53,15 +53,15 @@ Table~\ref{tab:params}.
 \toprule
 Parameter & Value & Description & Source or calculation\\
 \midrule
-$R^{\text{max}}_0$ & 3.52 & $R_0$ at peak season & \cite{shaman2010} \\
-$R^{\text{min}}_0$ & 1.12 & $R_0$ during the summer & \cite{shaman2010} \\
-$D$ & 3.24 & Mean infection period (days) & \cite{shaman2010} \\
+$R^{\text{max}}_0$ & 3.52 & $R_0$ at peak season & \citep{shaman2010} \\
+$R^{\text{min}}_0$ & 1.12 & $R_0$ during the summer & \citep{shaman2010} \\
+$D$ & 3.24 & Mean infection period (days) & \citep{shaman2010} \\
 $\gamma$ & $2.16$ & Weekly recovery rate & $7 / D$ \\
 $\beta_{\text{max}}$ & $3.11$ & Peak-season transmission & $R_0^{\text{max}}(1 - e^{-\gamma})$\\
 $\beta_{\text{min}}$ & $0.99$ & Low-season transmission & $R_0^{\text{min}}(1 - e^{-\gamma})$ \\
 $\beta_0$ & $2.05$ & Mean transmission rate & $(\beta_{\text{min}} + \beta_{\text{max}})/2$ \\
 $\delta$ & $0.517$ & Seasonal amplitude & $\beta_{\text{max}} / \beta_0 - 1$\\
-$\rho$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate & \citet{rolfes2018}\\
+$\rho$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate & \citep{rolfes2018}\\
 $\varphi$ & & Phase of seasonal forcing & per state \\
 \bottomrule
 \end{tabular}
@@ -281,10 +281,9 @@ death count during July--October preceding each flu
 season~\citep{serfling1963, viboud2006}. The infection fatality rate
 $\rho \approx 5.36 \times 10^{-4}$ follows from the first row of Table
 1 in~\citet{rolfes2018}. Seasonal phases $\varphi_i$ are estimated
-from absolute humidity data~\citep{daon2025, shaman2009} by finding a
-phase shift $\varphi$ that maximizes the correlation between negative
-absoulute humidity values and a sine whose phase is shifted by
-$\varphi$. We define each flu season as $T = 20$ weekly observations
+from absolute humidity data~\citep{daon2025, shaman2009} by finding
+the phase shift that maximizes the correlation between negative
+absolute humidity values and a phase-shifted sine. We define each flu season as $T = 20$ weekly observations
 starting November~1$^{\text{st}}$ and fit a single connectivity
 $\theta$ shared across all seasons, with per-season initial conditions
 $(S_i(0), I_i(0))$ inferred via maximum-likelihood. We aggregate the
@@ -294,18 +293,18 @@ $\theta$.
  
 \subsection{Maximum-Likelihood Estimation}\label{subsec:mle}
 We maximize the log-likelihood using \texttt{SLSQP} from
-\texttt{NLopt}). Analytical gradients were calculated via
+\texttt{NLopt}. Analytical gradients were calculated via
 eq.~\eqref{eq:grad}. To handle potential local minima, we use a
 multi-start strategy with 200 random initial points and retain the
 solution with the highest likelihood. Pilot experiments show that 20
-initial points suffice, so we take an order of magniture more just to
+initial points suffice, so we take an order of magnitude more just to
 be safe.
 
 
 \subsection{Seasonal ARIMA Forecast}\label{subsec:sarimabench}
 We also fit a seasonal ARIMA model to each state's weekly per-capita
-pneumonia and influenza mortality, with and without exogenous
-covariates drawn from other states. For a target state $A$, the model
+pneumonia and influenza mortality, with and without covariates
+drawn from other states. For a target state $A$, the model
 of a $d$-times differenced time series is
 \begin{equation}\label{eq:sarima_model}
   y_{A,t}  \;=\; a_0
@@ -318,7 +317,7 @@ of a $d$-times differenced time series is
 which is a SARIMA$(p,d,q)(1,0,0)_{52}$ model with a one-week-lagged
 exogenous regressor vector $\mathbf{x}_{t-1}$.
 The non-seasonal orders $(p, d, q)$ and the coefficients are chosen on
-the training split by maximizing AIC\citep{hyndman2008}.
+the training data by minimizing AIC~\citep{hyndman2008}.
 
 For each ordered pair of states $(A, B)$ with $B \neq A$, we fit
 eq.~\eqref{eq:sarima_model} under four configurations of
@@ -329,8 +328,8 @@ $\mathbf{x}_{t-1}$:
   &\text{(state)}  && \mathbf{x}_{t-1} = (y_{B, t-1}); \\
   &\text{(both)} && \mathbf{x}_{t-1} = (y_{B, t-1},\; \bar y_{t-1});
 \end{align*}
-where $\bar y_{t} = \sum_{S} y_{S, t} / 47$ is the lag-one national
-average across all 47 states. We train on 2010--2019 and test on
+where $\bar y_{t} = \sum_{S} y_{S, t} / 47$ is the national
+average across all 47 states; in $\mathbf{x}_{t-1}$ we use it at lag one. We train on 2010--2019 and test on
 2023--2025, and report the relative change in test-period RMSE,
 \begin{equation}\label{eq:sarima_delta}
   \Delta \;=\; \frac{\text{RMSE}_{\mathrm{alt}} - \text{RMSE}_{\mathrm{ref}}}{\text{RMSE}_{\mathrm{ref}}},
@@ -338,10 +337,10 @@ average across all 47 states. We train on 2010--2019 and test on
 so $\Delta < 0$ means the alternative model improves the forecast over
 the reference.
 
-Two mechanisms can produce a bilateral improvement of (state) over
+Two mechanisms can produce an improvement of (state) over
 (univariate): (i) directed predictability, in which $B$'s past
 actually forecasts $A$'s future beyond $A$'s own past and shared
-seasonality; or (ii) a shared national forcing, in which $B$'s lagged
+seasonality; or (ii) shared national forcing, in which $B$'s lagged
 value is a noisy proxy for the current week's national-level
 flu-season severity. The two mechanisms make opposite predictions for
 the comparison of (both) to (national average): under (i) we expect a
