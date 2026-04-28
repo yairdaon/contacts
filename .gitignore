@@ -20,6 +20,9 @@ pix
 *dvi
 *~
 *out
+*bbl
+*bib
+*blg
 
 .Rhistory
 .ipynb_checkpoints/
