@@ -159,7 +159,9 @@ Partials of the system state propagate via:
 with initial conditions $\partial S_i(0)/\partial S_j(0) =
 \delta_{ij}$, $\partial I_i(0)/\partial I_j(0) = \delta_{ij}$, and
 zero otherwise. We find these partial derivatives jointly with the
-state equations.
+state equations. These sensitivity-equation methods have been reviewed
+by~\citet{wu2013sensitivity} and recently extended
+in~\citet{mester2022}.
 
 \subsection{Cram\'er-Rao Lower Bound}\label{subsec:crlb}
 For a single epidemic season, the Cram\'er-Rao Lower Bound (CRLB)
@@ -251,7 +253,13 @@ $\theta$ values, optimizing over all other parameters at each grid
 point. Such a calculation would be computationally prohibitive at the
 scale of our analysis. The CRLB is effectively a quadratic
 approximation to the profile likelihood around the maximum-likelihood
-estimate and is considerably cheaper to compute.
+estimate and is considerably cheaper to compute. Identifiability for
+ODE-based epidemic models has also been studied via structural
+identifiability~\citep{tuncer2018, chowell2023structural} and via
+identifiable parameter combinations~\citep{eisenberg2014determining};
+we use the CRLB because it bounds the \emph{variance} of an
+estimator under a hypothesised data design, which is the question we
+want to answer.
 
 \subsection{Simulated CRLB Analysis}\label{subsec:sim_crlb}
 We compute the CRLB across a grid of connectivity values $\theta \in
@@ -271,7 +279,7 @@ We analyze pneumonia and influenza (P\&I) mortality across 47 US
 states.  We exclude Alaska and Hawaii since we do not have absolute
 humidity data for them, and we exclude Arizona since it is a very arid
 state with relatively inconsistent absolute humidity values (see
-Supporting Information). We integrate data from CDC FluView
+Supplementary Information). We integrate data from CDC FluView
 (2010--2018)~\citep{cdcfluview2024} and HealthData.gov
 (2017--2025)~\citep{healthdatagov2025}, excluding COVID pandemic years
 2020--2022. Since pneumonia and influenza deaths include a year-round
@@ -292,8 +300,9 @@ obtain a bound on the overall estimator variance for the connectivity
 $\theta$.
  
 \subsection{Maximum-Likelihood Estimation}\label{subsec:mle}
-We maximize the log-likelihood using \texttt{SLSQP} from
-\texttt{NLopt}. Analytical gradients were calculated via
+We maximize the log-likelihood using
+\texttt{SLSQP}~\citep{kraft1988, kraft1994} from
+\texttt{NLopt}~\citep{NLopt}. Analytical gradients were calculated via
 eq.~\eqref{eq:grad}. To handle potential local minima, we use a
 multi-start strategy with 200 random initial points and retain the
 solution with the highest likelihood. Pilot experiments show that 20
@@ -350,4 +359,8 @@ not. In contrast, under (ii) we expect no reduction in RMSE when going
 from (national average) to (both), since $\bar y_{t-1}$ carries all
 the information pertaining to the severity. Hence, a comparison of
 RMSEs between (national average) and (both) will allow us to discern
-(i) from (ii).
+(i) from (ii). This comparison is a Granger-style
+test~\citep{granger1969}: it asks whether the covariate state's
+lag-one mortality improves prediction of the target's mortality beyond
+what is achievable from the target's own history and the shared $\bar
+y_{t-1}$ signal.

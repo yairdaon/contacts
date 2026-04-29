@@ -71,7 +71,13 @@ parameter value alone, the same design-stage check can be applied
 parameter-by-parameter to any such model before any inference pipeline
 is committed; parameters whose CRLB exceeds the scale of their
 expected effect cannot be supported by the planned data and should be
-removed from the model altogether in accordance with Occam's razor. The
+removed from the model altogether in accordance with Occam's razor.
+Recent work has begun to characterise identifiability constraints in
+network-based epidemic models~\citep{kiss2023parameter, di2020network,
+  kiss2024towards}, building on earlier results that transmission
+rate and network structure are fundamentally confounded
+\citep{welch2011}---together providing a parallel design-stage
+program for network parameters. The
 mathematical structure underlying our particular finding---oscillators
 driven by common periodic forcing---also arises outside epidemiology,
 in neural circuits receiving shared input~\citep{reid2019,

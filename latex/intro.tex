@@ -17,7 +17,6 @@ beneath this practice: does information from other regions actually
 help forecast a given region's flu incidence, and if so, what is the
 source of the improvement?
 
-
 Several flu-forecasting systems exploit inter-regional structure
 explicitly \citep{pei2018, osthus2021, lu2019, aiken2021, deng2020}.
 Whether this added complexity translates into better forecasts is,
@@ -48,7 +47,6 @@ demonstrate below.
 \label{fig:sarima_heatmap}
 \end{figure}
 
-
 One major characteristic of seasonal influenza epidemics is
 \emph{entrainment} \citep{pikovsky2001}.  Entrainment occurs when an
 independent oscillator is driven by a periodic forcing. Entrainment
@@ -73,17 +71,18 @@ utilize the Cram\'er-Rao Lower Bound (CRLB hereafter)
 bound on the variance of \emph{every} unbiased estimator of a model
 parameter, and can therefore rule out the existence of any usable
 inference method for that parameter. This makes the CRLB a
-\emph{design-stage} diagnostic---applicable to any model parameter
-and any planned dataset, before any inference procedure is attempted.
-Applying the CRLB to a
-discrete-time two-region SIR model with seasonal forcing, we show that
-the connectivity parameter is unidentifiable under entrainment. We then
-employ the CRLB to derive CIs around maximum-likelihood estimates of
-connectivity using 12 seasons of pneumonia and influenza excess
-mortality across 47~states. For nearly all state pairs, we cannot
-distinguish positive from zero connectivity. Building on Occam's
-razor, we conclude that connectivity should not be included in models
-of seasonal influenza.
+\emph{design-stage} diagnostic---applicable to any model parameter and
+any planned dataset, before any inference procedure is attempted.
+Lack of practical identifiability has previously been shown to hamper
+reliable predictions in COVID epidemic models~\citep{gallo2022}.
+Applying the CRLB to a discrete-time two-region SIR model with
+seasonal forcing, we show that the connectivity parameter is
+unidentifiable under entrainment. We then employ the CRLB to derive
+CIs around maximum-likelihood estimates of connectivity using 12
+seasons of pneumonia and influenza excess mortality across
+47~states. For nearly all state pairs, we cannot distinguish positive
+from zero connectivity. Building on Occam's razor, we conclude that
+connectivity should not be included in models of seasonal influenza.
 
 We verify the previous analysis by employing a standard model for
 time-series forecast. We observe an improvement in forecast skill when
