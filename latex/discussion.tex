@@ -1,43 +1,33 @@
 \section{Discussion}
 
 We have shown that US influenza surveillance data provide no
-statistical evidence for inter-regional coupling between states. The
-Cram\'er-Rao Lower Bound formalises this claim: for epidemics
-entrained by shared seasonal forcing with similar initial conditions
-the variance of any unbiased estimator is so large that we cannot
-determine whether coupling is non-zero. Our maximum-likelihood
-optimizer converges and returns an estimate that may appear informative,
-but confidence intervals around the estimate overlap zero for nearly
-all state pairs. Thus, the estimate is statistically indistinguishable
-from the null hypothesis of no coupling. The approximately uniform
-spread of inferred coupling is actually expected.
+statistical evidence for inter-regional coupling between states. Our
+claim rests on a classical result from estimation theory: the
+Cram\'er-Rao Lower Bound. Specifically, for epidemics entrained by
+shared seasonal forcing, the variance of any unbiased estimator is so
+large that we cannot determine whether coupling is non-zero. Our
+maximum-likelihood optimizer converges and returns an estimate that
+may appear informative, but confidence intervals around the estimate
+overlap zero for nearly all state pairs. Thus, the estimate is
+statistically indistinguishable from a null hypothesis of no
+coupling. The approximately uniform spread of inferred connectivity is
+actually expected.
 
-We conducted two independent analyses and arrived at identical
-conclusions. The CRLB shows that no unbiased estimator of $\theta$ on
-US surveillance data can distinguish $\theta > 0$ from $\theta = 0$
-for almost any state pair. The SARIMA partial test shows that, in a
-forecasting framework with no mechanistic SIR machinery at all, the
-other states' lag-one mortality carries no information beyond the
-lag-one national average.
+We complement the theory with a practical prediction scenario: the
+results of fitting SARIMA models show that, in a forecasting framework
+with no mechanistic SIR machinery at all, the other states' lag-one
+mortality carries no information beyond the lag-one national average.
 
 For endemic seasonal pathogens such as influenza~\citep{viboud2006,
   tamerius2013}, our results imply a single operational
 recommendation: \textbf{inter-regional coupling is not a necessary
   component of preparedness forecasting models}. The CRLB analysis
 makes this a statement about identifiability: no unbiased estimator of
-the connectivity parameter can produce confidence intervals that
-exclude zero under the entrainment regime that US seasonal influenza
-actually occupies. The seasonal-ARIMA comparison makes it a statement
-about forecast skill and demonstrates that an inter-regional covariate is
-merely a noisy proxy for shared national-level flu severity.
-
-Seasonal-flu forecasts \citep{reich2019} and their analogues
-\citep{johansson2019} inform hospital staffing, vaccine distribution
-timing, antiviral stockpile management, and the timing of
-public-health communication. For preparedness purposes, forecasting
-models can safely ignore inter-regional connectivity with no loss of
-forecast skill and a substantial gain in interpretability and
-calibration.
+the connectivity parameter can reject the null hypothesis of zero
+connectivity in the entrained regime of US seasonal influenza. The
+seasonal-ARIMA comparison makes it a statement about forecast skill
+and demonstrates that an inter-regional covariate is merely a noisy
+proxy for shared national-level flu severity.
 
 %% Our results complement previous studies on \citep{rosenkrantz2022}:
 %% any forecast product that depends on an unidentified connectivity
@@ -46,19 +36,20 @@ calibration.
 %% loosening it.
 
 Recently, \citet{thivierge2025} asked whether ILI forecasting in US
-states benefits from including other-state or US-weighted-average
-ILI as covariates in various autoregressions. They found modest but
+states benefits from including other-state or US-weighted-average ILI
+as covariates in various autoregressions. They found modest but
 consistent improvements by both RMSE and weighted interval score, and
 importantly observed that other-state and US-weighted-average
 covariates produce \emph{similar} gains. In our SARIMA framework, the
 national-average covariate alone produces a median RMSE reduction of
-$7.4\%$ and reduces RMSE in $97\%$ of states, while individual states
-contribute essentially nothing beyond the national average. Our CRLB
-explains why: the connectivity parameter is unidentifiable under
-entrainment, so the small effect that \citet{thivierge2025}
-observed carries very little information about inter-regional
-transmission. Our study therefore complements \citet{thivierge2025} by
-providing the information-theoretic reason for what they observe.
+$7.4\%$ and reduces RMSE in $97\%$ of (target, covariate) pairs, while
+individual states contribute essentially nothing beyond the national
+average. Our CRLB explains why: the connectivity parameter is
+unidentifiable under entrainment, so the small effect that
+\citet{thivierge2025} observed carries very little information about
+inter-regional transmission. Our study therefore complements
+\citet{thivierge2025} by providing the information-theoretic reason
+for some of the results they observe.
 
 Our analysis also carries implications for influenza forecasting in
 tropical regions~\citep{tsang2024}. In tropical regions, weaker and
@@ -101,16 +92,10 @@ is fixed.
 Second, our observation model uses a Gaussian approximation to the
 binomial. Real mortality data may exhibit overdispersion. However, a
 negative binomial model would increase the observation variance and
-thus may inflate the CRLB even further. %% Since the mechanism driving
-%% unidentifiability---vanishing sensitivity $\partial\mu/\partial\theta$
-%% under symmetry---is independent of the noise model,
-Therefore, our Gaussian CRLB represents an optimistic bound. Any more
-realistic noise model would reinforce the conclusion.
+thus may inflate the CRLB even further. Therefore, our Gaussian CRLB
+represents an optimistic bound. Any more realistic noise model would
+reinforce the conclusion.
 
 Third, we focused on a two-region model with symmetric coupling.
 Extensions to asymmetric coupling or larger networks will likely
 reveal additional identifiability challenges.
-
-%% Fourth, we compute excess deaths by subtracting a simple pre-season
-%% baseline~\citep{serfling1963}; more sophisticated baseline models
-%% could improve the influenza-specific signal.

@@ -56,10 +56,11 @@ density_anti <- function(bilateral_csv = "outputs/sarima_cv.csv",               
     geom_density(colour = "#4575B4", linewidth = 1) +                                        # py: # KDE overlay -- use scipy.stats.gaussian_kde
     geom_vline(xintercept = 0,   colour = "grey40", linewidth = 0.4) +                       # py: ax.axvline(0, color='grey', lw=0.4)
     geom_vline(xintercept = med, colour = "#B2182B", linetype = "dashed", linewidth = 0.8) + # py: ax.axvline(med, ls='--', color='#B2182B')
-    labs(x = expression("Relative RMSE change " * Delta * " (%) when adding " * y[B*","*t-1] *
-                        " on top of " * bar(y)[t-1]),                                        # py: ax.set_xlabel(...)
-         y = "Density") +                                                                    # py: ax.set_ylabel("Density")
-    theme_minimal(base_size = 16)                                                            # py: plt.style.use("default")
+    labs(x = "Change in RMSE (%)", y = NULL) +                                               # py: ax.set_xlabel("Change in RMSE (%)"); ax.set_ylabel("")
+    theme_minimal(base_size = 16) +                                                          # py: plt.style.use("default")
+    theme(axis.text.y  = element_blank(),                                                    # py: ax.set_yticklabels([])
+          axis.ticks.y = element_blank(),                                                    # py: ax.tick_params(axis='y', length=0)
+          panel.grid   = element_blank())                                                    # py: ax.grid(False)
   dir.create("pix", showWarnings = FALSE)                                                    # py: os.makedirs("pix", exist_ok=True)
   ggsave(out_pdf, g, width = 8, height = 5)                                                  # py: plt.savefig(out_pdf, bbox_inches='tight')
   ggsave(sub("\\.pdf$", ".png", out_pdf), g, width = 8, height = 5, dpi = 150)               # py: plt.savefig(out_pdf.replace('.pdf','.png'), dpi=150, bbox_inches='tight')
