@@ -1,26 +1,16 @@
 \begin{abstract}
-Spatial epidemic models for seasonal-influenza forecasting routinely
-encode inter-regional connectivity, and standard time-series methods
-suggest that forecasts are improved by using one state's lagged
-incidence as a covariate for another's. It is not clear, however,
-whether this improvement reflects directed inter-regional coupling, or
-perhaps a different phenomenon. To answer this question, we pursue two
-parallel lines of analysis. First, we apply the Cram\'er-Rao Lower
-Bound to a two-region SIR model and show that the connectivity
-parameter is unidentifiable under seasonal entrainment. We validate
-these results on 12 seasons of excess pneumonia and influenza
-mortality across 47 US states. We observe that 95\% confidence
-intervals derived from the Cram\'er-Rao Lower Bound around the
-estimated connectivity overlap zero for nearly all state pairs. We
-further validate our first analysis by investigating forecasts of
-pneumonia and influenza mortality using a standard seasonal
-autoregressive integrated moving average model. We employ two
-covariates: a second state's mortality, and the national-average
-mortality. We show that the other state's mortality provides no
-improvement in forecast skill beyond the national average. These two
-lines of analysis converge on the same conclusion: connectivity cannot
-be inferred from the data, and does not improve forecasts beyond the
-shared national-level signal. Hence, connectivity should be dropped
-from forecast models used for influenza preparedness in accordance
-with Occam's razor.
+Epidemic models for influenza forecasting routinely encode
+inter-regional connectivity, and forecast skill may improve when one
+state's lagged incidence is used as a covariate for another's. Whether
+this improvement reflects directed inter-regional coupling or some
+other mechanism is unclear. We apply the Cramér-Rao Lower Bound (CRLB)
+to a two-region SIR model fitted on 12 seasons of excess pneumonia and
+influenza (P\&I) mortality across 47 US states: 95\% CRLB-derived
+confidence intervals around the estimated connectivity overlap zero
+for nearly all state pairs. Independently, in a SARIMA model forecast,
+another state's P\&I provides no improvement in forecast skill beyond
+the national average. Connectivity is therefore unsupported by either
+analysis and should be dropped from forecast models used for influenza
+preparedness, in accordance with Occam's razor.
 \end{abstract}
+
