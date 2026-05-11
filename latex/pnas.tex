@@ -19,15 +19,29 @@
 
 \leadauthor{Daon}
 
-\significancestatement{US public-health agencies forecast seasonal influenza using models that encode connections between states, with connection strengths inferred from past mortality data. We show that when influenza epidemics rise and fall together across states because they share seasonal forcing, the connection strength is mathematically impossible to learn from the data: no estimator, however sophisticated, can distinguish a connected system from an unconnected one. An independent forecast-skill analysis confirms that lagged mortality from neighboring states carries no information beyond a national-severity signal. Inter-regional coupling should be dropped from operational influenza forecasts, simplifying preparedness models without loss of accuracy.}
+\significancestatement{US public-health agencies forecast seasonal
+  influenza using models that encode connections between states, with
+  connection strengths inferred from past mortality data. We show that
+  when influenza epidemics rise and fall together across states
+  because they share seasonal forcing, the connection strength is
+  mathematically impossible to learn from the data: no estimator,
+  however sophisticated, can distinguish a connected system from an
+  unconnected one. An independent forecast-skill analysis confirms
+  that lagged mortality from neighboring states carries no information
+  beyond a national-severity signal. Inter-regional coupling should be
+  dropped from operational influenza forecasts, simplifying
+  preparedness models without loss of accuracy.}
 
-\authorcontributions{Y.D. designed the research, performed the analysis, and wrote the paper.}
+\authorcontributions{Y.D. designed the research, performed the
+  analysis, and wrote the paper.}
 
 \authordeclaration{The author declares no competing interest.}
 
-\correspondingauthor{\textsuperscript{1}To whom correspondence should be addressed. E-mail: yair.daon@gmail.com}
+\correspondingauthor{\textsuperscript{1}To whom correspondence should
+  be addressed. E-mail: yair.daon@gmail.com}
 
-\keywords{identifiability $|$ Cram\'er-Rao lower bound $|$ seasonal influenza $|$ entrainment $|$ epidemic forecasting}
+\keywords{identifiability $|$ Cram\'er-Rao lower bound $|$ seasonal
+  influenza $|$ entrainment $|$ epidemic forecasting}
 
 \begin{abstract}
 Epidemic models for influenza forecasting routinely encode
@@ -56,10 +70,10 @@ preparedness, in accordance with Occam's razor.
 % Introduction: PNAS convention — no "Introduction" heading; suppress.
 % intro.tex contains \Endparasplit after the first paragraph to end
 % the asymmetric first-page layout.
-{\renewcommand{\section}[1]{}% === BEGIN intro.tex ===
-\providecommand{\Endparasplit}{} % no-op for paper.tex; defined in pnas-new.cls
+%% {\renewcommand{\section}[1]{}% === BEGIN intro.tex ===
+%% \providecommand{\Endparasplit}{} % no-op for paper.tex; defined in pnas-new.cls
 
-\section{Introduction}
+%% \section{Introduction}
 Operational influenza forecasting is a cornerstone of US public-health
 preparedness. The CDC FluSight collaborative challenge
 \citep{reich2019} and its analogues for other pathogens
@@ -94,7 +108,7 @@ Outside epidemiology the same problem arises whenever coupled
 oscillators are driven by common forcing \citep{pikovsky2001}: in
 neural circuits \citep{reid2019, friston2011}, ecological
 metapopulations \citep{bjornstad1999, grenfell1998}, and climate
-networks \citep{tsonis2004architecture}.\Endparasplit
+networks \citep{tsonis2004architecture}.
 
 In order to distinguish between entrainment and synchronization, we
 utilize the Cram\'er-Rao Lower Bound (CRLB hereafter)
@@ -105,15 +119,16 @@ inference method for that parameter. This makes the CRLB a
 \emph{design-stage} diagnostic---applicable to any model parameter and
 any planned dataset, before any inference procedure is attempted.
 Lack of practical identifiability has previously been shown to hamper
-reliable predictions in COVID epidemic models~\citep{gallo2022}.
-Applying the CRLB to a discrete-time two-region SIR model with
-seasonal forcing, we show that the connectivity parameter is
-unidentifiable under entrainment. We then employ the CRLB to derive
-CIs around maximum-likelihood estimates of connectivity using 12
-seasons of pneumonia and influenza excess mortality across
-47~states. For nearly all state pairs, we cannot distinguish positive
-from zero connectivity. Building on Occam's razor, we conclude that
-connectivity should not be included in models of seasonal influenza.
+reliable predictions in COVID epidemic
+models~\citep{gallo2022}. Applying the CRLB to a discrete-time
+two-region SIR model with seasonal forcing, we show that the
+connectivity parameter is unidentifiable under entrainment. We then
+\Endparasplit \noindent employ the CRLB to derive CIs around
+maximum-likelihood estimates of connectivity using 12 seasons of
+pneumonia and influenza excess mortality across 47~states. For nearly
+all state pairs, we cannot distinguish positive from zero
+connectivity. Building on Occam's razor, we conclude that connectivity
+should not be included in models of seasonal influenza.
 
 We verify the previous analysis by employing a standard model for
 time-series forecast. We observe an improvement in forecast skill when
