@@ -78,37 +78,6 @@ beneath this practice: does information from other regions actually
 help forecast a given region's flu incidence, and if so, what is the
 source of the improvement?
 
-Several flu-forecasting systems exploit inter-regional structure
-explicitly \citep{pei2018, osthus2021, lu2019, aiken2021, deng2020}.
-Whether this added complexity translates into better forecasts is,
-however, contested.  For example, \citet{kramer2020} found that a
-12-country European mechanistic metapopulation linked by commuting and
-air-travel flows did \emph{not} outperform isolated single-country
-forecasts. On the other hand, standard time-series tools suggest that
-ILI forecasting for US states benefits from including other states as
-covariates in various autoregression methods~\citep{thivierge2025},
-with a modest but consistent improvement in forecast skill. This
-qualitative picture is reproduced in Fig.~\ref{fig:sarima_heatmap}
-(see Methods for details). However, the results presented in
-Fig.~\ref{fig:sarima_heatmap} are somewhat misleading, as we
-demonstrate below.
-
-
-\begin{figure*}[t!]
-\centering
-\includegraphics[width=\textwidth]{../pix/sarima_heatmap.pdf}
-\caption{Test-period RMSE change when another state's lagged mortality
-  is added as a covariate to a forecast of a weekly per-capita
-  pneumonia and influenza mortality. Each cell corresponds to a single
-  (target, covariate) pair. Blue indicates the covariate deteriorates
-  the forecast, and red indicates the covariate improves the forecast.
-  Including another state's mortality as covariate reduces RMSE for
-  65\% of (target, covariate) pairs.  Values clipped to~$\pm
-  10\%$. States are sorted by the median effect. Train on 2010--2019,
-  test on 2023--2025.}
-\label{fig:sarima_heatmap}
-\end{figure*}
-
 One major characteristic of seasonal influenza epidemics is
 \emph{entrainment} \citep{pikovsky2001}.  Entrainment occurs when an
 independent oscillator is driven by a periodic forcing. Entrainment
@@ -125,8 +94,7 @@ Outside epidemiology the same problem arises whenever coupled
 oscillators are driven by common forcing \citep{pikovsky2001}: in
 neural circuits \citep{reid2019, friston2011}, ecological
 metapopulations \citep{bjornstad1999, grenfell1998}, and climate
-networks \citep{tsonis2004architecture}.
-\Endparasplit
+networks \citep{tsonis2004architecture}.\Endparasplit
 
 In order to distinguish between entrainment and synchronization, we
 utilize the Cram\'er-Rao Lower Bound (CRLB hereafter)
@@ -159,10 +127,42 @@ available in the surveillance data. Again invoking Occam's razor, we
 arrive at the same conclusion: connectivity should not be included in
 models of seasonal influenza.
 
-% === END intro.tex ===}
 
-% === BEGIN results.tex ===
 \section{Results}
+
+\subsection{State covariates appear to improve forecasts}\label{subsec:naive_sarima}
+
+Several flu-forecasting systems exploit inter-regional structure
+explicitly \citep{pei2018, osthus2021, lu2019, aiken2021, deng2020}.
+Whether this added complexity translates into better forecasts is,
+however, contested.  For example, \citet{kramer2020} found that a
+12-country European mechanistic metapopulation linked by commuting and
+air-travel flows did \emph{not} outperform isolated single-country
+forecasts. On the other hand, standard time-series tools suggest that
+ILI forecasting for US states benefits from including other states as
+covariates in various autoregression methods~\citep{thivierge2025},
+with a modest but consistent improvement in forecast skill. This
+qualitative picture is reproduced in Fig.~\ref{fig:sarima_heatmap}
+(see Methods for details). However, the results presented in
+Fig.~\ref{fig:sarima_heatmap} are somewhat misleading, as we
+demonstrate below.
+
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=\linewidth]{../pix/sarima_heatmap.pdf}
+\caption{Test-period RMSE change when another state's lagged mortality
+  is added as a covariate to a forecast of a weekly per-capita
+  pneumonia and influenza mortality. Each cell corresponds to a single
+  (target, covariate) pair. Blue indicates the covariate deteriorates
+  the forecast, and red indicates the covariate improves the forecast.
+  Including another state's mortality as covariate reduces RMSE for
+  65\% of (target, covariate) pairs.  Values clipped to~$\pm
+  10\%$. States are sorted by the median effect. Train on 2010--2019,
+  test on 2023--2025.}
+\label{fig:sarima_heatmap}
+\end{figure}
+
 
 \subsection{Entrainment Inflates the CRLB}
 Figure~\ref{fig:crlb_ratio} shows the ratio of median CRLB
@@ -180,7 +180,7 @@ of order ten and by factors that can exceed $10^{3}$ throughout most
 of the parameter space. These results confirm that entrainment
 dominates synchronization in seasonal epidemics.
 
-\begin{figure}[H]
+\begin{figure}[t!]
 \centering
 \includegraphics[width=\linewidth]{../pix/crlb_ratio.pdf}
 \caption{Ratio of median CRLB (synchronized / asynchronous) as a
@@ -199,16 +199,16 @@ over 12 flu seasons.  Figure~\ref{fig:seasons} shows the raw weekly
 death counts for four representative states, with the flu seasons used
 for inference highlighted.
 
-\begin{figure*}[t!]
+\begin{figure}[t!]
 \centering
-\includegraphics[width=\textwidth]{../pix/seasons_highlighted.pdf}
+\includegraphics[width=\linewidth]{../pix/seasons_highlighted.pdf}
 \caption{Weekly pneumonia and influenza deaths for four US
   states. Light traces show the full time series; darker segments
   indicate the 20-week flu seasons (starting each November) included
   in the analysis. COVID-19 pandemic years (2020--2022) are
   excluded.}
 \label{fig:seasons}
-\end{figure*}
+\end{figure}
 
 We estimated $\theta$ and its CRLB for all state pairs across
 12~seasons. Figure~\ref{fig:theta_vs_crlb} shows $\hat\theta$ against
@@ -221,7 +221,7 @@ the vast majority of pairs of states the surveillance data
 provide no statistical evidence for $\theta > 0$. The estimates
 $\hat\theta$ themselves spread roughly uniformly over $[0, 0.5]$.
 
-\begin{figure}[H]
+\begin{figure}[t!]
 \centering
 \includegraphics[width=\linewidth]{../pix/theta_vs_crlb.pdf}
 \caption{Estimated connectivity $\hat\theta$ vs.\ $\sqrt{\text{CRLB}}$
@@ -248,7 +248,7 @@ RMSE) in only $44\%$ of pairs (Fig.~\ref{fig:sarima_density}). Once
 the national-average covariate is in the model, the covariate state
 contributes nothing.
 
-\begin{figure}[H]
+\begin{figure}[t!]
 \centering
 \includegraphics[width=\linewidth]{../pix/sarima_density.pdf}
 \caption{Distribution of relative test-period RMSE change
