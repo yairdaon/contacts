@@ -3,6 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{geometry}
@@ -79,6 +80,58 @@ is lost when phase asymmetry is removed.
   exceeds $10^{5}$.}
 \label{fig:si_crlb_ratio}
 \end{figure}
+
+\section{Initial conditions absorb the effect of connectivity}\label{sec:si_schur}
+Let
+%
+\[
+  v_\theta := \mathbf{W}^{1/2}\,\frac{\partial\mu}{\partial\theta}
+  \in \mathbb{R}^{2T},
+  \qquad
+  v_\eta := \mathbf{W}^{1/2}\,\frac{\partial\mu}{\partial\eta}
+  \in \mathbb{R}^{2T\times 4},
+\]
+%
+where the initial-condition nuisance vector is $\eta = (S_1(0),
+I_1(0), S_2(0), I_2(0))$. The Fisher information matrix is
+%
+\[
+  \mathbf{J} = \mathbf{G}^\top\mathbf{W}\mathbf{G}
+  = \begin{pmatrix}
+    v_\theta^\top v_\theta & v_\theta^\top v_\eta \\[3pt]
+    v_\eta^\top v_\theta & v_\eta^\top v_\eta
+  \end{pmatrix}.
+\]
+%
+The projection operator onto the column space of $v_\eta$ is $P :=
+v_\eta(v_\eta^\top v_\eta)^{-1}v_\eta^\top$, hence the
+Schur-complement formula reads
+%
+\begin{align}\label{eq:si_schur_term}
+  \begin{split}
+    [\mathbf{J}^{-1}]_{11} &= (v_\theta^{\top}v_\theta - v_\theta^\top v_\eta(v_\eta^\top v_\eta)^{-1}v_\eta^\top v_\theta)^{-1}\\
+    %
+    %
+    %
+    &= (v_\theta^{\top} ( I-P ) v_\theta)^{-1}.
+  \end{split}
+\end{align}
+Case~(i) of the main text corresponds to $J_{\theta\theta} =
+v_\theta^\top v_\theta$ being small --- $\theta$ barely moves the
+trajectory, regardless of $\eta$.
+
+Thus a small CRLB requires $v_\theta^\top(I-P)v_\theta$ large,
+i.e.~$v_\theta$ close to orthogonal to $\mathrm{col}(v_\eta)$.
+Conversely, if $v_\theta$ lies close to $\mathrm{col}(v_\eta)$, the
+CRLB is large.
+
+The implication for identifiability is then immediate. The case when
+$v_\theta$ can be approximated well by a vector in the column space of
+$v_\eta$ corresponds to case~(ii) of the main text: changes in
+$\theta$ can be absorbed by changes in the initial conditions, so
+specifying $\theta$ adds little, and the observed trajectory is
+reproduced almost equally well by adjusting the ICs alone.
+
 
 \section{Model Reconstructions}\label{sec:si_reconstructions}
 
