@@ -16,70 +16,11 @@
 \renewcommand{\thefigure}{S\arabic{figure}}
 \renewcommand{\thetable}{S\arabic{table}}
 
-\title{Supplementary Information:\\ Seasonal influenza is entrained,
-  not synchronized} \date{}
+\title{Supplementary Information:\\ Inter-state coupling plays no
+  detectable role in US seasonal influenza forecasts} \date{}
 
 \begin{document}
 \maketitle
-
-\section{Data Integration}\label{sec:si_data}
-
-We integrate two sources of US state-level pneumonia-and-influenza
-weekly death counts: CDC FluView, covering 2010--2018, and
-HealthData.gov, covering 2017--2025. The two sources overlap in
-2017--2018. In the overlap period we take, for each (state, week)
-pair, the simple arithmetic mean of the two reported death counts;
-outside the overlap, the value is taken from whichever source covers
-it. The two sources agree closely in the overlap period.
-
-\section{Absolute Humidity and the Arizona Exclusion}\label{sec:si_humidity}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{../pix/abs_hum.pdf}
-\caption{Weekly absolute humidity for Arizona (top) and New York
-  (bottom). The Arizona series exhibits markedly different seasonality
-  than New York and other temperate states; the sinusoidal-forcing
-  assumption used in our model is therefore poorly justified for
-  Arizona, which we exclude from the empirical analysis.}
-\label{fig:si_humidity}
-\end{figure}
-
-\section{Empirical Distribution of Fitted Initial Conditions}\label{sec:si_ics}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{../pix/ic_distribution.pdf}
-\caption{Empirical distribution of fitted initial conditions across
-  all US state pairs and seasons. Left: susceptible fraction
-  $S_i(0)/N_i$. Right: $\log_{10}$ of infected fraction $I_i(0)/N_i$.
-  These empirical distributions are the sole source of initial
-  conditions for the simulated CRLB analysis of the main text; no
-  hand-specified IC regimes are used.}
-\label{fig:si_ics}
-\end{figure}
-
-\section{CRLB Ratio: Mechanistic View}\label{sec:si_crlb_ratio}
-
-The main-text power figure (Fig.~2) operationalizes the CRLB through
-a hypothesis-test framework. As a complementary mechanistic view,
-Figure~\ref{fig:si_crlb_ratio} shows the ratio of median CRLB
-(in-phase / out-of-phase) directly, illustrating how much information
-is lost when phase asymmetry is removed.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\textwidth]{../pix/crlb_ratio.pdf}
-\caption{Ratio of median CRLB (in-phase / out-of-phase) as a function
-  of connectivity $\theta$ and seasonal forcing amplitude $\delta$.
-  Initial conditions for each simulated season and region are drawn
-  independently from the empirical distribution of per-season,
-  per-state values fitted to the real data
-  (Fig.~\ref{fig:si_ics}). Median ratio is $17.3$; ratio~$>1$ in
-  $98\%$ of cells; 95th-percentile ratio is $\sim 850$, maximum
-  exceeds $10^{5}$.}
-\label{fig:si_crlb_ratio}
-\end{figure}
 
 \section{Initial conditions absorb the effect of connectivity}\label{sec:si_schur}
 Let
@@ -125,13 +66,72 @@ i.e.~$v_\theta$ close to orthogonal to $\mathrm{col}(v_\eta)$.
 Conversely, if $v_\theta$ lies close to $\mathrm{col}(v_\eta)$, the
 CRLB is large.
 
-The implication for identifiability is then immediate. The case when
-$v_\theta$ can be approximated well by a vector in the column space of
-$v_\eta$ corresponds to case~(ii) of the main text: changes in
-$\theta$ can be absorbed by changes in the initial conditions, so
-specifying $\theta$ adds little, and the observed trajectory is
-reproduced almost equally well by adjusting the ICs alone.
+The implications are immediate. The case when $v_\theta$ can be
+approximated well by a vector in the column space of $v_\eta$
+corresponds to case~(ii) of the main text: changes in $\theta$ can be
+absorbed by changes in the initial conditions, so specifying $\theta$
+adds little, and the observed trajectory is reproduced almost equally
+well by adjusting the ICs alone.
 
+
+\section{Data Integration}\label{sec:si_data}
+
+We integrate two sources of US state-level pneumonia-and-influenza
+weekly death counts: CDC FluView, covering 2010--2018, and
+HealthData.gov, covering 2017--2025. The two sources overlap in
+2017--2018. In the overlap period we take, for each (state, week)
+pair, the simple arithmetic mean of the two reported death counts;
+outside the overlap, the value is taken from whichever source covers
+it. The two sources agree closely in the overlap period.
+
+\section{Absolute Humidity and the Arizona Exclusion}\label{sec:si_humidity}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/abs_hum.pdf}
+\caption{Weekly absolute humidity for Arizona (top) and New York
+  (bottom). The Arizona series exhibits markedly different seasonality
+  than New York and other temperate states; the sinusoidal-forcing
+  assumption used in our model is therefore poorly justified for
+  Arizona, which we exclude from the empirical analysis.}
+\label{fig:si_humidity}
+\end{figure}
+
+\section{Empirical Distribution of Fitted Initial Conditions}\label{sec:si_ics}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../pix/ic_distribution.pdf}
+\caption{Empirical distribution of fitted initial conditions across
+  all US state pairs and seasons. Left: susceptible fraction
+  $S_i(0)/N_i$. Right: $\log_{10}$ of infected fraction $I_i(0)/N_i$.
+  These empirical distributions are the sole source of initial
+  conditions for the simulated CRLB analysis of the main text; no
+  hand-specified IC regimes are used.}
+\label{fig:si_ics}
+\end{figure}
+
+\section{CRLB Ratio}\label{sec:si_crlb_ratio}
+
+The main-text power figure (Fig.~2) operationalizes the CRLB through
+a hypothesis-test framework. As a complementary mechanistic view,
+Figure~\ref{fig:si_crlb_ratio} shows the ratio of median CRLB
+(in-phase / out-of-phase) directly, illustrating how much information
+is lost when phase asymmetry is removed.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{../pix/crlb_ratio.pdf}
+\caption{Ratio of median CRLB (in-phase / out-of-phase) as a function
+  of connectivity $\theta$ and seasonal forcing amplitude $\delta$.
+  Initial conditions for each simulated season and region are drawn
+  independently from the empirical distribution of per-season,
+  per-state values fitted to the real data
+  (Fig.~\ref{fig:si_ics}). Median ratio is $17.3$; ratio~$>1$ in
+  $98\%$ of cells; 95th-percentile ratio is $\sim 850$, maximum
+  exceeds $10^{5}$.}
+\label{fig:si_crlb_ratio}
+\end{figure}
 
 \section{Model Reconstructions}\label{sec:si_reconstructions}
 

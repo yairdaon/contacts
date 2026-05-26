@@ -16,6 +16,7 @@ heatmap_bilateral <- function(bilateral_csv = "outputs/sarima_cv.csv",          
     cat(sprintf("Missing %s; run ar.R first.\n", bilateral_csv)); return(invisible(NULL))    # py:     print(f"Missing {csv}; run ar.R first."); return
   }
   d <- read.csv(bilateral_csv)                                                               # py: d = pd.read_csv(csv)
+  d <- d[!is.na(d$pct_biv) & d$cov %in% unique(d$target), ]                                  # py: d = d.dropna(subset=['pct_biv']); d = d[d.cov.isin(d.target.unique())]
   d$pct_clip <- pmax(pmin(d$pct_biv, 10), -10)                                               # py: d['pct_clip'] = d['pct_biv'].clip(-10, 10)
   rank <- aggregate(pct_biv ~ target, data = d, FUN = median)                                # py: rank = d.groupby('target').pct_biv.median().reset_index()
   rank <- rank[order(rank$pct_biv), "target"]                                                # py: rank = rank.sort_values('pct_biv').target.tolist()

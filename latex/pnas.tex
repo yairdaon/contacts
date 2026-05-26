@@ -21,15 +21,17 @@
 
 \significancestatement{US public-health agencies forecast seasonal
   influenza using models that encode connections between states. We
-  show that when influenza epidemics rise and fall together across
-  states, the connection strength is impossible to learn from the
-  data: no estimator, however sophisticated, can distinguish a
-  connected system from an unconnected one. An independent
-  forecast-skill analysis confirms that lagged mortality from
-  neighboring states carries no information beyond a national-severity
-  signal. We conclude that inter-regional coupling should be dropped
-  from operational influenza forecasts, simplifying preparedness
-  models without loss of accuracy.}
+  show that when states share a common seasonal driver --- as US
+  influenza does --- the strength of inter-state connections is
+  redundant once each state's epidemic starting conditions are
+  accounted for. Two complementary analyses, one mechanistic and one
+  model-free, agree that connections between states add no measurable
+  skill to forecasts of US seasonal influenza. The same redundancy is
+  likely in any system of coupled oscillators driven by a common
+  force, from neural circuits to ecological metapopulations and
+  climate networks. We conclude that inter-state coupling can be
+  omitted from US influenza preparedness models without measurable
+  loss of skill.}
 
 \authorcontributions{Y.D. designed the research, performed the
   analysis, and wrote the paper.}
@@ -39,30 +41,31 @@
 \correspondingauthor{\textsuperscript{1}To whom correspondence should
   be addressed. E-mail: yair.daon@gmail.com}
 
-\keywords{identifiability $|$ Cram\'er-Rao lower bound $|$ seasonal
+\keywords{Fisher information $|$ Granger causality $|$ seasonal
   influenza $|$ entrainment $|$ epidemic forecasting}
 
 \begin{abstract}
 Epidemic models for influenza forecasting routinely encode
-inter-regional connectivity, and forecast skill may improve when one
-state's lagged incidence is used as a covariate for another's. Whether
-this improvement reflects directed inter-regional coupling or some
-other mechanism is unclear. We set up a mechanistic SIR model for
-seasonal influenza and estimate its ability to identify regional
-connectivity under seasonal forcing via the Cram\'er-Rao Lower
-Bound. We find that connectivity is far from identifiable even in this
-idealized settings. Next, we fit the SIR model to 12 seasons of excess
-pneumonia and influenza mortality across 47 US states. We arrive at
-similar results: confidence-intervals around the estimated
-connectivity overlap zero for the vast majority of state
-pairs. Independently, employing a standard time-series forecast model,
-we show that another state's pneumonia and influenza mortality
-provides no improvement in forecast skill beyond the national average
-rate of pneumonia and influenza mortality. Thus, conditional Granger
-causality suggests that connectivity is not a causal driver of
-influenza. Connectivity is therefore unsupported by either analysis
-and should be dropped from forecast models used for influenza
-preparedness, in accordance with Occam's razor.
+inter-regional connectivity, and forecast skill appears to improve
+when one state's lagged incidence is used as a covariate for
+another's. Whether this improvement arises from inter-regional
+coupling or shared seasonal forcing is unclear. We address this
+question via two complementary approaches. Mechanistically, we apply
+the Cram\'er-Rao Lower Bound to a two-region SIR model and show that
+under in-phase seasonal forcing connectivity is redundant: either (i)
+it does not affect the disease trajectory at all, or (ii) its effect
+is absorbed by fitting the initial conditions. Since mechanistic
+forecast routines fit initial conditions from past observations,
+connectivity carries no information once initial conditions are
+estimated. Fitting the SIR model to 12 seasons of excess pneumonia and
+influenza mortality across 47 US states confirms this: for the vast
+majority of state pairs, the data are equally consistent with
+vanishing inter-state coupling. Independently, a model-free
+conditional-Granger test shows that another state's pneumonia and
+influenza mortality provides no improvement in forecast skill beyond
+the national average. Both lines of analysis agree: inter-state
+connectivity does not improve US seasonal influenza forecasts and may
+be omitted from preparedness models, in accordance with Occam's razor.
 \end{abstract}
 
 \dates{This manuscript was compiled on \today}
@@ -112,12 +115,12 @@ independent oscillator is driven by a periodic forcing --- for
 example, environmental forcing in the case of influenza
 \cite{shaman2009, shaman2010}. Although entrainment can be
 indistinguishable from mutual synchronization, the former requires
-only a unidirectional forcing, while the latter requires bidirectional
-coupling --- population mixing, in the case of influenza. In the
-\Endparasplit \noindent United States, all states share similar
-intrinsic transmission dynamics and are driven by similar annual
-environmental forcing. Thus, state-level mortality levels can be
-strongly correlated without any inter-regional coupling.
+only a unidirectional forcing, while the latter requires
+\Endparasplit \noindent bidirectional coupling --- population mixing,
+in the case of influenza. In the United States, all states share
+similar intrinsic transmission dynamics and are driven by similar
+annual environmental forcing. Thus, state-level mortality can be
+strongly correlated without any inter-state coupling.
 
 The distinction between synchronization and entrainment is practical:
 it dictates what a forecast model should contain. If influenza
@@ -134,17 +137,18 @@ simulations of this SIR model and show that connectivity between regions
 is fundamentally unidentifiable when epidemics are entrained by
 common seasonal forcing. Further, we use the structure of the
 resulting Fisher information matrix to argue that either (i)
-connectivity is not relevant, or (ii) connectivity is compensated for
-by epidemic initial conditions. Since forecast models typically fit
-the initial conditions of an epidemic, our analysis suggests that
-connectivity may, in fact, be rendered redundant. We proceed to test
+connectivity does not affect the disease trajectory, or (ii) its
+effect is absorbed by fitting initial conditions. Since mechanistic
+forecast routines fit initial conditions from past observations, our
+analysis suggests that connectivity may, in fact, be rendered
+redundant. We proceed to test
 this hypothesis on US pneumonia and influenza mortality. We find
 maximum-likelihood estimates of connectivity from real US data and
 show that, overall, surveillance records contain no statistical
-evidence of inter-regional coupling.
+evidence of inter-state coupling.
 
-Second, in an independent line of analysis, we return to the
-forecasting framework of Fig.~\ref{fig:sarima_heatmap} and show that
+Second, in an independent, model-free line of analysis, we return to
+the forecasting framework of Fig.~\ref{fig:sarima_heatmap} and show that
 the apparent state-covariate signal carries no information beyond a
 national-severity covariate. A conditional Granger causality test
 \cite{granger1969, geweke1984} then implies forecast models should not
@@ -159,9 +163,8 @@ influenza. Whenever coupled oscillators are driven by common forcing
   friston2011}, ecological metapopulations \citep{bjornstad1999,
   grenfell1998}, and climate networks \citep{tsonis2004architecture},
 our approach can flag parameters that the planned data cannot
-support. An unidentifiable parameter is unlikely to improve forecast
-skill and should be removed from forecast models in accordance with
-Occam's razor.
+support. A redundant parameter does not improve forecasts and should be
+removed from forecast models in accordance with Occam's razor.
 
 
 \begin{figure}[t!]
@@ -283,7 +286,7 @@ surveillance data provide insufficient statistical evidence in favor
 of $H_1:\theta > 0$. The estimates $\hat\theta$ themselves spread
 roughly uniformly over $[0, 0.5]$. The apparent forecast benefit of
 Fig.~\ref{fig:sarima_heatmap} therefore cannot be the signature of
-directional inter-regional coupling. The real-data uncertainties
+directional inter-state coupling. The real-data uncertainties
 $\sqrt{\text{Var}(\hat\theta)}$ in fact exceed those predicted by
 in-phase simulation, so US surveillance data are even less informative
 about connectivity than the idealized two-region model of the previous
@@ -311,8 +314,8 @@ what is it? Two mechanisms can produce the improvement of the single
 state covariate forecast over the univariate forecast we observed in
 Fig.~\ref{fig:sarima_heatmap}: (i) directed predictability, in which
 the covariate state $B$'s past actually forecasts the target state
-$A$'s future beyond the $A$'s own past and shared seasonality; or (ii)
-shared national forcing, in which the $B$'s lagged value is a noisy
+$A$'s future beyond $A$'s own past and shared seasonality; or (ii)
+shared national forcing, in which $B$'s lagged value is a noisy
 proxy for the current week's national-level flu-season severity. The
 two mechanisms make opposite predictions: under (i) we expect a
 reduction in RMSE going from (national average) to (state and national
@@ -327,14 +330,14 @@ from (ii).
 This comparison is in fact a conditional Granger causality
 test~\citep{granger1969, geweke1984}. We had already established in
 Fig.~\ref{fig:sarima_heatmap} that $y_{B,t-1}$ improves forecast of
-$y_{A,t}$, so by Reichenbach's common cause priniciple and temporal
+$y_{A,t}$, so by Reichenbach's common cause principle and temporal
 ordering either $y_{B,t-1}\to y_{A,t}$, or there is a common cause. If
 the forecast skill using $y_{B,t-1}$ and $\bar{y}_{t-1}$ is no better
 than that of $\bar{y}_{t-1}$, then $\bar{y}_{t-1}$ is the common cause
 and $Y_B \leftarrow \bar Y \to Y_A$~\citep{pearl2009}.  In this case,
 the apparent $Y_B \to Y_A$ relationship is confounded by the shared
 national-level severity rather than reflecting directional
-inter-regional coupling.
+inter-state coupling.
 
 
 
@@ -372,25 +375,25 @@ simulated SIR epidemics supported by fit to US pneumonia and influenza
 mortality, and a model-free conditional-Granger test on the same
 data. Both rest on the same physical observation: US influenza seasons
 across states are entrained by shared environmental forcing rather
-than coupled by inter-regional mixing.
+than coupled by inter-state mixing.
 
 The Cram\'er-Rao analysis shows that the variance of any unbiased
 estimator of connectivity is large under in-phase entrainment. Either
-(i) connectivity does not affect disease trajectory , or (ii) its
+(i) connectivity does not affect disease trajectory, or (ii) its
 effect is absorbed by fitting initial conditions. Since mechanistic
 forecast routines fit initial conditions from past observations, an
-initial condition fit absorbs any influence connectivity would have
+initial-condition fit absorbs any influence connectivity would have
 had on the forecast. Including connectivity therefore does not improve
 mechanistic forecasts.
 
 The conditional-Granger test reaches the same conclusion by an
 entirely different route. Fitting SARIMA models to weekly state-level
 pneumonia and influenza mortality, we find that the lag-one mortality
-of another state adds essentially nothing beyond the lag-one
+of another state carries no information beyond the lag-one
 national-severity index. The apparent forecast skill from including
 another state's mortality (Fig.~\ref{fig:sarima_heatmap}) is therefore
 a noisy proxy for shared national severity, not a signature of
-directional inter-regional coupling.
+directional inter-state coupling.
 
 Recently, \citep{thivierge2025} asked whether ILI forecasting in US
 states benefits from including other-state or US-weighted-average ILI
@@ -398,12 +401,12 @@ as covariates in various autoregressions. They found consistent
 improvements by both RMSE and weighted interval score, and importantly
 observed that other-state and US-weighted-average covariates produce
 \emph{similar} gains. In our SARIMA framework, the national-average
-covariate alone produces a median RMSE reduction of $7.4\%$ and
+covariate alone produces a median RMSE reduction of $7.6\%$ and
 reduces RMSE in $97\%$ of target-covariate pairs, while individual
 states contribute essentially nothing beyond the national average. Our
 findings therefore complement \citep{thivierge2025}: the other-state
 gains they observed are explained by shared national severity rather
-than inter-regional connectivity, and our Cram\'er-Rao analysis gives
+than inter-state connectivity, and our Cram\'er-Rao analysis gives
 the mechanistic reason --- connectivity is either redundant or its
 effect is absorbed by the initial conditions.
 

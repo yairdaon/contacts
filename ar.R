@@ -76,24 +76,29 @@ eval_target <- function(target) {                                               
 # ---- per-pair fits: biv-only + biv+nav (2162 fits) ----------------------------------------
 
 eval_pair <- function(target, cov) {                                                         # py: def eval_pair(target, cov):
-  tryCatch({                                                                                 # py: try:
-    y    <- ts(w[[target]], frequency = 52)                                                  # py:     y    = pd.Series(w[target].values)
-    xb   <- c(NA, head(w[[cov]], -1))                                                        # py:     xb   = np.concatenate(([np.nan], w[cov].values[:-1]))
-    xn   <- c(NA, head(NAVG, -1))                                                            # py:     xn   = np.concatenate(([np.nan], NAVG[:-1]))
-    X    <- cbind(biv = xb, nav = xn)                                                        # py:     X    = np.column_stack([xb, xn])
-    o_b  <- forecast::arimaorder(auto.arima(y[tr], xreg = xb[tr]))[1:3]                      # py:     o_b  = auto_arima(y[tr], X=xb[tr]).order
+  y    <- ts(w[[target]], frequency = 52)                                                    # py: y    = pd.Series(w[target].values)
+  xb   <- c(NA, head(w[[cov]], -1))                                                          # py: xb   = np.concatenate(([np.nan], w[cov].values[:-1]))
+  xn   <- c(NA, head(NAVG, -1))                                                              # py: xn   = np.concatenate(([np.nan], NAVG[:-1]))
+  X    <- cbind(biv = xb, nav = xn)                                                          # py: X    = np.column_stack([xb, xn])
+  rb <- tryCatch({                                                                           # py: try:
+    o_b <- forecast::arimaorder(auto.arima(y[tr], xreg = xb[tr]))[1:3]                       # py:     o_b = auto_arima(y[tr], X=xb[tr]).order
+    m_b <- Arima(y[tr], order = o_b, seasonal = SEASONAL, xreg = xb[tr])                     # py:     m_b = SARIMAX(y[tr], order=o_b, seasonal_order=..., exog=xb[tr]).fit()
+    p_b <- fitted(Arima(y, model = m_b, xreg = xb))[te]                                      # py:     p_b = m_b.apply(y, exog=xb).fittedvalues[te]
+    sqrt(mean((y[te] - p_b)^2, na.rm = TRUE))                                                # py:     rb  = np.sqrt(np.nanmean((y[te] - p_b)**2))
+  }, error = function(e) NA_real_)                                                           # py: except Exception: rb = np.nan
+  rbn <- tryCatch({                                                                          # py: try:
     o_bn <- forecast::arimaorder(auto.arima(y[tr], xreg = X[tr, ]))[1:3]                     # py:     o_bn = auto_arima(y[tr], X=X[tr]).order
-    m_b  <- Arima(y[tr], order = o_b,  seasonal = SEASONAL, xreg = xb[tr])                   # py:     m_b  = SARIMAX(y[tr], order=o_b,  seasonal_order=..., exog=xb[tr]).fit()
     m_bn <- Arima(y[tr], order = o_bn, seasonal = SEASONAL, xreg = X[tr, ])                  # py:     m_bn = SARIMAX(y[tr], order=o_bn, seasonal_order=..., exog=X[tr]).fit()
-    p_b  <- fitted(Arima(y, model = m_b,  xreg = xb))[te]                                    # py:     p_b  = m_b.apply(y,  exog=xb).fittedvalues[te]
     p_bn <- fitted(Arima(y, model = m_bn, xreg = X))[te]                                     # py:     p_bn = m_bn.apply(y, exog=X).fittedvalues[te]
-    rb   <- sqrt(mean((y[te] - p_b)^2,  na.rm = TRUE))                                       # py:     rb   = np.sqrt(np.nanmean((y[te] - p_b)**2))
-    rbn  <- sqrt(mean((y[te] - p_bn)^2, na.rm = TRUE))                                       # py:     rbn  = np.sqrt(np.nanmean((y[te] - p_bn)**2))
-    cat(sprintf("[pair] %-14s | %-14s  biv=%.4f  both=%.4f\n", target, cov, rb, rbn))        # py:     print(f"[pair] {target} | {cov}  biv={rb:.4f}  both={rbn:.4f}")
-    data.frame(target, cov, rmse_biv = rb, rmse_both = rbn)                                  # py:     return dict(target=target, cov=cov, rmse_biv=rb, rmse_both=rbn)
-  }, error = function(e) {                                                                   # py: except Exception as e:
-    cat(sprintf("[pair] %-14s | %-14s  [SKIP: %s]\n", target, cov, e$message)); NULL         # py:     print(f"[pair] {target} | {cov} [SKIP: {e}]"); return None
-  })
+    sqrt(mean((y[te] - p_bn)^2, na.rm = TRUE))                                               # py:     rbn  = np.sqrt(np.nanmean((y[te] - p_bn)**2))
+  }, error = function(e) NA_real_)                                                           # py: except Exception: rbn = np.nan
+  if (is.na(rb) && is.na(rbn)) {                                                             # py: if both NaN:
+    cat(sprintf("[pair] %-14s | %-14s  [SKIP both]\n", target, cov)); return(NULL)           # py:     print(...); return None
+  }
+  cat(sprintf("[pair] %-14s | %-14s  biv=%s  both=%s\n", target, cov,                        # py: print(f"[pair] {target} | {cov} biv={rb} both={rbn}")
+              if (is.na(rb))  "FAIL" else sprintf("%.4f", rb),
+              if (is.na(rbn)) "FAIL" else sprintf("%.4f", rbn)))
+  data.frame(target, cov, rmse_biv = rb, rmse_both = rbn)                                    # py: return dict(target, cov, rmse_biv=rb, rmse_both=rbn)
 }
 
 # ---- run everything: per-target then per-pair, then merge & write CSV --------------------
