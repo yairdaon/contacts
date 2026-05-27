@@ -3,6 +3,7 @@
 \articletype{Biological Sciences}%%%% Article topic/classification
 
 \templatetype{pnasresearcharticle}
+\setboolean{displaywatermark}{false}
 
 \usepackage{xr}
 \externaldocument{supp}
@@ -67,8 +68,6 @@ the national average. Both lines of analysis agree: inter-state
 connectivity does not improve US seasonal influenza forecasts and may
 be omitted from preparedness models, in accordance with Occam's razor.
 \end{abstract}
-
-\dates{This manuscript was compiled on \today}
 
 \maketitle
 \thispagestyle{firststyle}
@@ -312,20 +311,20 @@ Fig.~\ref{fig:sarima_heatmap}. If the apparent benefit of including
 another state's lag-one mortality is not directional coupling, then
 what is it? Two mechanisms can produce the improvement of the single
 state covariate forecast over the univariate forecast we observed in
-Fig.~\ref{fig:sarima_heatmap}: (i) directed predictability, in which
+Fig.~\ref{fig:sarima_heatmap}: (a) directed predictability, in which
 the covariate state $B$'s past actually forecasts the target state
-$A$'s future beyond $A$'s own past and shared seasonality; or (ii)
+$A$'s future beyond $A$'s own past and shared seasonality; or (b)
 shared national forcing, in which $B$'s lagged value is a noisy
 proxy for the current week's national-level flu-season severity. The
-two mechanisms make opposite predictions: under (i) we expect a
+two mechanisms make opposite predictions: under (a) we expect a
 reduction in RMSE going from (national average) to (state and national
 average), since $y_{B,t-1}$ carries directional information that $\bar
-y_{t-1}$ does not. In contrast, under (ii) we expect no reduction in
+y_{t-1}$ does not. In contrast, under (b) we expect no reduction in
 RMSE when going from (national average) to (state and national
 average), since $\bar y_{t-1}$ carries all the information pertaining
 to the severity. Hence, a comparison of RMSEs between (national
-average) and (state and national average) will allow us to discern (i)
-from (ii).
+average) and (state and national average) will allow us to discern (a)
+from (b).
 
 This comparison is in fact a conditional Granger causality
 test~\citep{granger1969, geweke1984}. We had already established in
