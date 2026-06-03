@@ -1,67 +1,873 @@
-\documentclass[12pt,letterpaper]{article}
+\documentclass[9pt,twocolumn,twoside]{pnas-new}
 
-% Required packages
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{bm}
-\usepackage{graphicx}
-\usepackage{natbib}
-\usepackage{url}
-\usepackage{hyperref}
-\usepackage{geometry}
-\usepackage{booktabs}
-\usepackage{array}
-\usepackage{float}
-\usepackage{subcaption}
+\articletype{Biological Sciences}%%%% Article topic/classification
+
+\templatetype{pnasresearcharticle}
+\setboolean{displaywatermark}{false}
+
 \usepackage{xr}
 \externaldocument{supp}
 
-% Page formatting
-\geometry{margin=1in}
-%% \linespread{1.5}
-\setlength{\parskip}{6pt}
-
-% Title and authors
-\title{Seasonal-influenza preparedness forecasts should drop inter-regional coupling: entrainment dominates synchronization}
-
-%\author{Yair Daon}
-
-\date{}
-
-\newcommand{\keywords}[1]{\par\noindent{\small\textbf{Keywords:} #1}}
+\usepackage{flushend} % balance columns on last page
 
 \begin{document}
 
+\title{Inter-state coupling plays no detectable role in US seasonal influenza forecasts}
+
+\author[a,1]{Yair Daon}
+
+\affil[a]{Azrieli Faculty of Medicine, Bar-Ilan University, Safed, Israel}
+
+\leadauthor{Daon}
+
+
+\authorcontributions{Y.D. designed the research, performed the
+  analysis, and wrote the paper.}
+
+\authordeclaration{The author declares no competing interest.}
+
+\correspondingauthor{\textsuperscript{1}To whom correspondence should
+  be addressed. E-mail: yair.daon@gmail.com}
+
+\keywords{Fisher information $|$ Granger causality $|$ seasonal
+  influenza $|$ entrainment $|$ epidemic forecasting}
+
+\begin{abstract}
+Epidemic models for influenza forecasting routinely encode
+inter-regional connectivity, and forecast skill appears to improve
+when one state's lagged incidence is used as a covariate for
+another's. Whether this improvement arises from inter-regional
+coupling or shared seasonal forcing is unclear. We address this
+question via two complementary approaches. Mechanistically, we apply
+the Cram\'er-Rao Lower Bound to a two-region SIR model and show that
+under in-phase seasonal forcing connectivity is redundant: either (i)
+it does not affect the disease trajectory at all, or (ii) its effect
+is absorbed by fitting the initial conditions. Since mechanistic
+forecast routines fit initial conditions from past observations,
+connectivity carries no information once initial conditions are
+estimated. Fitting the SIR model to 12 seasons of excess pneumonia and
+influenza mortality across 47 US states confirms this: for the vast
+majority of state pairs, the data are equally consistent with
+vanishing inter-state coupling. Independently, a model-free
+conditional-Granger test shows that another state's pneumonia and
+influenza mortality provides no improvement in forecast skill beyond
+the national average. Both lines of analysis agree: inter-state
+connectivity does not improve US seasonal influenza forecasts and may
+be omitted from preparedness models, in accordance with Occam's razor.
+\end{abstract}
+
 \maketitle
+\thispagestyle{firststyle}
+\ifthenelse{\boolean{shortarticle}}{\ifthenelse{\boolean{singlecolumn}}{\abscontentformatted}{\abscontent}}{}
 
-\input{abstract}
+\Firstpage
 
-%% Significance Statement (for PNAS; comment out for Nature Comm)
-%% \bigskip
-%% \noindent\textbf{Significance Statement.}
-%% Spatial epidemic models routinely include connectivity between
-%% regions, but we show this parameter is fundamentally unidentifiable
-%% for synchronized seasonal diseases. Using the Cram\'er-Rao Lower
-%% Bound, we prove that when influenza epidemics rise and fall together
-%% across US states each winter, no statistical method can reliably
-%% estimate inter-state connectivity from mortality data. This carries a
-%% practical message for modelers: if a parameter cannot be learned from
-%% data, it should not be in the model. For established seasonal
-%% pathogens, simpler models without spatial coupling are equally
-%% justified. Connectivity remains identifiable for novel pathogens
-%% during their initial asynchronous spread.
+Operational influenza forecasting is a cornerstone of US public-health
+preparedness. The CDC FluSight collaborative challenge
+\citep{reich2019} and its analogues for other pathogens
+\citep{johansson2019} produce probabilistic forecasts that inform
+vaccine distribution, hospital staffing, and other policy
+decisions. It is a consensus in spatial analyses of US influenza and
+related respiratory viruses that inter-regional spread is well
+described by mobility data---commuting flows from US Census workflow
+data~\citep{viboud2006, charu2017}, domestic airline passenger
+volumes~\citep{charu2017, daon2020, zhang2026}, and mobile-phone
+movement indices in emergent-outbreak
+settings~\citep{kraemer2020}. Consequently, spatial epidemic models
+routinely encode inter-regional connectivity as an input derived from
+these external sources. Yet whether connectivity actually improves
+forecasts is rarely tested.
 
-\input{intro}
-\input{methods}
-\input{results}
-\input{discussion}
+It is then no surprise that researchers in the influenza forecasting
+community also employ inter-regional coupling in their forecasts. Yang
+et al.~\citep{yang2014} established the canonical
+coupled-metapopulation approach with US commuting flows, and more
+recent systems have built on this idea using mechanistic
+metapopulations, Bayesian hierarchical models, and graph or
+neural-network architectures~\citep{pei2018, osthus2021, lu2019,
+  aiken2021, deng2020}. Standard time-series methods similarly suggest
+influenza-like illness forecasts in the US benefit from including other
+states as covariates~\citep{thivierge2025}, with a modest but
+consistent improvement in skill. (For a contrary result in the
+European setting, see~\citep{kramer2020}.)  We reproduce this finding
+for pneumonia and influenza mortality in
+Fig.~\ref{fig:sarima_heatmap}: adding one state's lag-one mortality as
+a covariate reduces test-period RMSE for 65\% of target-covariate
+pairs. Thus, connectivity appears to improve influenza forecasts.
 
-\bibliographystyle{plainnat}
-\bibliography{refs.bib, ~/lib.bib}
+One major characteristic of seasonal influenza epidemics is
+\emph{entrainment} \citep{pikovsky2001}. Entrainment occurs when an
+independent oscillator is driven by a periodic forcing --- for
+example, environmental forcing in the case of influenza
+\cite{shaman2009, shaman2010}. Although entrainment can be
+indistinguishable from mutual synchronization, the former requires
+only a unidirectional forcing, while the latter requires
+\Endparasplit \noindent bidirectional coupling --- population mixing,
+in the case of influenza. In the United States, all states share
+similar intrinsic transmission dynamics and are driven by similar
+annual environmental forcing. Thus, state-level mortality can be
+strongly correlated without any inter-state coupling.
+
+The distinction between synchronization and entrainment is practical:
+it dictates what a forecast model should contain. If influenza
+epidemics are genuinely synchronized, inter-state connectivity is a
+real driver and belongs in the model; if they are only entrained by
+shared seasonal forcing, connectivity is spurious and should be
+dropped. Thus, we ask: \textbf{Does inter-state connectivity carry
+  forecast-relevant information, or is it redundant?}
+
+
+We approach this question from two angles. First, we formulate a
+mechanistic SIR model. We apply the Cram\'er-Rao lower bound to
+simulations of this SIR model and show that connectivity between regions
+is fundamentally unidentifiable when epidemics are entrained by
+common seasonal forcing. Further, we use the structure of the
+resulting Fisher information matrix to argue that either (i)
+connectivity does not affect the disease trajectory, or (ii) its
+effect is absorbed by fitting initial conditions. Since mechanistic
+forecast routines fit initial conditions from past observations, our
+analysis suggests that connectivity may, in fact, be rendered
+redundant. We proceed to test
+this hypothesis on US pneumonia and influenza mortality. We find
+maximum-likelihood estimates of connectivity from real US data and
+show that, overall, surveillance records contain no statistical
+evidence of inter-state coupling.
+
+Second, in an independent, model-free line of analysis, we return to
+the forecasting framework of Fig.~\ref{fig:sarima_heatmap} and show that
+the apparent state-covariate signal carries no information beyond a
+national-severity covariate. A conditional Granger causality test
+\cite{granger1969, geweke1984} then implies forecast models should not
+include connectivity, only a national average severity index.
+
+
+Both lines of analysis reach a similar conclusion: inter-state
+connectivity should be dropped from US seasonal influenza
+forecasts. The same \textbf{design-stage} check applies well beyond
+influenza. Whenever coupled oscillators are driven by common forcing
+\citep{pikovsky2001}, e.g.~in neural circuits \citep{reid2019,
+  friston2011}, ecological metapopulations \citep{bjornstad1999,
+  grenfell1998}, and climate networks \citep{tsonis2004architecture},
+our approach can flag parameters that the planned data cannot
+support. A redundant parameter does not improve forecasts and should be
+removed from forecast models in accordance with Occam's razor.
+
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=\linewidth]{../pix/sarima_heatmap.pdf}
+\caption{Test-period RMSE change when another state's lagged mortality
+  is added as a covariate to a forecast of a weekly per-capita
+  pneumonia and influenza mortality. Each cell corresponds to a single
+  target-covariate pair. Blue indicates the covariate deteriorates the
+  forecast, and red indicates the covariate improves the forecast.
+  Including another state's mortality as a covariate reduces RMSE for
+  65\% of target-covariate pairs. Values clipped to~$\pm
+  10\%$. States are sorted by the median effect. Train on 2010--2019,
+  test on 2023--2025.}
+\label{fig:sarima_heatmap}
+\end{figure}
+
+\section*{Results}
+
+\subsection*{Entrainment Degrades Power}\label{subsec:crlb_inflated}
+If the apparent state-covariate signal of
+Fig.~\ref{fig:sarima_heatmap} reflects coupling, then connectivity
+(denoted $\theta$) must be inferable from incidence data. We test this
+by computing statistical power for $\theta > 0$ in a two-region SIR
+model.  We compare in-phase and reverse-phase entrainment and assume
+optimal uncertainty bounds for $\theta$ via the Cram\'er-Rao lower
+bound (see Methods). Fig.~\ref{fig:power} shows statistical power
+across a grid of connectivity values $\theta$ and seasonal forcing
+amplitudes (denoted $\varepsilon$), with initial conditions drawn from the
+empirical distribution of real-data fits (see Methods and
+SI~Fig.~\ref{fig:si_ics}). Under in-phase entrainment, statistical
+power is low: it does not exceed $0.55$ anywhere on the parameter
+grid, far short of the conventional $0.8$ threshold for a well-powered
+study. Under reverse-phase entrainment, power is substantially higher,
+reaching $0.95$. The red star marks a strongly connected flu epidemic
+($\theta = 0.05$, $\varepsilon = 0.517$; see Table~\ref{tab:params} in
+Methods): for in-phase entrainment, power at the red star is only
+$0.39$, while for reverse-phase entrainment it is $0.89$--- more than
+doubled. Thus, in-phase entrainment severely degrades the
+detectability of inter-regional coupling from seasonal influenza
+surveillance data.
+
+\begin{figure}[t!]
+\centering \includegraphics[width=\linewidth]{../pix/power.pdf}
+\caption{Statistical power for $H_1:\theta > 0$ at $\alpha = 0.05$,
+  with 12-season worth of simulated data.  \textbf{Top:} in-phase
+  forcing ($\varphi_1 = \varphi_2$). \textbf{Bottom:} reverse-phase
+  forcing ($\varphi_1 - \varphi_2 = \pi$). Initial conditions are
+  drawn from the empirical distribution of per-season, per-state
+  values (SI~Fig.~\ref{fig:si_ics}). Red star: parameter choices
+  corresponding to a strongly driven flu epidemic ($\theta = 0.05$,
+  $\varepsilon = 0.517$). Test based the optimal Cram\'er-Rao Lower
+  Bound estimates for $\text{Var}(\hat\theta)$ around the true value
+  of $\theta$. Thus, results presented in this figure are optimistic.}
+\label{fig:power}
+\end{figure}
+
+The power degradation under in-phase entrainment in
+Fig.~\ref{fig:power} can be explained using the Schur
+complement. Partition the $5\times5$ Fisher information matrix into a
+$1\times1$ $\theta$-block and a $4\times4$ initial-condition block,
+\begin{equation*}
+  \mathbf{J} = \begin{bmatrix}
+    J_{\theta\theta} & \mathbf{J}_{\theta\eta} \\
+    \mathbf{J}_{\eta\theta} & \mathbf{J}_{\eta\eta}
+  \end{bmatrix},
+\end{equation*}
+where $\eta = (S_1(0), I_1(0), S_2(0), I_2(0))$ collects the
+initial-conditions. By the Schur complement
+\begin{equation}\label{eq:schur}
+  [\mathbf{J}^{-1}]_{11}
+  \;=\; \bigl( J_{\theta\theta}
+    \;-\; \mathbf{J}_{\theta\eta}\,\mathbf{J}_{\eta\eta}^{-1}\,\mathbf{J}_{\eta\theta}
+  \bigr)^{-1}.
+\end{equation}
+A large CRLB therefore arises for one of two reasons. Either (i)
+$J_{\theta\theta}$ is small, so $\theta$ has no effect on forecasts
+and any value for $\theta$ will do. Alternatively, (ii) a large CRLB
+can arise whenever the $\theta$ sensitivity is close to the span of
+the IC sensitivities (see SI Section \ref{sec:si_schur}). This makes
+sense: if $\frac{\partial \mu}{\partial \theta}$ is in the span of
+$\frac{\partial \mu}{\partial S_1(0)}, \frac{\partial \mu}{\partial
+  I_1(0)}$ etc., then any effect the connectivity $\theta$ has on
+disease trajectory is absorbed by the initial conditions. Both cases
+lead to the same conclusion: under~(i) connectivity by itself is
+redundant; under~(ii) the effect of connectivity is absorbed by
+fitting initial conditions --- which many forecast routines do. A large
+CRLB therefore implies that connectivity should not improve forecasts.
+
+
+\subsection*{Inter-State Connectivity in the US via Influenza}\label{subsec:us_real_data}
+For influenza in the US, where states share strong seasonal forcing
+with similar phases (see SI~Fig.~\ref{fig:si_phase_theta}), the
+surveillance record should therefore carry no information about
+inter-state coupling. We test this prediction directly by analyzing
+excess pneumonia and influenza mortality from 47 US states over 12 flu
+seasons. Fig.~\ref{fig:seasons} shows raw weekly death counts for four
+representative states, with the flu seasons used for inference
+highlighted.
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=\linewidth]{../pix/seasons_highlighted.pdf}
+\caption{Weekly pneumonia and influenza deaths for four US
+  states. Light traces show the full time series; darker segments
+  indicate the 20-week flu seasons (starting each November) included
+  in the analysis. COVID-19 pandemic years (2020--2022) are
+  excluded.}
+\label{fig:seasons}
+\end{figure}
+
+We estimated $\theta$ via maximum-likelihood and derived its error
+bars for all state pairs across 12 seasons.
+Fig.~\ref{fig:theta_vs_crlb} shows $\hat\theta$ against
+$\sqrt{\text{Var}(\hat\theta)}$. The dashed line marks the $\alpha =
+0.05$ rejection boundary, hence we cannot reject $H_0:\theta=0$ for
+points above this line. For the vast majority of pairs of states the
+surveillance data provide insufficient statistical evidence in favor
+of $H_1:\theta > 0$. The estimates $\hat\theta$ themselves spread
+roughly uniformly over $[0, 0.5]$. The apparent forecast benefit of
+Fig.~\ref{fig:sarima_heatmap} therefore cannot be the signature of
+directional inter-state coupling. The real-data uncertainties
+$\sqrt{\text{Var}(\hat\theta)}$ in fact exceed those predicted by
+in-phase simulation, so US surveillance data are even less informative
+about connectivity than the idealized two-region model of the previous
+section.
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=\linewidth]{../pix/theta_vs_crlb.pdf}
+\caption{Estimated connectivity $\hat\theta$
+  vs.\ $\sqrt{\text{Var}(\hat\theta)}$ for US state pairs. The dashed
+  line is the $\alpha=0.05$ rejection boundary and we cannot reject
+  $H_0:\theta=0$ for points above this line. Black circles:
+  non-significant state pairs, cannot reject $H_0:\theta=0$. Red
+  stars: significant state pairs, reject $H_0:\theta=0$ in favor of
+  $H_1:\theta>0$.}
+\label{fig:theta_vs_crlb}
+\end{figure}
+
+
+\subsection*{State covariates carry no information beyond the national average}\label{subsec:natavg_results}
+We now return to the forecast-skill picture of
+Fig.~\ref{fig:sarima_heatmap}. If the apparent benefit of including
+another state's lag-one mortality is not directional coupling, then
+what is it? Two mechanisms can produce the improvement of the single
+state covariate forecast over the univariate forecast we observed in
+Fig.~\ref{fig:sarima_heatmap}: (a) directed predictability, in which
+the covariate state $B$'s past actually forecasts the target state
+$A$'s future beyond $A$'s own past and shared seasonality; or (b)
+shared national forcing, in which $B$'s lagged value is a noisy
+proxy for the current week's national-level flu-season severity. The
+two mechanisms make opposite predictions: under (a) we expect a
+reduction in RMSE going from (national average) to (state and national
+average), since $y_{B,t-1}$ carries directional information that $\bar
+y_{t-1}$ does not. In contrast, under (b) we expect no reduction in
+RMSE when going from (national average) to (state and national
+average), since $\bar y_{t-1}$ carries all the information pertaining
+to the severity. Hence, a comparison of RMSEs between (national
+average) and (state and national average) will allow us to discern (a)
+from (b).
+
+This comparison is in fact a conditional Granger causality
+test~\citep{granger1969, geweke1984}. We had already established in
+Fig.~\ref{fig:sarima_heatmap} that $y_{B,t-1}$ improves forecast of
+$y_{A,t}$, so by Reichenbach's common cause principle and temporal
+ordering either $y_{B,t-1}\to y_{A,t}$, or there is a common cause. If
+the forecast skill using $y_{B,t-1}$ and $\bar{y}_{t-1}$ is no better
+than that of $\bar{y}_{t-1}$, then $\bar{y}_{t-1}$ is the common cause
+and $Y_B \leftarrow \bar Y \to Y_A$~\citep{pearl2009}.  In this case,
+the apparent $Y_B \to Y_A$ relationship is confounded by the shared
+national-level severity rather than reflecting directional
+inter-state coupling.
+
+
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=\linewidth]{../pix/sarima_density.pdf}
+\caption{Distribution of relative test-period RMSE change
+  \eqref{eq:sarima_delta} when the covariate state's lag-one
+  mortality $y_{B,t-1}$ is added as a second covariate to a SARIMA
+  that already includes the lag-one national average $\bar y_{t-1}$
+  across target-covariate pairs. Negative values imply that adding the
+  covariate state improves the forecast. The distribution is nearly
+  symmetric around zero (median $+0.02\%$, dashed red line), showing
+  that the covariate state carries no information beyond the national
+  average.}
+\label{fig:sarima_density}
+\end{figure}
+
+Fig.~\ref{fig:sarima_density} decisively discerns the two options: the
+information in $y_{B,t-1}$ is merely a proxy for the national-level
+severity, which the national average captures cleanly. Had
+connectivity been an important factor, $y_{B,t-1}$ would have carried
+information not contained in $\bar y_{t-1}$ and the joint model would
+beat the national-average-only model. We see no such
+effect. Conditional Granger causality then implies the data are
+consistent with a common-cause graphical structure $Y_B \leftarrow
+\bar Y \to Y_A$, in which national-level severity confounds the
+apparent directed-coupling structure $Y_B \to Y_A$.
+
+\section*{Discussion}
+We have shown that inter-state connectivity does not improve US
+seasonal influenza forecasts. We reach this verdict via two
+complementary approaches --- a mechanistic Cram\'er-Rao analysis on
+simulated SIR epidemics supported by fit to US pneumonia and influenza
+mortality, and a model-free conditional-Granger test on the same
+data. Both rest on the same physical observation: US influenza seasons
+across states are entrained by shared environmental forcing rather
+than coupled by inter-state mixing.
+
+The Cram\'er-Rao analysis shows that the variance of any unbiased
+estimator of connectivity is large under in-phase entrainment. Either
+(i) connectivity does not affect disease trajectory, or (ii) its
+effect is absorbed by fitting initial conditions. Since mechanistic
+forecast routines fit initial conditions from past observations, an
+initial-condition fit absorbs any influence connectivity would have
+had on the forecast. Including connectivity therefore does not improve
+mechanistic forecasts.
+
+The conditional-Granger test reaches the same conclusion by an
+entirely different route. Fitting SARIMA models to weekly state-level
+pneumonia and influenza mortality, we find that the lag-one mortality
+of another state carries no information beyond the lag-one
+national-severity index. The apparent forecast skill from including
+another state's mortality (Fig.~\ref{fig:sarima_heatmap}) is therefore
+a noisy proxy for shared national severity, not a signature of
+directional inter-state coupling.
+
+Recently, \citep{thivierge2025} asked whether ILI forecasting in US
+states benefits from including other-state or US-weighted-average ILI
+as covariates in various autoregressions. They found consistent
+improvements by both RMSE and weighted interval score, and importantly
+observed that other-state and US-weighted-average covariates produce
+\emph{similar} gains. In our SARIMA framework, the national-average
+covariate alone produces a median RMSE reduction of $7.6\%$ and
+reduces RMSE in $97\%$ of target-covariate pairs, while individual
+states contribute essentially nothing beyond the national average. Our
+findings therefore complement \citep{thivierge2025}: the other-state
+gains they observed are explained by shared national severity rather
+than inter-state connectivity, and our Cram\'er-Rao analysis gives
+the mechanistic reason --- connectivity is either redundant or its
+effect is absorbed by the initial conditions.
+
+Our analysis also carries implications for influenza forecasting in
+tropical regions~\citep{tsang2024}. In tropical regions, weaker and
+less coherent seasonal forcing may produce reverse-phase
+outbreaks~\citep{tamerius2013}, which our analysis shows may give rise
+to the phase asymmetry needed for identifiability. Connectivity may
+therefore play a more significant role in tropical regions and may
+improve forecasts where it does not in the entrained temperate
+regime. Our Cram\'er-Rao analysis offers a precise way to characterize
+this distinction.
+
+\subsection*{Beyond Influenza}
+The redundancy diagnostic we apply here is not specific to influenza
+or to inter-regional coupling. Contemporary spatial and structured
+epidemic models routinely carry connectivity matrices, age-specific
+contact rates, and more. Because the Cram\'er-Rao Lower Bound bounds
+the variance of every unbiased estimator and is computable from the
+model and a hypothesized parameter value alone, the same design-stage
+check can be applied to any such model before any inference pipeline
+is chosen: a parameter whose effect on the trajectory can be
+reproduced by fitting other parameters does not improve forecasts and
+should be removed from the model in accordance with Occam's razor.
+Recent work has begun to characterize identifiability constraints in
+network-based epidemic models~\citep{kiss2023parameter, dilauro2020,
+  kiss2024towards}, building on earlier results that transmission rate
+and network structure are fundamentally confounded
+\citep{welch2011}---together providing a parallel design-stage program
+for network parameters. The mathematical structure underlying our
+particular finding---oscillators driven by common periodic
+forcing---also arises outside epidemiology, in neural circuits
+receiving shared input~\citep{reid2019, pikovsky2001} and in
+metapopulations driven by environmental cycles~\citep{bjornstad1999};
+the same entrainment-driven redundancy is plausible there, and the
+same design-stage diagnostic applies.
+
+\subsection*{Limitations}
+Several limitations warrant discussion. First, our model assumes a
+single influenza strain with uniform transmission parameters across
+all seasons and regions. In reality, $R_0$ varies substantially across
+influenza subtypes~\citep{biggerstaff2014}. Just like for
+connectivity, this variability could be absorbed by the initial
+conditions.
+
+Second, our observation model uses a Gaussian approximation to the
+binomial. Real mortality data may exhibit overdispersion. However, a
+negative binomial model would increase the observation variance and
+thus may inflate the CRLB even further. Therefore, our Gaussian CRLB
+represents an optimistic bound. Any more realistic noise model would
+reinforce the conclusion.
+
+Third, we focused on a two-region model with symmetric coupling.
+Extensions to asymmetric coupling or larger networks will likely
+reveal additional challenges.
+
+\matmethods{%
+
+\subsection*{Seasonal ARIMA Forecast}\label{subsec:sarimabench}
+We fit a seasonal ARIMA model to each state's weekly per-capita
+pneumonia and influenza mortality, with and without covariates drawn
+from other states. For a target state $A$, the model of a $d$-times
+differenced time series is
+\begin{equation}\label{eq:sarima_model}
+  y_{A,t}  = a_0
+    + \sum_{k=1}^{p} \phi_k\, y_{A, t-k}
+    + \sum_{j=1}^{q} \psi_j\, \epsilon_{A, t-j}
+    + \Phi\, y_{A, t-52}
+    + \boldsymbol{\beta}^{\!\top} \mathbf{x}_{t-1}
+    + \epsilon_{A,t}%,
+\end{equation}
+which is a SARIMA$(p,d,q)(1,0,0)_{52}$ model with a one-week-lagged
+exogenous regressor vector $\mathbf{x}_{t-1}$.
+The non-seasonal orders $(p, d, q)$ and the coefficients are chosen on
+the training data by minimizing AIC~\citep{hyndman2008}.
+
+For each ordered pair of states $(A, B)$ with $B \neq A$, we
+fit~\eqref{eq:sarima_model} under four configurations of
+$\mathbf{x}_{t-1}$:
+\begin{align*}
+  &\text{(univariate)} && \mathbf{x}_{t-1} = \emptyset; \\
+  &\text{(national average)}  && \mathbf{x}_{t-1} = (\bar y_{t-1}); \\
+  &\text{(state)}  && \mathbf{x}_{t-1} = (y_{B, t-1}); \\
+  &\text{(state and national average)} && \mathbf{x}_{t-1} = (y_{B, t-1},\; \bar y_{t-1});
+\end{align*}
+where $\bar y_{t} = \sum_{S} y_{S, t} / 47$ is the national
+average across all 47 states; in $\mathbf{x}_{t-1}$ we use it at lag one. We train on 2010--2019 and test on
+2023--2025, and report the relative change in test-period RMSE,
+\begin{equation}\label{eq:sarima_delta}
+  \Delta \;=\; \frac{\text{RMSE}_{\mathrm{alt}} - \text{RMSE}_{\mathrm{ref}}}{\text{RMSE}_{\mathrm{ref}}},
+\end{equation}
+so $\Delta < 0$ means the alternative model improves the forecast over
+the reference.
+
+\subsection*{Mechanistic Model}\label{subsec:model}
+Consider two interconnected regions with populations $N_1$ and $N_2$.
+Let $S_i(t)$, $I_i(t)$, $R_i(t)$ denote the number of susceptible,
+infected, and recovered individuals in region $i$ at time $t$, with
+$S_i + I_i + R_i = N_i$. Regional coupling is governed by the contact
+matrix
+%
+%
+$$
+\mathbf{C} =
+\begin{bmatrix}
+  1 - \theta  &     \theta \\
+      \theta  & 1 - \theta
+\end{bmatrix}
+$$
+%
+%
+where $\theta \in [0, 0.5]$ is the connectivity parameter. The
+transmission rate is a standard seasonal forcing ($\varepsilon$ is forcing
+amplitude, $\varphi_i$ is a phase offset):
+%
+%
+$$
+\beta_i(t) = \beta_0(1 + \varepsilon\sin(2\pi t + \varphi_i)),
+$$
+%
+%
+where $t$ is measured in years. Then, the force of infection in region
+$i$ is~\citep{edlund2011, keeling2008}
+\begin{equation}\label{eq:foi}
+\lambda_i(t) = \beta_i(t) \frac{\sum_j C_{ij}\, I_j(t)}{\sum_j C_{ij}\, N_j}.
+\end{equation}
+
+The expected incidence is $\mu_i(t) = S_i(t)[1 -
+  \exp(-\lambda_i(t))]$, and the recovery probability per time step is
+$\exp(-\gamma)$. Time steps are denoted $\Delta t$, and the resulting
+discrete-time SIR dynamics are:
+\begin{align}\begin{split}\label{eq:discrete_sir}
+S_i(t+\Delta t) &= S_i(t) \exp(-\lambda_i(t)) \\
+I_i(t+ \Delta t) &= I_i(t) \exp(-\gamma) + \mu_i(t)
+\end{split}\end{align}
+We use SIR rather than SIRS dynamics because we conduct inference for
+each influenza season separately. Model parameters are calibrated to
+seasonal influenza following~\citep{shaman2010, rolfes2018}; see
+Table~\ref{tab:params}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llll}
+\toprule
+Parameter & Value & Description & Source / calc.\\
+\midrule
+$R^{\text{max}}_0$ & 3.52 & $R_0$ at peak season & \citep{shaman2010} \\
+$R^{\text{min}}_0$ & 1.12 & $R_0$ during the summer & \citep{shaman2010} \\
+$D$ & 3.24 & Mean infection period (days) & \citep{shaman2010} \\
+$\gamma$ & $2.16$ & Weekly recovery rate & $7 / D$ \\
+$\beta_{\text{max}}$ & $3.11$ & Peak-season transmission & $R_0^{\text{max}}(1 - e^{-\gamma})$\\
+$\beta_{\text{min}}$ & $0.99$ & Low-season transmission & $R_0^{\text{min}}(1 - e^{-\gamma})$ \\
+$\beta_0$ & $2.05$ & Mean transmission rate & $(\beta_{\text{min}} + \beta_{\text{max}})/2$ \\
+$\varepsilon$ & $0.517$ & Seasonal amplitude & $\beta_{\text{max}} / \beta_0 - 1$\\
+$\rho$ & $5.36 \times 10^{-4}$ & Infection Fatality Rate & \citep{rolfes2018}\\
+$\varphi$ & & Phase of seasonal forcing & per state \\
+\bottomrule
+\end{tabular}
+\caption{Model parameters calibrated to seasonal influenza.}
+%% with $\beta(t) = \beta_0(1+\varepsilon \sin(2\pi t + \varphi))$.}
+\label{tab:params}
+\end{table}
+
+\subsection*{Observation Model and Likelihood}\label{subsec:noise}
+We assume each infection is reported independently with probability
+$\rho$, giving rise to binomially distributed observations, which we approximate as Gaussian:
+%
+%
+$$
+Y_i(t) = \rho\mu_i(t) + \epsilon_i(t)
+$$
+%
+%
+with
+%
+%
+$$
+\epsilon_i(t) \sim \mathcal{N}(0, \rho(1{-}\rho)\mu_i(t)).
+$$
+%
+%
+
+The unknown parameters for a single influenza season are
+$\boldsymbol{\phi} = (\theta, S_1(0), I_1(0), S_2(0), I_2(0))$, giving
+the log-likelihood:
+\begin{equation}\label{eq:loglik}
+\ell(\boldsymbol{\phi}) = -\frac{1}{2}\sum_{t=0}^{T-1}\sum_{i=1}^{2}
+\left[\log(2\pi \sigma_i^2(t)) + \frac{(Y_i(t) -
+    \rho\mu_i(t))^2}{\sigma_i^2(t)}\right]
+\end{equation}
+where $\sigma_i^2(t) = \rho(1{-}\rho)\mu_i(t)$.
+
+\subsection*{Derivatives}\label{subsec:sens}
+Computing the Cram\'er-Rao Lower Bound and maximizing the likelihood
+(details below for both) require partial derivatives of model outputs
+with respect to parameters. Let $\phi \in \{\theta, S_1(0), S_2(0),
+I_1(0), I_2(0)\}$ denote a parameter ($\phi = \phi_k$ for $k = 1,
+\dots, 5$). The partial derivative of the force of infection from
+\eqref{eq:foi} is:
+\begin{equation}\label{eq:sens_foi}
+\frac{\partial \lambda_i}{\partial \phi} = \beta_i(t) \left[
+\frac{1}{(\mathbf{C}\mathbf{N})_i}\left(
+  \frac{\partial \mathbf{C}}{\partial \phi} \mathbf{I}
+  + \mathbf{C} \frac{\partial \mathbf{I}}{\partial \phi}\right)_i
+- \frac{\lambda_i}{\beta_i (\mathbf{C}\mathbf{N})_i}
+  \left(\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{N}\right)_i
+\right]
+\end{equation}
+The contact matrix derivative is
+
+\begin{align*}
+\partial \mathbf{C}/\partial \theta =
+\begin{bmatrix}
+  -1 &  1 \\
+  \phantom{-}1 & -1
+\end{bmatrix},\\
+\qquad
+\partial \mathbf{C}/\partial \phi = \mathbf{0} \text{ for } \phi \neq \theta,
+\end{align*}
+Partial derivatives of the expected incidence are found from the
+product rule:
+\begin{equation}\label{eq:sens_mu}
+  \frac{\partial \mu_i}{\partial \phi} =
+  %
+  %
+  \frac{\partial S_i}{\partial \phi} [1 - e^{-\lambda_i}] + S_i
+  e^{-\lambda_i} \frac{\partial \lambda_i}{\partial \phi}.
+\end{equation}
+Partials of the system state propagate via:
+\begin{align}\begin{split}\label{eq:sens}
+\frac{\partial S_i(t+\Delta t)}{\partial \phi} &= e^{-\lambda_i}
+\frac{\partial S_i}{\partial \phi} - S_i e^{-\lambda_i}
+\frac{\partial \lambda_i}{\partial \phi} \\
+\frac{\partial I_i(t+\Delta t)}{\partial \phi} &= e^{-\gamma}
+\frac{\partial I_i}{\partial \phi} +
+\frac{\partial \mu_i}{\partial \phi}
+\end{split}\end{align}
+with initial conditions $\partial S_i(0)/\partial S_j(0) =
+\delta_{ij}$, $\partial I_i(0)/\partial I_j(0) = \delta_{ij}$, where
+$\delta_{ij}$ is the Kronecker delta. We solve for these partial
+derivatives jointly with the state equations. These
+sensitivity-equation methods have been reviewed
+by~\citep{wu2013sensitivity} and recently extended
+in~\citep{mester2022}.
+
+\subsection*{The Cram\'er-Rao Lower Bound}\label{subsec:crlb}
+For a single epidemic season, the Cram\'er-Rao Lower Bound (CRLB)
+states that $\text{Var}(\hat\phi_k) \geq [\mathbf{J}^{-1}]_{kk}$,
+where $\mathbf{J}$ is the $5 \times 5$ Fisher Information Matrix with
+entries $J_{kl} =
+\mathbb{E}[(\partial\ell/\partial\phi_k)(\partial\ell/\partial\phi_l)]$.
+One can verify that if we define
+\begin{equation*}
+A_i(t) := -\frac{1}{2\mu_i(t)} + \frac{Y_i(t) -
+  \rho\mu_i(t)}{(1{-}\rho)\mu_i(t)} + \frac{(Y_i(t) -
+  \rho\mu_i(t))^2}{2\rho(1{-}\rho)\mu_i(t)^2},
+\end{equation*}
+then differentiating the log-likelihood~\eqref{eq:loglik} yields
+%
+%
+\begin{equation}\label{eq:grad}
+\partial \ell / \partial \phi = \sum_{t,i} A_i(t)\,\partial
+\mu_i(t)/\partial \phi.
+\end{equation}
+%
+%
+Observations are independent across $(i,t)$, and we can easily verify
+$\mathbb{E}[A_i(t)] = 0$. We obtain, using moments of the Gaussian
+$Y_i(t) -\rho \mu_i(t)$ and~\eqref{eq:grad}:
+\begin{align}\label{eq:fim_scalar}
+  \begin{split}
+    J_{kl} &= \mathbb{E}\left [\frac{\partial \ell}{\partial \phi_k}\frac{\partial \ell}{\partial \phi_l}\right ] \\
+    %
+    %
+    %
+    &=\sum_{t,i} \mathbb{E}[A_i^2(t)] \frac{\partial \mu_i(t)}{\partial \phi_k}  \frac{\partial \mu_i(t)}{\partial \phi_l} \\
+    %
+    %
+    %
+    &= \frac{1+\rho}{2(1-\rho)}\sum_{t=0}^{T-1}\sum_{i=1}^{2}
+    \frac{1}{\mu_i(t)^2} \frac{\partial \mu_i(t)}{\partial \phi_k}
+    \frac{\partial \mu_i(t)}{\partial \phi_l}
+  \end{split}
+\end{align}
+%
+%
+In matrix form, \eqref{eq:fim_scalar} can be written as 
+\begin{align}\label{eq:fim}
+  \begin{split}
+  \mathbf{J} &= \mathbf{G}^T \mathbf{W} \mathbf{G} \\
+  &\text{ where } \\
+  %
+  %
+  \mathbf{G} &= \begin{pmatrix}
+    \dfrac{\partial \mu_1(0)}{\partial \theta} &
+    \dfrac{\partial \mu_1(0)}{\partial S_1(0)} &
+    %% \dfrac{\partial \mu_1(0)}{\partial I_1(0)} &
+    %% \dfrac{\partial \mu_1(0)}{\partial S_2(0)} &
+    \dots &
+    \dfrac{\partial \mu_1(0)}{\partial I_2(0)} \\[10pt]
+    \dfrac{\partial \mu_2(0)}{\partial \theta} &
+    \dfrac{\partial \mu_2(0)}{\partial S_1(0)} &
+    %% \dfrac{\partial \mu_2(0)}{\partial I_1(0)} &
+    %% \dfrac{\partial \mu_2(0)}{\partial S_2(0)} &
+    \dots &
+    \dfrac{\partial \mu_2(0)}{\partial I_2(0)} \\[10pt]
+    \dfrac{\partial \mu_1(1)}{\partial \theta} &
+    \dfrac{\partial \mu_1(1)}{\partial S_1(0)} &
+    %% \dfrac{\partial \mu_1(1)}{\partial I_1(0)} &
+    %% \dfrac{\partial \mu_1(1)}{\partial S_2(0)} &
+    \dots &
+    \dfrac{\partial \mu_1(1)}{\partial I_2(0)} \\[10pt]
+    \dfrac{\partial \mu_2(1)}{\partial \theta} &
+    \dfrac{\partial \mu_2(1)}{\partial S_1(0)} &
+    %% \dfrac{\partial \mu_2(1)}{\partial I_1(0)} &
+    %% \dfrac{\partial \mu_2(1)}{\partial S_2(0)} &
+    \dots &
+    \dfrac{\partial \mu_2(1)}{\partial I_2(0)} \\[10pt]
+    \vdots & \vdots &  & \vdots
+    \\[6pt]
+    \dfrac{\partial \mu_2(T{-}1)}{\partial \theta} &
+    \dfrac{\partial \mu_2(T{-}1)}{\partial S_1(0)} &
+    %% \dfrac{\partial \mu_2(T{-}1)}{\partial I_1(0)} &
+    %% \dfrac{\partial \mu_2(T{-}1)}{\partial S_2(0)} &
+    \dots &
+    \dfrac{\partial \mu_2(T{-}1)}{\partial I_2(0)}
+  \end{pmatrix} \\
+  &\text{ and } \\
+  %% G_{(i,t),k} &= \partial \mu_i(t)/\partial \phi_k \\
+  %
+  %
+  \mathbf{W} &= \frac{1+\rho}{2(1-\rho)}\,\text{diag}(\mu_1(0)^{-2},
+  \ldots, \mu_2(T{-}1)^{-2}).
+  \end{split}
+\end{align}
+Note that $\mathbf{G}^T\mathbf{WG}$ is also the Fisher information
+matrix for an ordinary least squares problem whose design matrix is
+$\mathbf{W}^{1/2}\mathbf{G}$. In the Results section we will take
+advantage of this matrix to gain intuition on the structure of the
+problem at hand.
+
+%% \begin{equation*}
+%% \end{equation*}
+
+When multiple seasons are available, we assume independence across
+seasons, treating each season's initial conditions as nuisance
+parameters. The CRLB becomes:
+\begin{equation}\label{eq:crlb_multi}
+\text{Var}(\hat{\theta}) \geq \left(\sum_{s} \frac{1}{
+  [\mathbf{J}^{-1}(s)]_{11}}\right)^{-1} =: \text{CRLB},
+\end{equation}
+where $\mathbf{J}(s)$ is the Fisher information matrix for season $s$.
+Seasons where the CRLB computation fails (e.g., due to near-zero
+incidence producing a singular Fisher information matrix) contribute
+no information and are assigned $[\mathbf{J}^{-1}(s)]_{11} = \infty$.
+
+Identifiability in systems-biology models is sometimes explored via
+the profile likelihood~\citep{raue2009, shrestha2011} which is defined,
+for a single season via
+%
+%
+$$
+\ell_{\text{PL}}(\theta) = \max_{S_1(0), S_2(0), I_1(0), I_2(0)} \ell(\theta, S_1(0), S_2(0), I_1(0), I_2(0)).
+$$
+%
+%
+The profile likelihood is calculated numerically over a grid of
+$\theta$ values, optimizing over all other parameters at each grid
+point. Such a calculation would be computationally prohibitive at the
+scale of our analysis. The CRLB is effectively a quadratic
+approximation to the profile likelihood around the maximum-likelihood
+estimate and is considerably cheaper to compute. Identifiability for
+ODE-based epidemic models has also been studied via structural
+identifiability~\citep{tuncer2018, chowell2023structural} and via
+identifiable parameter combinations~\citep{eisenberg2014}; we use the
+CRLB because it bounds the \emph{variance} of an estimator under a
+hypothesized data design, which is the question we want to answer.
+
+\subsection*{Simulated CRLB Analysis}\label{subsec:sim_crlb}
+We compute a per-season CRLB across a grid of connectivity values
+$\theta \in [10^{-4}, 10^{-1}]$ and seasonal forcing amplitudes
+$\varepsilon \in [0, 1)$, comparing in-phase ($\varphi_1 = \varphi_2$)
+  and reverse-phase ($\varphi_1 - \varphi_2 = \pi$) epidemics. At each
+  grid point, the initial conditions $(S_i(0)/N_i, I_i(0)/N_i)$ for
+  each simulated season and region are drawn independently from the
+  empirical distribution of per-season, per-state initial conditions
+  fitted to the real data (see SI~Fig.~\ref{fig:si_ics}). We repeat
+  each configuration 500 times with fresh IC draws. We then compute
+  optimal statistical power of a one-sided $\alpha = 0.05$ test as
+\begin{equation}\label{eq:power}
+\text{Power} = 1 - \Phi\!\left(z_\alpha -
+\frac{\theta}{\sqrt{\text{CRLB}}}\right),
+\end{equation}
+where $P\left(\mathcal{N}(0,1) > z_\alpha\right) = 0.05$, and the
+per-season CRLB is divided by 12 to approximate the 12-season
+aggregated CRLB of~\eqref{eq:crlb_multi}. Note that $\theta$ is
+assumed known, so this analysis generates an optimistic estimate of
+statistical power. We report the mean power across the 500 IC
+realizations as a function of $(\theta, \varepsilon)$.
+
+\subsection*{Influenza Mortality Data}\label{subsec:real_data}
+We analyze pneumonia and influenza mortality across 47 US states.  We
+exclude Alaska and Hawaii since we do not have absolute humidity data
+for them, and we exclude Arizona since it is a very arid state with
+relatively inconsistent absolute humidity values (see Supplementary
+Information). We integrate data from CDC FluView
+(2010--2018)~\citep{cdcfluview2024} and HealthData.gov
+(2017--2025)~\citep{healthdatagov2025}, excluding COVID pandemic years
+2020--2022. Since pneumonia and influenza deaths include a year-round
+non-influenza baseline, we estimate influenza burden as excess
+mortality above a pre-season baseline, computed as the mean weekly
+death count during July--October preceding each flu
+season~\citep{serfling1963, viboud2006}. The infection fatality rate
+$\rho \approx 5.36 \times 10^{-4}$ follows from the first row of Table
+1 in~\citep{rolfes2018}. Seasonal phases $\varphi_i$ are estimated
+from absolute humidity data~\citep{daon2025, shaman2009} by finding
+the phase shift that maximizes the correlation between negative
+absolute humidity values and a phase-shifted sine. We define each flu
+season as $T = 20$ weekly observations starting
+November~1$^{\text{st}}$ and fit a single connectivity $\theta$ shared
+across all seasons, with per-season initial conditions $(S_i(0),
+I_i(0))$ inferred via maximum-likelihood. We aggregate the per-season
+Cram\'er-Rao lower bounds via~\eqref{eq:crlb_multi} to obtain a
+bound on the overall estimator variance for the connectivity $\theta$.
+ 
+\subsection*{Maximum-Likelihood Estimation}\label{subsec:mle}
+Under standard regularity conditions, the maximum-likelihood estimator
+is asymptotically efficient and unbiased i.e.~$\hat\theta_{\text{MLE}}
+\sim \mathcal{N}(\theta, \text{CRLB})$ as the number of observations
+grows~\citep{wilke2020, casella2024statistical}. The CRLB therefore
+also serves as a practical approximation for the variance of the
+maximum-likelihood estimate of $\theta$.
+
+We maximize the log-likelihood~\eqref{eq:loglik} using
+\texttt{SLSQP}~\citep{kraft1988, kraft1994} from
+\texttt{NLopt}~\citep{NLopt}. Analytical gradients were calculated
+via~\eqref{eq:grad}. To handle potential local minima, we use a
+multi-start strategy with 200 random initial points and retain the
+solution with the highest likelihood. Pilot experiments show that 20
+initial points suffice, so we take an order of magnitude more just to
+be safe.}
+
+\showmatmethods{}
+
+\dataavail{Pneumonia and influenza mortality data are publicly
+  available from CDC FluView (2010--2018) and HealthData.gov
+  (2017--2025); Absolute humidity data underlying phase estimation are
+  from~\citep{daon2025}. Code is available at the project's
+  \href{https://github.com/yairdaon/contacts}{repository}.}
+
+\acknow{The author thanks Michael Klots for early contributions to
+  this work. Computations were performed on the SLURM cluster at
+  Bar-Ilan University.}
+
+\showacknow{}
+
+\bibliography{\detokenize{~/lib}}
 
 \end{document}
 
+%% Lack of practical identifiability has previously been shown to hamper
+%% reliable predictions in COVID epidemic
+%% models~\citep{gallo2022}. 
 
+
+%% \significancestatement{US public-health agencies forecast seasonal
+%%   influenza using models that encode connections between states. We
+%%   show that when states share a common seasonal driver --- as US
+%%   influenza does --- the strength of inter-state connections is
+%%   redundant once each state's epidemic starting conditions are
+%%   accounted for. Two complementary analyses, one mechanistic and one
+%%   model-free, agree that connections between states add no measurable
+%%   skill to forecasts of US seasonal influenza. The same redundancy is
+%%   likely in any system of coupled oscillators driven by a common
+%%   force, from neural circuits to ecological metapopulations and
+%%   climate networks. We conclude that inter-state coupling can be
+%%   omitted from US influenza preparedness models without measurable
+%%   loss of skill.}
