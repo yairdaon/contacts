@@ -24,14 +24,14 @@
 
 \title{Cram\'er-Rao and Granger causality show that inter-state coupling adds no information to US influenza forecasts}
 
-\author{Yair Daon\thanks{Azrieli Faculty of Medicine, Bar-Ilan University, Safed, Israel. Correspondence: yair.daon@gmail.com}}
+\author{}%Yair Daon\thanks{Azrieli Faculty of Medicine, Bar-Ilan University, Safed, Israel. Correspondence: yair.daon@gmail.com}}
 
 \date{}
 
 \maketitle
 
 \begin{abstract}
-Influenza forecast in the US typically encode inter-state
+Influenza forecasts in the US typically encode inter-state
 connectivity. Although forecasts appear to improve by including other
 states' lagged incidence in a forecast model, the source of this
 improvement is unclear. We apply the Cram\'er-Rao Lower Bound to a
@@ -198,7 +198,7 @@ surveillance data.
   drawn from the empirical distribution of per-season, per-state
   values (SI~Fig.~\ref{fig:si_ics}). Red star: parameter choices
   corresponding to a strongly driven flu epidemic ($\theta = 0.05$,
-  $\varepsilon = 0.517$). Test based the optimal Cram\'er-Rao Lower
+  $\varepsilon = 0.517$). Test based on the optimal Cram\'er-Rao Lower
   Bound estimates for $\text{Var}(\hat\theta)$ around the true value
   of $\theta$. Thus, results presented in this figure are optimistic.}
 \label{fig:power}
@@ -378,7 +378,7 @@ another state's mortality (Fig.~\ref{fig:sarima_heatmap}) is therefore
 a noisy proxy for shared national severity, not a signature of
 directional inter-state coupling.
 
-Recently, \citep{thivierge2025} asked whether ILI forecasting in US
+Recently, \citet{thivierge2025} asked whether ILI forecasting in US
 states benefits from including other-state or US-weighted-average ILI
 as covariates in various autoregressions. They found consistent
 improvements by both RMSE and weighted interval score, and importantly
@@ -387,7 +387,7 @@ observed that other-state and US-weighted-average covariates produce
 covariate alone produces a median RMSE reduction of $7.6\%$ and
 reduces RMSE in $97\%$ of target-covariate pairs, while individual
 states contribute essentially nothing beyond the national average. Our
-findings therefore complement \citep{thivierge2025}: the other-state
+findings therefore complement those of \citet{thivierge2025}: the other-state
 gains they observed are explained by shared national severity rather
 than inter-state connectivity, and our Cram\'er-Rao analysis gives
 the mechanistic reason --- connectivity is either redundant or its
@@ -848,13 +848,13 @@ Pneumonia and influenza mortality data are publicly available from CDC
 FluView (2010--2018) and HealthData.gov (2017--2025); Absolute
 humidity data underlying phase estimation are
 from~\citep{daon2025}. Code is available at the project's
-\href{https://github.com/yairdaon/contacts}{repository}.
+repository.%\href{https://github.com/yairdaon/contacts}{repository}.
 
-\section*{Acknowledgments and Contributions}
-The author thanks Michael Klots for early contributions to this
-work. Computations were performed on the SLURM cluster at Bar-Ilan
-University.  Y.D. designed the research, performed the analysis, and
-wrote the paper.
+%% \section*{Acknowledgments and Contributions}
+%% The author thanks Michael Klots for early contributions to this
+%% work. Computations were performed on the SLURM cluster at Bar-Ilan
+%% University.  Y.D. designed the research, performed the analysis, and
+%% wrote the paper.
 
 %% \section*{Competing Interests}
 %% The author declares no competing interest.
