@@ -13,22 +13,21 @@ from scipy.linalg import cho_factor, cho_solve, solve
 
 from src import compute_g
 
-## Important that theta is kept as the first entry.
-JACOBIAN_COLS = ['theta', 'S1_0', 'I1_0', 'S2_0', 'I2_0']
+JACOBIAN_COLS = ['S1_0', 'I1_0', 'S2_0', 'I2_0', 'theta']
 
-def compute_crlb(S0,
-                 I0,
-                 gamma: float,
-                 theta: float,
-                 Ts: np.ndarray,
-                 beta0: float,
-                 delta: float,
-                 rho: float,
-                 phase: np.ndarray,
-                 N: np.ndarray
-                 ):
+def compute_precision(S0,
+                      I0,
+                      gamma: float,
+                      theta: float,
+                      Ts: np.ndarray,
+                      beta0: float,
+                      delta: float,
+                      rho: float,
+                      phase: np.ndarray,
+                      N: np.ndarray
+                      ):
     """`
-    Compute Cramér-Rao Lower Bound for standard deviation of connectivity parameter theta.
+    Compute the precision of the Cramér-Rao Lower Bound for theta.
 
     Parameters:
     -----------
@@ -56,7 +55,7 @@ def compute_crlb(S0,
     Returns:
     --------
     float
-        CRLB for variance of theta (i.e., [J^{-1}]_{11})
+        upper bound for the precision of theta
     """
     assert S0.shape == phase.shape
     assert I0.shape == phase.shape
@@ -79,31 +78,20 @@ def compute_crlb(S0,
     G = df[JACOBIAN_COLS].values  # Shape: (2T, 5)
 
     # Ignore negligible incidence
-    valid = mu >= 1e-6
-    mu = mu[valid]
-    G = G[valid]
+    # valid = mu >= 1e-6
+    # mu = mu[valid]
+    # G = G[valid]
 
-    if len(mu) == 0:
-        return np.inf
+    # if len(mu) == 0:
+    #     return np.inf
 
-    ## Binomial noise
-    sqrt_W = 1 / mu  
-    G = np.einsum('i, ij -> ij', sqrt_W, G)
+    # Per-observation Fisher weight w_i(t) = E[A_i(t)^2] for the
+    # Gaussian approximation Y_i ~ N(rho mu, rho(1-rho) mu) with mu =
+    # mu(phi): w_i = rho / ((1-rho) mu) + 1 / (2 mu^2)
+    w = rho / ((1.0 - rho) * mu) + 1.0 / (2.0 * mu ** 2)
+    sqrt_w = np.sqrt(w)
+    G = np.einsum('i, ij -> ij', sqrt_w, G)
     
-    # Fisher Information Matrix: J = G.T @ G 
-    factor = ( 1+rho ) / ( 2*(1-rho) )
-    J = factor * G.T @ G
-        
-    # Cholesky factorization LL^T = J (L is lower triangular)
-    L = np.linalg.cholesky(J)
-
-    # e1 = [1,0,0,0,0] since theta is first in JACOBIAN_COLS
-    e1 = np.zeros(J.shape[0])
-    e1[0] = 1
+    _, R = np.linalg.qr(G)
+    return R[-1,-1]**2
     
-    # Solve Lw = e1 for w = L^{-1}e1
-    # CRLB for variance is ||L^{-1}e1||^2 = [J^{-1}]_{11}
-    w = np.linalg.solve(L, e1)
-    return w @ w
-    
-

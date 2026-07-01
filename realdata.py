@@ -1,5 +1,5 @@
 """
-Run inverse problem on real epidemic data for all state pairs, recording granular CRLB and optimization data.
+Run inverse problem on real epidemic data for all state pairs, recording granular precision and optimization data.
 """
 
 import os
@@ -13,7 +13,6 @@ from itertools import combinations
 
 from src.data_loader import load_real
 from src.inverter import Inverter
-from src.coordinate import Coordinate
 from src.helpers import current
 from src.flu import Mortality as flu
 from joblib import Parallel, delayed
@@ -44,13 +43,7 @@ def main():
         if s1_abbr > s2_abbr:
             state1, state2 = state2, state1
             s1_abbr, s2_abbr = s2_abbr, s1_abbr
-        keep1 = s1_abbr =='CA' and s2_abbr == 'NY'
-        keep2 = s1_abbr =='GA' and s2_abbr == 'OH'
-        keep3 = s1_abbr =='IL' and s2_abbr == 'PA'
-        keep = (keep1 or keep2 or keep3)
-        if not keep:
-            continue
-            
+
         filename = f"{OUTPUT_DIR}/{s1_abbr}x{s2_abbr}.csv"
         regions = [state1.name, state2.name]
     
@@ -106,7 +99,7 @@ def main():
                 'S2_0': fitted['S_init'][i, 1],
                 'I1_0': fitted['I_init'][i, 0],
                 'I2_0': fitted['I_init'][i, 1],
-                'crlb': inv.crlbs[i],
+                'precision': inv.precisions[i],
                 'status': inv.desc,
                 'runtime': inv.runtime
               }
@@ -114,7 +107,7 @@ def main():
         
         res = pd.DataFrame(rows)
         res.to_csv(filename, index=False)
-        print(res.set_index(['state1', 'state2'], drop=True)[['season', 'theta', 'crlb']])
+        print(res.set_index(['state1', 'state2'], drop=True)[['season', 'theta', 'precision']])
         print(f"Ran {filename} at {current()}")
 
 if __name__ == "__main__":

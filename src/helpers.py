@@ -2,15 +2,17 @@ import numpy as np
 from datetime import datetime
 
 
-def crlb4std(crlbs):
-    """Aggregate per-season CRLBs into a single standard deviation bound.
+def std_from_precisions(precisions):
+    """Aggregate per-season precisions (via CRLBs) into a single standard deviation bound.
 
-    crlbs: array-like of per-season CRLB values for Var(theta).
+    precisions: array-like of per-season precision values for theta.
     Returns: sqrt of the harmonic-mean aggregation (Eq. crlb_multi in the paper).
     """
-    crlbs = np.asarray(crlbs, dtype=float)
-    crlbs = np.where(np.isfinite(crlbs), crlbs, np.inf)
-    return np.sqrt(1.0 / np.sum(1.0 / crlbs))
+    precisions = np.asarray(precisions, dtype=float)
+    precisions = np.where(np.isfinite(precisions), precisions, 0)
+    total = np.sum(precisions)
+    return np.inf if total <= 0 else 1.0 / np.sqrt(total)
+
 
 
 def current():

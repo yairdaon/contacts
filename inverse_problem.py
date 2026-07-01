@@ -86,7 +86,7 @@ def main(add_noise):
                 'S2_0': fitted['S_init'][i, 1],
                 'I1_0': fitted['I_init'][i, 0],
                 'I2_0': fitted['I_init'][i, 1],
-                'crlb': inv.crlbs[i],
+                'precision': inv.precisions[i],
                 'phase2': phase2
             }
             rows.append(row)
@@ -117,11 +117,11 @@ def main(add_noise):
 
     df = pd.DataFrame(rows)
 
-    # Compute aggregate CRLB std per phase
+    # Compute aggregate std bound per phase (Fisher info adds under independence)
     crlb_std = {}
     for phase2 in [0, np.pi]:
         dd = df[df['phase2'] == phase2]
-        crlb_std[phase2] = np.sqrt(1 / np.sum(1 / dd['crlb']))
+        crlb_std[phase2] = 1.0 / np.sqrt(np.sum(dd['precision']))
 
     # Plot: top = synchronized (phase2==0), bottom = unsynchronized (phase2==pi)
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))

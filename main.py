@@ -5,7 +5,7 @@ from glob import glob
 from tqdm import tqdm
 from joblib import Parallel, delayed
 
-from src.crlb import compute_crlb
+from src.crlb import compute_precision
 from src import flu
 
 OUTPUT_DIR = "outputs"
@@ -40,14 +40,14 @@ def load_empirical_ic_distribution(bads=("AK", "HI", "AZ")):
     return S_vals, I_vals
 
 
-def compute_one_crlb(theta, delta, gamma, beta0, rho, Ts, phase, S0_frac, I0_frac):
-    """Compute CRLB for one (theta, delta, phase) with pre-sampled
-    IC fractions from the empirical distribution."""
+def compute_one_precision(theta, delta, gamma, beta0, rho, Ts, phase, S0_frac, I0_frac):
+    """Compute Fisher information for one (theta, delta, phase) with
+    pre-sampled IC fractions from the empirical distribution."""
     N = np.array([N_POP, N_POP])
     S0 = S0_frac * N
     I0 = I0_frac * N
 
-    crlb = compute_crlb(
+    precision = compute_precision(
         S0=S0,
         I0=I0,
         gamma=gamma,
@@ -69,7 +69,7 @@ def compute_one_crlb(theta, delta, gamma, beta0, rho, Ts, phase, S0_frac, I0_fra
         "S2_0": S0[1],
         "I1_0": I0[0],
         "I2_0": I0[1],
-        "crlb": crlb,
+        "precision": precision,
         "phase1": phase[0],
         "phase2": phase[1],
     }
@@ -118,13 +118,13 @@ def main():
     print(f"Total tasks: {len(tasks)}")
 
     results = Parallel(n_jobs=-3)(
-        delayed(compute_one_crlb)(**task) for task in tqdm(tasks)
+        delayed(compute_one_precision)(**task) for task in tqdm(tasks)
     )
 
     df = pd.DataFrame(results)
-    df["log_crlb"] = np.log10(df.crlb)
-    df.to_csv(f"{OUTPUT_DIR}/crlb.csv", index=False)
-    print(f"Saved {len(df)} results to {OUTPUT_DIR}/crlb.csv")
+    df["log_precision"] = np.log10(df.precision)
+    df.to_csv(f"{OUTPUT_DIR}/precision.csv", index=False)
+    print(f"Saved {len(df)} results to {OUTPUT_DIR}/precision.csv")
 
 
 if __name__ == "__main__":

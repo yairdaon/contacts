@@ -5,7 +5,7 @@ from joblib import delayed, Parallel
 from tqdm import tqdm
 
 from src.objective import Objective
-from src.crlb import compute_crlb
+from src.crlb import compute_precision
 from src.helpers import CODES
 
 
@@ -39,7 +39,7 @@ class Inverter:
         self.nlopt_code = best['nlopt_code']
         self.desc = best['desc']
         self.runtime = best['runtime']
-        self.crlbs = best['crlbs']
+        self.precisions = best['precisions']
 
         if fname:
             self._plot_reconstruction(fname=fname)
@@ -131,14 +131,14 @@ def single_optimization(objective):
         result = dict(x=x0, fun=fun_x0, nlopt_success=False, nlopt_code=-1, desc="failed")
 
     failed_seasons = []
-    # Compute CRLBs for each season
+    # Compute Fisher information for each season
     fitted = packer.unpack(result['x'])
-    crlbs = []
+    precisions = []
     for season_idx, season in enumerate(packer.seasons):
         N = np.array([packer.populations[(season, packer.regions[i])]
                       for i in range(n_regions)])
         try:
-            bound = compute_crlb(
+            precision = compute_precision(
                 S0=fitted['S_init'][season_idx, :] * N,
                 I0=fitted['I_init'][season_idx, :] * N,
                 gamma=objective.disease.gamma,
@@ -150,14 +150,14 @@ def single_optimization(objective):
                 phase=objective.phase,
                 N=N
             )
-            crlbs.append(bound)
+            precisions.append(precision)
         except Exception:
             failed_seasons.append(str(season))
-            crlbs.append(np.nan)
+            precisions.append(np.nan)
 
     if failed_seasons:
-        result['desc'] += f" | failed crlbs: {', '.join(failed_seasons)}"
-    result['crlbs'] = crlbs
-    result['success'] = result['nlopt_success'] and all(np.isfinite(c) for c in crlbs)
+        result['desc'] += f" | failed precisions: {', '.join(failed_seasons)}"
+    result['precisions'] = precisions
+    result['success'] = result['nlopt_success'] and all(np.isfinite(c) for c in precisions)
     result['runtime'] = time.time() - start
     return result
