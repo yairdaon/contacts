@@ -78,12 +78,12 @@ def compute_precision(S0,
     G = df[JACOBIAN_COLS].values  # Shape: (2T, 5)
 
     # Ignore negligible incidence
-    # valid = mu >= 1e-6
-    # mu = mu[valid]
-    # G = G[valid]
+    valid = mu >= 1e-6
+    mu = mu[valid]
+    G = G[valid]
 
-    # if len(mu) == 0:
-    #     return np.inf
+    if len(mu) == 0:
+        return 0
 
     # Per-observation Fisher weight w_i(t) = E[A_i(t)^2] for the
     # Gaussian approximation Y_i ~ N(rho mu, rho(1-rho) mu) with mu =

@@ -24,7 +24,8 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs("pix", exist_ok=True)
 
-    seasons = list(range(2010, 2019)) + [2023, 2024, 2025]
+    ##  the 2019 season starts at novembe 2019. it is excluded due to covid.
+    seasons = list(range(2010, 2019)) + [2023, 2024, 2025] 
 
     # Load population data once
     # Season Y starts Nov 1st of year (Y-1), so use July 1st population of year (Y-1)
@@ -44,7 +45,17 @@ def main():
             state1, state2 = state2, state1
             s1_abbr, s2_abbr = s2_abbr, s1_abbr
 
+        # Optional pilot filter: env var CONTACTS_PILOT_PAIRS="CAxNY,GAxOH,..."
+        # limits the run to that comma-separated list of pair filenames.
+        pilot = os.environ.get("CONTACTS_PILOT_PAIRS", "").strip()
+        if pilot and f"{s1_abbr}x{s2_abbr}" not in set(pilot.split(",")):
+            continue
+
         filename = f"{OUTPUT_DIR}/{s1_abbr}x{s2_abbr}.csv"
+        # Resumability: skip pairs already written.  Move/back up outputs/states/
+        # before running from scratch so this check doesn't stop a fresh run.
+        if os.path.exists(filename):
+            continue
         regions = [state1.name, state2.name]
     
         # Load real data
@@ -75,39 +86,45 @@ def main():
             continue
                 
 
-        print(f"\n\nInversion for {s1_abbr} X {s2_abbr}", current())
-        inv = Inverter(
-            phase=phase,
-            obs=obs,
-            disease=flu,
-            populations=populations
-        ).fit(n0=200, n_jobs=-1, fname=f"pix/rec_{s1_abbr}x{s2_abbr}")
-        print("Finished inversion", current())
-
-        # Save results for only the best fit
         rows = []
-        fitted = inv.objective.packer.unpack(inv.x)
-        for i, season in enumerate(seasons):
-            row = {
-                'state1': s1_abbr,
-                'state2': s2_abbr,
-                'season': season,
-                'objective': inv.fun,
-                'success': inv.success,
-                'theta': fitted['theta'],
-                'S1_0': fitted['S_init'][i, 0],
-                'S2_0': fitted['S_init'][i, 1],
-                'I1_0': fitted['I_init'][i, 0],
-                'I2_0': fitted['I_init'][i, 1],
-                'precision': inv.precisions[i],
-                'status': inv.desc,
-                'runtime': inv.runtime
-              }
-            rows.append(row)
-        
+        for theta_upper in [0.0, 0.5, 1.0]:
+            print(f"\n\nInversion for {s1_abbr} X {s2_abbr} "
+                  f"(theta_upper={theta_upper})", current())
+            inv = Inverter(
+                phase=phase,
+                obs=obs,
+                disease=flu,
+                populations=populations,
+                theta_upper=theta_upper,
+            ).fit(n0=100, n_jobs=-1,
+                  fname=f"pix/rec_{s1_abbr}x{s2_abbr}_theta{theta_upper}")
+            print("Finished inversion", current())
+
+            fitted = inv.objective.packer.unpack(inv.x)
+            for i, season in enumerate(seasons):
+                rows.append({
+                    'state1': s1_abbr,
+                    'state2': s2_abbr,
+                    'season': season,
+                    'theta_limit': theta_upper,
+                    'objective': inv.fun,
+                    'log_likelihood': inv.log_likelihood,
+                    'success': inv.success,
+                    'theta': fitted.get('theta',0.0),
+                    'S1_0': fitted['S_init'][i, 0],
+                    'S2_0': fitted['S_init'][i, 1],
+                    'I1_0': fitted['I_init'][i, 0],
+                    'I2_0': fitted['I_init'][i, 1],
+                    'precision': inv.precisions[i],
+                    'status': inv.desc,
+                    'runtime': inv.runtime,
+                })
+
         res = pd.DataFrame(rows)
         res.to_csv(filename, index=False)
-        print(res.set_index(['state1', 'state2'], drop=True)[['season', 'theta', 'precision']])
+        print(res.set_index(['state1', 'state2'], drop=True)[
+            ['theta_limit', 'season', 'theta', 'log_likelihood', 'precision']
+        ])
         print(f"Ran {filename} at {current()}")
 
 if __name__ == "__main__":

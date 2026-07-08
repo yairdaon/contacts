@@ -14,23 +14,34 @@ class Inverter:
                  phase,
                  obs,
                  disease,
-                 populations):
-
+                 populations,
+                 theta_upper=0.5):
+        """theta_upper: upper bound for theta. Set to 0.0 for the null model
+        (theta pinned at 0, regions evolve independently); 0.5 for the default
+        diagonal-dominant coupled model; 1.0 to allow high-coupling regime.
+        Percolates into Objective and Packer.
+        """
         self.objective = Objective(obs=obs,
                                    phase=phase,
                                    disease=disease,
-                                   populations=populations)
+                                   populations=populations,
+                                   theta_upper=theta_upper)
 
     def fit(self,
             n0,
             n_jobs=-1,
             fname=None):
 
-        results = Parallel(n_jobs=n_jobs)(delayed(single_optimization)(self.objective) for _ in tqdm(range(n0)))
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(single_optimization)(self.objective)
+            for _ in tqdm(range(n0))
+        )
 
+        theta_upper = self.objective.packer.theta_upper
         n_ok = sum(1 for r in results if r['success'])
         n_fail = n0 - n_ok
-        print(f"Optimization: {n_ok} succeeded + {n_fail} failed / {n0} total")
+        print(f"Optimization (theta_upper={theta_upper}): "
+              f"{n_ok} succeeded + {n_fail} failed / {n0} total")
 
         best = min(results, key=lambda r: r['fun'])
         self.x = best['x']
@@ -40,6 +51,9 @@ class Inverter:
         self.desc = best['desc']
         self.runtime = best['runtime']
         self.precisions = best['precisions']
+        # Raw log-likelihood: objective is NLL / n_obs, so log_lik = -fun * n_obs.
+        self.log_likelihood = -best['fun'] * self.objective.n_obs
+        self.theta_upper = theta_upper
 
         if fname:
             self._plot_reconstruction(fname=fname)
@@ -119,7 +133,10 @@ def single_optimization(objective):
             return constraint
         opt.add_inequality_constraint(make_constraint(idx), 1e-8)
     opt.set_lower_bounds([0.0] * n)
-    opt.set_upper_bounds([1.0] * (2 * M) + [0.5])
+    upper_bounds = [1.0] * (2 * M)
+    if packer.theta_upper:
+        upper_bounds = upper_bounds + [packer.theta_upper]
+    opt.set_upper_bounds(upper_bounds)
 
     x0 = packer.random_vector()
     try:
@@ -142,7 +159,7 @@ def single_optimization(objective):
                 S0=fitted['S_init'][season_idx, :] * N,
                 I0=fitted['I_init'][season_idx, :] * N,
                 gamma=objective.disease.gamma,
-                theta=fitted['theta'],
+                theta=fitted.get('theta',0.0),
                 Ts=packer.all_Ts[season],
                 beta0=objective.disease.beta0,
                 delta=objective.disease.delta,

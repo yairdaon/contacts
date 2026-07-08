@@ -9,13 +9,15 @@ class Objective:
                  obs,
                  phase,
                  disease,
-                 populations):
+                 populations,
+                 theta_upper=0.5):
 
         self.packer = Packer(disease=disease,
                              seasons=obs['season'].unique(),
                              regions=obs['region'].unique(),
                              all_Ts={season: np.sort(dd['t'].unique()) for season, dd in obs.groupby("season")},
-                             populations=populations)
+                             populations=populations,
+                             theta_upper=theta_upper)
         self.phase = phase
         self.obs = obs.sort_values(['season', 't', 'region']).reset_index(drop=True)
         self.disease = disease
@@ -31,7 +33,8 @@ class Objective:
         M = n_seasons * n_regions
         rho = self.disease.rho
 
-        grad = np.zeros(2 * M + 1)
+        grad = np.zeros(self.packer.n_params)
+            
 
         mu = sim_df["mu"].values + 1e-6
         r = self.obs["incidence"].values - mu * rho
@@ -40,7 +43,8 @@ class Objective:
         dL_dmu = -A
 
         # theta gradient
-        grad[-1] = np.sum(dL_dmu * sim_df['theta'].values)
+        if self.packer.theta_upper > 0:
+            grad[-1] = np.sum(dL_dmu * sim_df['theta'].values)
 
         # S_init and I_init gradients (per season), scaled by N for fraction variables
         for season_idx in range(n_seasons):

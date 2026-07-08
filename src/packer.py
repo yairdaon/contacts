@@ -31,7 +31,8 @@ class Packer:
                  seasons=None,
                  regions=None,
                  all_Ts=None,
-                 populations=None):
+                 populations=None,
+                 theta_upper=0.5):
 
         self.disease = disease
         self.regions = regions if regions is not None else ["HHS0", "HHS1"]
@@ -45,10 +46,19 @@ class Packer:
         # populations: dict {(season, region): N_value}
         self.populations = populations if populations is not None else {}
 
+        
+
+        # Upper bound on theta; used by random_dict and by the optimizer bounds.
+        # Set to 0.0 to fit the null model (theta pinned at 0), 0.5 for the
+        # default diagonal-dominant coupled model, 1.0 to allow the high-coupling
+        # regime.
+        self.theta_upper = theta_upper
+
+
         # Count parameters: S, I init (2*n_regions*n_seasons), theta,
-        self.n_params = 2 * self.n_regions * self.n_seasons + 1 
+        self.n_params = 2 * self.n_regions * self.n_seasons + (self.theta_upper > 0)
 
-
+            
     def random_vector(self, seed=None):
         params = self.random_dict(seed=seed)
         vec = self.pack(params)
@@ -57,9 +67,13 @@ class Packer:
     
     def random_dict(self, seed=None):
         np.random.seed(seed)
+      
+        if self.theta_upper > 0:
+            out = dict(theta=np.random.uniform(0.0, self.theta_upper))
+        else:
+            out = dict()
 
-        out = dict(theta=np.random.uniform(0.0, 0.5))
-
+            
         I_init = np.zeros((self.n_seasons, self.n_regions))
         S_init = np.zeros((self.n_seasons, self.n_regions))
 
@@ -81,7 +95,8 @@ class Packer:
         I_init = params["I_init"]
         parts.append(S_init.ravel())
         parts.append(I_init.ravel())
-        parts.append([params["theta"]]) 
+        if self.theta_upper > 0:
+            parts.append([params["theta"]]) 
 
         flat = np.concatenate(parts)
         return flat
@@ -101,9 +116,10 @@ class Packer:
         out["S_init"] = s_flat.reshape(self.n_seasons, self.n_regions)
         out["I_init"] = i_flat.reshape(self.n_seasons, self.n_regions)
 
-        theta = flat[idx]
-        out["theta"] = theta
-        idx += 1
+        if self.theta_upper > 0:
+            theta = flat[idx]
+            out["theta"] = theta
+            idx += 1
 
         assert idx == flat.size
         return out
@@ -111,9 +127,12 @@ class Packer:
     def sim(self, params, phase, disease):
         """Simulate and return incidence + Jacobian columns for gradient computation."""
         S_init = params['S_init']
-        I_init = params['I_init'] 
-        theta = params["theta"]
-        
+        I_init = params['I_init']
+        if self.theta_upper > 0:
+            theta = params["theta"]
+        else:
+            theta = 0
+            
         results = []
         for season_idx, season in enumerate(self.seasons):
             # Get populations for this season
