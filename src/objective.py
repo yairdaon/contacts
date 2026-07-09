@@ -10,43 +10,60 @@ class Objective:
                  phase,
                  disease,
                  populations,
-                 theta_upper=0.5):
+                 nat_driver,
+                 theta_upper=0.5,
+                 alpha_upper=0.0,
+                 k=10.0):
 
         self.packer = Packer(disease=disease,
+                             nat_driver=nat_driver,
                              seasons=obs['season'].unique(),
                              regions=obs['region'].unique(),
                              all_Ts={season: np.sort(dd['t'].unique()) for season, dd in obs.groupby("season")},
                              populations=populations,
-                             theta_upper=theta_upper)
+                             theta_upper=theta_upper,
+                             alpha_upper=alpha_upper)
         self.phase = phase
         self.obs = obs.sort_values(['season', 't', 'region']).reset_index(drop=True)
         self.disease = disease
+        self.k = k
         self.n_obs = len(self.obs)
 
     def compute_gradient(self, sim_df):
         """
-        Compute gradient of the negative log-likelihood with respect to parameters.
-        ∂L/∂φ = -Σ A_i(t) * ∂μ_i(t)/∂φ
+        Gaussian pseudo-likelihood with Negative-Binomial variance
+        σ² = ρμ + (ρμ)²/k;  a := ∂σ²/∂μ = ρ + 2ρ²μ/k.
+        A = -a/(2σ²) + ρr/σ² + r²a/(2σ⁴).
+
+        Parameter vector layout: [S_init.ravel(), I_init.ravel(), α?, θ?].
         """
         n_seasons = self.packer.n_seasons
         n_regions = self.packer.n_regions
         M = n_seasons * n_regions
         rho = self.disease.rho
+        k = self.k
 
         grad = np.zeros(self.packer.n_params)
-            
 
         mu = sim_df["mu"].values + 1e-6
-        r = self.obs["incidence"].values - mu * rho
+        sim = rho * mu
+        r = self.obs["incidence"].values - sim
+        sigma2 = sim + sim ** 2 / k
+        a = rho + 2.0 * rho ** 2 * mu / k
 
-        A = -1 / (2 * mu) + r / ((1 - rho) * mu) + r ** 2 / (2 * rho * (1 - rho) * mu ** 2)
+        A = -a / (2 * sigma2) + rho * r / sigma2 + r ** 2 * a / (2 * sigma2 ** 2)
         dL_dmu = -A
 
-        # theta gradient
+        # Trailing param slots: α first (if present), then θ.
+        tail_idx = self.packer.n_params
         if self.packer.theta_upper > 0:
-            grad[-1] = np.sum(dL_dmu * sim_df['theta'].values)
+            tail_idx -= 1
+            grad[tail_idx] = np.sum(dL_dmu * sim_df['theta'].values)
+        if self.packer.alpha_upper > 0:
+            tail_idx -= 1
+            grad[tail_idx] = np.sum(dL_dmu * sim_df['alpha'].values)
 
-        # S_init and I_init gradients (per season), scaled by N for fraction variables
+        # S_init and I_init gradients (per season), scaled by N for fraction variables.
         for season_idx in range(n_seasons):
             mask = sim_df['season_idx'].values == season_idx
             season = self.packer.seasons[season_idx]
@@ -71,8 +88,8 @@ class Objective:
         mu = simulated["mu"].values
         sim = mu * self.disease.rho
         residual = obs - sim
-        
-        sigma2 = sim * (1 - self.disease.rho) + 1e-6
+
+        sigma2 = sim + sim ** 2 / self.k + 1e-6
         log_term = xlogy(sigma2, 2 * np.pi * sigma2)
         out = np.sum((log_term + residual ** 2) / sigma2) / (2 * self.n_obs)
 

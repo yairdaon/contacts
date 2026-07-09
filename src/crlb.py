@@ -13,7 +13,7 @@ from scipy.linalg import cho_factor, cho_solve, solve
 
 from src import compute_g
 
-JACOBIAN_COLS = ['S1_0', 'I1_0', 'S2_0', 'I2_0', 'theta']
+JACOBIAN_COLS = ['S1_0', 'I1_0', 'S2_0', 'I2_0', 'alpha', 'theta']
 
 def compute_precision(S0,
                       I0,
@@ -24,7 +24,10 @@ def compute_precision(S0,
                       delta: float,
                       rho: float,
                       phase: np.ndarray,
-                      N: np.ndarray
+                      N: np.ndarray,
+                      I_nat_pc,
+                      alpha: float = 0.0,
+                      k: float = 10.0
                       ):
     """`
     Compute the precision of the Cramér-Rao Lower Bound for theta.
@@ -54,8 +57,14 @@ def compute_precision(S0,
 
     Returns:
     --------
-    float
-        upper bound for the precision of theta
+    np.ndarray of shape (2, 2)
+        Trailing 2x2 upper-triangular block R_g of the R factor from the
+        QR decomposition of sqrt(W) G, where G has columns ordered as
+        (S1_0, I1_0, S2_0, I2_0, alpha, theta). This block encodes the
+        per-season effective (alpha, theta) Fisher information via
+        J_g = R_g^T R_g, but is returned in R_g form so the downstream
+        aggregation can choose its scheme (sum of J_g, stacked QR, etc.).
+        Returns a 2x2 zero matrix when no valid observations remain.
     """
     assert S0.shape == phase.shape
     assert I0.shape == phase.shape
@@ -71,27 +80,33 @@ def compute_precision(S0,
         beta0=beta0,
         delta=delta,
         phase=phase,
-        N=N
+        N=N,
+        I_nat_pc=I_nat_pc,
+        alpha=alpha
     )
-    
-    mu = df['mu'].values
-    G = df[JACOBIAN_COLS].values  # Shape: (2T, 5)
 
-    # Ignore negligible incidence
+    mu = df['mu'].values
+    G = df[JACOBIAN_COLS].values  # (2T, 6)
+
     valid = mu >= 1e-6
     mu = mu[valid]
     G = G[valid]
 
     if len(mu) == 0:
-        return 0
+        return np.zeros((2, 2))
 
-    # Per-observation Fisher weight w_i(t) = E[A_i(t)^2] for the
-    # Gaussian approximation Y_i ~ N(rho mu, rho(1-rho) mu) with mu =
-    # mu(phi): w_i = rho / ((1-rho) mu) + 1 / (2 mu^2)
-    w = rho / ((1.0 - rho) * mu) + 1.0 / (2.0 * mu ** 2)
+    # Per-observation Fisher weight w_i(t) = E[A_i(t)^2] under the
+    # Gaussian pseudo-likelihood with Negative-Binomial variance:
+    #   sigma^2 = rho mu + (rho mu)^2/k,
+    #   a       = rho + 2 rho^2 mu/k,
+    #   w       = rho^2/sigma^2 + a^2/(2 sigma^4).
+    sim = rho * mu
+    sigma2 = sim + sim ** 2 / k
+    a = rho + 2.0 * rho ** 2 * mu / k
+    w = rho ** 2 / sigma2 + a ** 2 / (2.0 * sigma2 ** 2)
     sqrt_w = np.sqrt(w)
     G = np.einsum('i, ij -> ij', sqrt_w, G)
-    
+
     _, R = np.linalg.qr(G)
-    return R[-1,-1]**2
+    return R[-2:, -2:]
     

@@ -84,6 +84,48 @@ def estimate_phase(state, humidity_dir="data/viboud"):
     return result.x
 
 
+def load_national_driver(mortality_path, pop_path, seasons, rho, n_weeks,
+                         exclude_regions=None):
+    """
+    Load per-capita national P&I mortality-derived infection-rate estimate
+    for each season, aligned with the flu-season week grid.
+
+    Returns:
+      dict {season -> np.array of length n_weeks}
+        with entries I_nat(t) / (rho * N_nat_season), i.e. the per-capita
+        national incidence rate. This is the exogenous national driver term
+        added to the FOI in the extended model.
+
+    exclude_regions: optional list of state NAMES to leave out of the
+        national aggregate (both numerator and denominator). If None, use
+        all states.
+    """
+    pop_df = pd.read_csv(pop_path, parse_dates=["date"])
+    pop_df["season"] = pop_df["date"].dt.year + 1
+
+    mort_df = pd.read_csv(mortality_path, parse_dates=["date"])
+    if exclude_regions:
+        exclude = set(exclude_regions)
+        mort_df = mort_df[~mort_df["state"].isin(exclude)]
+        pop_df  = pop_df[~pop_df["state"].isin(exclude)]
+
+    mort_df["t"] = calc_t(mort_df["date"])
+    mort_df["season"] = np.floor(mort_df["t"]).astype(int)
+
+    result = {}
+    for season in seasons:
+        pop_season = pop_df[pop_df["season"] == season]["population"].sum()
+        if pop_season <= 0:
+            continue
+        agg = (mort_df[mort_df["season"] == season]
+               .groupby("t")["deaths"].sum().sort_index())
+        agg = agg.iloc[:n_weeks]
+        if len(agg) < n_weeks:
+            continue
+        result[season] = agg.values / (rho * pop_season)
+    return result
+
+
 def load_real(disease, regions, seasons, mortality_path="data/pni_mortality/deaths.csv", humidity_dir="data/viboud"):
     """
     Load real epidemic data from CSV.

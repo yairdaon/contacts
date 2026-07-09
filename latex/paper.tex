@@ -212,18 +212,18 @@ surveillance data.
 
 The power degradation under in-phase entrainment in
 Fig.~\ref{fig:power} can be explained using the Schur
-complement. Partition the $5\times5$ Fisher information matrix into a
-$1\times1$ $\theta$-block and a $4\times4$ initial-condition block,
+complement. Partition the $6\times6$ Fisher information matrix into a
+$1\times1$ $\theta$-block and a $5\times5$ nuisance-parameter block,
 \begin{equation*}
   \mathbf{J} = \begin{bmatrix}
     J_{\theta\theta} & \mathbf{J}_{\theta\eta} \\
     \mathbf{J}_{\eta\theta} & \mathbf{J}_{\eta\eta}
   \end{bmatrix},
 \end{equation*}
-where $\eta = (S_1(0), I_1(0), S_2(0), I_2(0))$ collects the
-initial-conditions. By the Schur complement
+where $\eta = (S_1(0), I_1(0), S_2(0), I_2(0), \alpha)$ collects the
+four per-region initial conditions and the national-driver mixing weight. By the Schur complement
 \begin{equation}\label{eq:schur}
-  [\mathbf{J}^{-1}]_{11}
+  [\mathbf{J}^{-1}]_{\theta\theta}
   \;=\; \bigl( J_{\theta\theta}
     \;-\; \mathbf{J}_{\theta\eta}\,\mathbf{J}_{\eta\eta}^{-1}\,\mathbf{J}_{\eta\theta}
   \bigr)^{-1}.
@@ -232,15 +232,17 @@ A large CRLB therefore arises for one of two reasons. Either (i)
 $J_{\theta\theta}$ is small, so $\theta$ has no effect on forecasts
 and any value for $\theta$ will do. Alternatively, (ii) a large CRLB
 can arise whenever the $\theta$ sensitivity is close to the span of
-the IC sensitivities (see SI Section \ref{sec:si_schur}). This makes
-sense: if $\frac{\partial \mu}{\partial \theta}$ is in the span of
-$\frac{\partial \mu}{\partial S_1(0)}, \frac{\partial \mu}{\partial
-  I_1(0)}$ etc., then any effect the coupling $\theta$ has on disease
-trajectory is absorbed by the initial conditions. Both cases lead to
-the same conclusion: under~(i) coupling by itself is redundant;
-under~(ii) the effect of coupling is absorbed by fitting initial
-conditions --- something many forecast routines do. A large CRLB
-therefore implies that coupling should not improve forecasts.
+the nuisance-parameter sensitivities (see SI
+Section~\ref{sec:si_schur}). This makes sense: if $\partial \mu /
+\partial \theta$ is in the span of $\{\partial \mu / \partial S_i(0),
+\partial \mu / \partial I_i(0), \partial \mu / \partial \alpha\}$,
+then any effect the coupling $\theta$ has on disease trajectory is
+absorbed by the initial conditions and the national driver. Both
+cases lead to the same conclusion: under~(i) coupling by itself is
+redundant; under~(ii) the effect of coupling is absorbed by fitting
+initial conditions and/or the national-average driver --- something
+many forecast routines already do. A large CRLB therefore implies
+that pairwise coupling should not improve forecasts.
 
 
 \subsection*{Inter-State Coupling in the US via Influenza}\label{subsec:us_real_data}
@@ -475,7 +477,7 @@ differenced time series is
     + \sum_{k=1}^{p} \phi_k\, y_{A, t-k}
     + \sum_{j=1}^{q} \psi_j\, \epsilon_{A, t-j}
     + \Phi\, y_{A, t-52}
-    + \boldsymbol{\beta}^{\!\top} \mathbf{x}_{t-1}
+    + \boldsymbol{\beta}^{\top} \mathbf{x}_{t-1}
     + \epsilon_{A,t}%,
 \end{equation}
 which is a SARIMA$(p,d,q)(1,0,0)_{52}$ model with a one-week-lagged
@@ -518,7 +520,7 @@ $$
 $$
 %
 %
-where $\theta \in [0, 0.5]$ is the coupling parameter. The
+where $\theta \in [0, 1]$ is the coupling parameter. The
 transmission rate is a standard seasonal forcing ($\varepsilon$ is forcing
 amplitude, $\varphi_i$ is a phase offset):
 %
@@ -531,8 +533,24 @@ $$
 where $t$ is measured in years. Then, the force of infection in region
 $i$ is~\citep{edlund2011}
 \begin{equation}\label{eq:foi}
-\lambda_i(t) = \beta_i(t) \frac{\sum_j C_{ij}\, I_j(t)}{\sum_j C_{ij}\, N_j}.
+\lambda_i(t) = \beta_i(t)\left[(1-\alpha)\,\frac{\sum_j C_{ij}\, I_j(t)}{\sum_j C_{ij}\, N_j}
+\;+\; \alpha\, \frac{I_{\text{nat}}(t)}{N_{\text{nat}}}\right],
 \end{equation}
+where $\alpha \in [0, 1]$ mixes the local, contact-weighted term with
+an exogenous national driver $I_{\text{nat}}(t)/N_{\text{nat}}$. The
+national driver is estimated from aggregate US P\&I excess mortality
+as $I_{\text{nat}}(t) = Y_{\text{nat}}(t)/\rho$, where
+$Y_{\text{nat}}(t)$ is total weekly excess mortality summed across all
+included states, and $N_{\text{nat}}$ is the corresponding total
+population. When $\alpha = 0$ the model reduces to the standard
+two-region metapopulation with pairwise coupling
+parameter~$\theta$; when $\alpha > 0$ each region also experiences a
+component of infection pressure proportional to national incidence,
+independent of pairwise connectivity. This decomposition is the
+mechanistic analogue of the SARIMA conditioning on national
+mortality: it lets us test, within the SIR framework, whether
+pairwise coupling adds anything after a shared national driver is
+accounted for.
 
 The expected incidence is $\mu_i(t) = S_i(t)[1 -
   \exp(-\lambda_i(t))]$, and the recovery probability per time step is
@@ -571,8 +589,13 @@ $\varphi$ & & Phase of seasonal forcing & per state \\
 \end{table}
 
 \subsection*{Observation Model and Likelihood}\label{subsec:noise}
-We assume each infection is reported independently with probability
-$\rho$, giving rise to binomially distributed observations, which we approximate as Gaussian:
+Each infection is reported independently with probability $\rho$;
+however, surveillance counts exhibit overdispersion beyond the
+binomial baseline due to reporting heterogeneity and other noise
+sources not captured by the mean-field SIR dynamics. We model
+observations as having conditional mean $\rho\mu_i(t)$ and conditional
+variance matching a Negative-Binomial distribution with dispersion
+parameter $k$:
 %
 %
 $$
@@ -584,39 +607,55 @@ with
 %
 %
 $$
-\epsilon_i(t) \sim \mathcal{N}(0, \rho(1{-}\rho)\mu_i(t)).
+\epsilon_i(t) \sim \mathcal{N}\left(0,\; \rho\mu_i(t) +
+\frac{(\rho\mu_i(t))^2}{k}\right).
 $$
 %
 %
+We fix $k = 10$ throughout and verify robustness to this choice in the
+Supplementary Information.
 
 The unknown parameters for a single influenza season are
-$\boldsymbol{\phi} = (\theta, S_1(0), I_1(0), S_2(0), I_2(0))$, giving
+$\boldsymbol{\phi} = (S_1(0), I_1(0), S_2(0), I_2(0), \alpha, \theta)$, giving
 the log-likelihood:
 \begin{equation}\label{eq:loglik}
 \ell(\boldsymbol{\phi}) = -\frac{1}{2}\sum_{t=0}^{T-1}\sum_{i=1}^{2}
 \left[\log(2\pi \sigma_i^2(t)) + \frac{(Y_i(t) -
     \rho\mu_i(t))^2}{\sigma_i^2(t)}\right]
 \end{equation}
-where $\sigma_i^2(t) = \rho(1{-}\rho)\mu_i(t)$.
+where $\sigma_i^2(t) = \rho\mu_i(t) + (\rho\mu_i(t))^2/k$.
 
 \subsection*{Derivatives}\label{subsec:sens}
 Computing the Cram\'er-Rao Lower Bound and maximizing the likelihood
 (details below for both) require partial derivatives of model outputs
-with respect to parameters. Let $\phi \in \{\theta, S_1(0), S_2(0),
-I_1(0), I_2(0)\}$ denote a parameter ($\phi = \phi_k$ for $k = 1,
-\dots, 5$). The partial derivative of the force of infection from
-\eqref{eq:foi} is:
+with respect to parameters. Let $\phi \in \{S_1(0), I_1(0), S_2(0),
+I_2(0), \alpha, \theta\}$ denote a parameter ($\phi = \phi_k$ for $k = 1,
+\dots, 6$). It is convenient to write the FOI~\eqref{eq:foi} as
+$\lambda_i = \beta_i(t)\bigl[(1-\alpha)\,L_i + \alpha\,\tilde{N}_i\bigr]$
+where $L_i(t) = (\mathbf{C}\mathbf{I})_i/(\mathbf{C}\mathbf{N})_i$ is
+the local, contact-weighted per-capita infected fraction and
+$\tilde{N}_i(t) = I_{\text{nat}}(t)/N_{\text{nat}}$ is the exogenous
+national driver (independent of $S_i, I_i$ and of $\alpha, \theta$).
+For any $\phi \in \{S_1(0), I_1(0), S_2(0), I_2(0), \theta\}$,
 \begin{equation}\label{eq:sens_foi}
-\frac{\partial \lambda_i}{\partial \phi} = \beta_i(t) \left[
+\frac{\partial \lambda_i}{\partial \phi} = \beta_i(t)\,(1-\alpha)\left[
 \frac{1}{(\mathbf{C}\mathbf{N})_i}\left(
   \frac{\partial \mathbf{C}}{\partial \phi} \mathbf{I}
   + \mathbf{C} \frac{\partial \mathbf{I}}{\partial \phi}\right)_i
-- \frac{\lambda_i}{\beta_i (\mathbf{C}\mathbf{N})_i}
+- \frac{L_i}{(\mathbf{C}\mathbf{N})_i}
   \left(\frac{\partial \mathbf{C}}{\partial \phi} \mathbf{N}\right)_i
-\right]
+\right];
+\end{equation}
+for $\phi = \alpha$, the contact matrix has no $\alpha$-dependence and
+$\tilde{N}_i$ contributes an additive term,
+\begin{equation}\label{eq:sens_foi_alpha}
+\frac{\partial \lambda_i}{\partial \alpha} = \beta_i(t)\left[
+\tilde{N}_i - L_i
++ \frac{(1-\alpha)}{(\mathbf{C}\mathbf{N})_i}
+\left(\mathbf{C}\,\frac{\partial \mathbf{I}}{\partial \alpha}\right)_i
+\right].
 \end{equation}
 The contact matrix derivative is
-
 \begin{align*}
 \partial \mathbf{C}/\partial \theta =
 \begin{bmatrix}
@@ -655,14 +694,24 @@ in~\citep{mester2022}.
 \subsection*{The Cram\'er-Rao Lower Bound}\label{subsec:crlb}
 For a single epidemic season, the Cram\'er-Rao Lower Bound (CRLB)
 states that $\text{Var}(\hat\phi_k) \geq [\mathbf{J}^{-1}]_{kk}$,
-where $\mathbf{J}$ is the $5 \times 5$ Fisher Information Matrix with
+where $\mathbf{J}$ is the $6 \times 6$ Fisher Information Matrix with
 entries $J_{kl} =
-\mathbb{E}[(\partial\ell/\partial\phi_k)(\partial\ell/\partial\phi_l)]$.
-One can verify that if we define
+\mathbb{E}[(\partial\ell/\partial\phi_k)(\partial\ell/\partial\phi_l)]$,
+indexed by $\boldsymbol{\phi} = (S_1(0), I_1(0), S_2(0), I_2(0),
+\alpha, \theta)$.
+Let $r_i(t) := Y_i(t) - \rho\mu_i(t)$ denote the residual and
+%
+%
 \begin{equation*}
-A_i(t) := -\frac{1}{2\mu_i(t)} + \frac{Y_i(t) -
-  \rho\mu_i(t)}{(1{-}\rho)\mu_i(t)} + \frac{(Y_i(t) -
-  \rho\mu_i(t))^2}{2\rho(1{-}\rho)\mu_i(t)^2},
+a_i(t) := \frac{\partial \sigma_i^2(t)}{\partial \mu_i(t)} = \rho + \frac{2\rho^2 \mu_i(t)}{k}
+\end{equation*}
+%
+%
+denote the derivative of the variance function with respect to the
+mean. One can verify that if we define
+\begin{equation*}
+A_i(t) := -\frac{a_i(t)}{2\sigma_i^2(t)} + \frac{\rho\, r_i(t)}{\sigma_i^2(t)}
++ \frac{r_i^2(t)\,a_i(t)}{2\sigma_i^4(t)},
 \end{equation*}
 then differentiating the log-likelihood~\eqref{eq:loglik} yields
 %
@@ -674,8 +723,11 @@ then differentiating the log-likelihood~\eqref{eq:loglik} yields
 %
 %
 Observations are independent across $(i,t)$, and we can easily verify
-$\mathbb{E}[A_i(t)] = 0$. We obtain, using moments of the Gaussian
-$Y_i(t) -\rho \mu_i(t)$ and~\eqref{eq:grad}:
+$\mathbb{E}[A_i(t)] = 0$. We obtain, using the central moments of the
+Gaussian $r_i(t) = Y_i(t) - \rho\mu_i(t)$, namely
+%% $\mathbb{E}[r_i(t)] = \mathbb{E}[r_i^3(t)] = 0$,
+%% $\mathbb{E}[r_i^2(t)] = \sigma_i^2(t)$, and
+$\mathbb{E}[r_i^4(t)] = 3\sigma_i^4(t)$, together with~\eqref{eq:grad}:
 \begin{align}\label{eq:fim_scalar}
   \begin{split}
     J_{kl} &= \mathbb{E}\left [\frac{\partial \ell}{\partial \phi_k}\frac{\partial \ell}{\partial \phi_l}\right ] \\
@@ -686,8 +738,8 @@ $Y_i(t) -\rho \mu_i(t)$ and~\eqref{eq:grad}:
     %
     %
     %
-    &= \sum_{t=0}^{T-1}\sum_{i=1}^{2}\left( \frac{1}{2\mu_i(t)^2} +
-    \frac{1+\rho}{(1-\rho)\mu_i(t)}\right) \frac{\partial
+    &= \sum_{t=0}^{T-1}\sum_{i=1}^{2}\left( \frac{\rho^2}{\sigma_i^2(t)} +
+    \frac{a_i^2(t)}{2\sigma_i^4(t)}\right) \frac{\partial
       \mu_i(t)}{\partial \phi_k} \frac{\partial \mu_i(t)}{\partial
       \phi_l}
   \end{split}
@@ -702,45 +754,48 @@ In matrix form, \eqref{eq:fim_scalar} can be written as
   %
   %
   \mathbf{G} &= \begin{pmatrix}
-    \dfrac{\partial \mu_1(0)}{\partial \theta} &
     \dfrac{\partial \mu_1(0)}{\partial S_1(0)} &
-    %% \dfrac{\partial \mu_1(0)}{\partial I_1(0)} &
-    %% \dfrac{\partial \mu_1(0)}{\partial S_2(0)} &
     \dots &
-    \dfrac{\partial \mu_1(0)}{\partial I_2(0)} \\[10pt]
-    \dfrac{\partial \mu_2(0)}{\partial \theta} &
+    \dfrac{\partial \mu_1(0)}{\partial I_2(0)} &
+    \dfrac{\partial \mu_1(0)}{\partial \alpha} &
+    \dfrac{\partial \mu_1(0)}{\partial \theta} \\[10pt]
     \dfrac{\partial \mu_2(0)}{\partial S_1(0)} &
-    %% \dfrac{\partial \mu_2(0)}{\partial I_1(0)} &
-    %% \dfrac{\partial \mu_2(0)}{\partial S_2(0)} &
     \dots &
-    \dfrac{\partial \mu_2(0)}{\partial I_2(0)} \\[10pt]
-    \dfrac{\partial \mu_1(1)}{\partial \theta} &
+    \dfrac{\partial \mu_2(0)}{\partial I_2(0)} &
+    \dfrac{\partial \mu_2(0)}{\partial \alpha} &
+    \dfrac{\partial \mu_2(0)}{\partial \theta} \\[10pt]
     \dfrac{\partial \mu_1(1)}{\partial S_1(0)} &
-    %% \dfrac{\partial \mu_1(1)}{\partial I_1(0)} &
-    %% \dfrac{\partial \mu_1(1)}{\partial S_2(0)} &
     \dots &
-    \dfrac{\partial \mu_1(1)}{\partial I_2(0)} \\[10pt]
-    \dfrac{\partial \mu_2(1)}{\partial \theta} &
+    \dfrac{\partial \mu_1(1)}{\partial I_2(0)} &
+    \dfrac{\partial \mu_1(1)}{\partial \alpha} &
+    \dfrac{\partial \mu_1(1)}{\partial \theta} \\[10pt]
     \dfrac{\partial \mu_2(1)}{\partial S_1(0)} &
-    %% \dfrac{\partial \mu_2(1)}{\partial I_1(0)} &
-    %% \dfrac{\partial \mu_2(1)}{\partial S_2(0)} &
     \dots &
-    \dfrac{\partial \mu_2(1)}{\partial I_2(0)} \\[10pt]
-    \vdots & \vdots &  & \vdots
+    \dfrac{\partial \mu_2(1)}{\partial I_2(0)} &
+    \dfrac{\partial \mu_2(1)}{\partial \alpha} &
+    \dfrac{\partial \mu_2(1)}{\partial \theta} \\[10pt]
+    \vdots &  & \vdots & \vdots & \vdots
     \\[6pt]
-    \dfrac{\partial \mu_2(T{-}1)}{\partial \theta} &
     \dfrac{\partial \mu_2(T{-}1)}{\partial S_1(0)} &
-    %% \dfrac{\partial \mu_2(T{-}1)}{\partial I_1(0)} &
-    %% \dfrac{\partial \mu_2(T{-}1)}{\partial S_2(0)} &
     \dots &
-    \dfrac{\partial \mu_2(T{-}1)}{\partial I_2(0)}
+    \dfrac{\partial \mu_2(T{-}1)}{\partial I_2(0)} &
+    \dfrac{\partial \mu_2(T{-}1)}{\partial \alpha} &
+    \dfrac{\partial \mu_2(T{-}1)}{\partial \theta}
   \end{pmatrix} \\
   &\text{ and } \\
   %% G_{(i,t),k} &= \partial \mu_i(t)/\partial \phi_k \\
   %
   %
-  \mathbf{W} &= \text{diag}(\dots,\frac{1}{2\mu_i(t)^2} +
-    \frac{1+\rho}{(1-\rho)\mu_i(t)},\dots ).
+  \mathbf{W} &= \text{diag} \left(\dots,\frac{\rho^2}{\sigma_i^2(t)} +                                                                      
+  \frac{a_i^2(t)}{2\sigma_i^4(t)},\dots\right) \\
+  %
+  %
+  %
+  &= \text{diag}\left(\dots,
+    \frac{\rho}{\mu_i(t) + \rho\mu_i^2(t)/k}
+    + \frac{\bigl(1 + 2\rho\mu_i(t)/k\bigr)^2}
+           {2\mu_i^2(t)\bigl(1 + \rho\mu_i(t)/k\bigr)^2},
+           \dots\right).
   \end{split}
 \end{align}
 Note that $\mathbf{G}^T\mathbf{WG}$ is also the Fisher information
@@ -757,12 +812,12 @@ seasons, treating each season's initial conditions as nuisance
 parameters. The CRLB becomes:
 \begin{equation}\label{eq:crlb_multi}
 \text{Var}(\hat{\theta}) \geq \left(\sum_{s} \frac{1}{
-  [\mathbf{J}^{-1}(s)]_{11}}\right)^{-1} =: \text{CRLB},
+  [\mathbf{J}^{-1}(s)]_{\theta\theta}}\right)^{-1} =: \text{CRLB},
 \end{equation}
 where $\mathbf{J}(s)$ is the Fisher information matrix for season $s$.
 Seasons where the CRLB computation fails (e.g., due to near-zero
 incidence producing a singular Fisher information matrix) contribute
-no information and are assigned $[\mathbf{J}^{-1}(s)]_{11} = \infty$.
+no information and are assigned $[\mathbf{J}^{-1}(s)]_{\theta\theta} = \infty$.
 
 Identifiability in systems-biology models is sometimes explored via
 the profile likelihood~\citep{raue2009, shrestha2011} which is defined,
@@ -770,7 +825,8 @@ for a single season via
 %
 %
 $$
-\ell_{\text{PL}}(\theta) = \max_{S_1(0), S_2(0), I_1(0), I_2(0)} \ell(\theta, S_1(0), S_2(0), I_1(0), I_2(0)).
+\ell_{\text{PL}}(\theta) = \max_{S_1(0), I_1(0), S_2(0), I_2(0), \alpha}
+\ell(S_1(0), I_1(0), S_2(0), I_2(0), \alpha, \theta).
 $$
 %
 %
@@ -798,7 +854,7 @@ $\varepsilon \in [0, 1)$, comparing in-phase ($\varphi_1 = \varphi_2$)
   each configuration 500 times with fresh IC draws. We then compute
   optimal statistical power of a one-sided $\alpha = 0.05$ test as
 \begin{equation}\label{eq:power}
-\text{Power} = 1 - \Phi\!\left(z_\alpha -
+\text{Power} = 1 - \Phi \left(z_\alpha -
 \frac{\theta}{\sqrt{\text{CRLB}}}\right),
 \end{equation}
 where $P\left(\mathcal{N}(0,1) > z_\alpha\right) = 0.05$, and the
