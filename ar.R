@@ -47,16 +47,26 @@ te <- which(year(w$date) >= 2023)                                               
 fmt <- function(o) sprintf("(%d,%d,%d)(%d,%d,%d)[%d]",                                       # py: def fmt(o): return f"({o[0]},{o[1]},{o[2]})({o[3]},{o[4]},{o[5]})[{o[6]}]"
                            o[1], o[2], o[3], o[4], o[5], o[6], o[7])
 
-# ---- national average covariate (same for every pair) ------------------------------------
+# ---- all-others driver (per-capita mortality across all states except those under test) --
+# Matches the SIR nat_driver: sum(deaths in kept states) / sum(pop in kept states), i.e.
+# population-weighted per-capita rate (times 1e5 for numerical consistency with w).
+pop_wide <- sapply(states, function(s) ipop(s, w$date))                                      # py: pop_wide = np.column_stack([ipop(s, w.date.values) for s in states])
+colnames(pop_wide) <- states                                                                 # py: pop_wide = pd.DataFrame(pop_wide, columns=states)
 
-NAVG <- rowMeans(as.matrix(w[, states]), na.rm = TRUE)                                       # py: NAVG = w[states].mean(axis=1)   # national mean across all states
+navg_excluding <- function(exclude_states) {                                                 # py: def navg_excluding(exclude_states):
+  keep <- setdiff(states, exclude_states)                                                    # py:     keep = [s for s in states if s not in exclude_states]
+  num  <- rowSums(as.matrix(w[, keep]) * pop_wide[, keep], na.rm = TRUE)                     # py:     num = (w[keep].values * pop_wide[keep].values).sum(axis=1)
+  den  <- rowSums(pop_wide[, keep], na.rm = TRUE)                                            # py:     den = pop_wide[keep].sum(axis=1)
+  num / den                                                                                  # py:     return num / den
+}
 
 # ---- per-target fits: null + national-average-only (47 fits) ------------------------------
 
 eval_target <- function(target) {                                                            # py: def eval_target(target):
   tryCatch({                                                                                 # py: try:
     y    <- ts(w[[target]], frequency = 52)                                                  # py:     y    = pd.Series(w[target].values)
-    xn   <- c(NA, head(NAVG, -1))                                                            # py:     xn   = np.concatenate(([np.nan], NAVG[:-1]))
+    navg <- navg_excluding(target)                                                           # py:     navg = navg_excluding([target])
+    xn   <- c(NA, head(navg, -1))                                                            # py:     xn   = np.concatenate(([np.nan], navg[:-1]))
     o_n  <- forecast::arimaorder(auto.arima(y[tr]))[1:3]                                     # py:     o_n  = auto_arima(y[tr]).order
     o_v  <- forecast::arimaorder(auto.arima(y[tr], xreg = xn[tr]))[1:3]                      # py:     o_v  = auto_arima(y[tr], X=xn[tr]).order
     m_n  <- Arima(y[tr], order = o_n, seasonal = SEASONAL)                                   # py:     m_n  = SARIMAX(y[tr], order=o_n, seasonal_order=...).fit()
@@ -78,7 +88,8 @@ eval_target <- function(target) {                                               
 eval_pair <- function(target, cov) {                                                         # py: def eval_pair(target, cov):
   y    <- ts(w[[target]], frequency = 52)                                                    # py: y    = pd.Series(w[target].values)
   xb   <- c(NA, head(w[[cov]], -1))                                                          # py: xb   = np.concatenate(([np.nan], w[cov].values[:-1]))
-  xn   <- c(NA, head(NAVG, -1))                                                              # py: xn   = np.concatenate(([np.nan], NAVG[:-1]))
+  navg <- navg_excluding(c(target, cov))                                                     # py: navg = navg_excluding([target, cov])
+  xn   <- c(NA, head(navg, -1))                                                              # py: xn   = np.concatenate(([np.nan], navg[:-1]))
   X    <- cbind(biv = xb, nav = xn)                                                          # py: X    = np.column_stack([xb, xn])
   rb <- tryCatch({                                                                           # py: try:
     o_b <- forecast::arimaorder(auto.arima(y[tr], xreg = xb[tr]))[1:3]                       # py:     o_b = auto_arima(y[tr], X=xb[tr]).order
@@ -139,5 +150,5 @@ run_all <- function() {                                                         
 # ---- main: run what hasn't been cached --------------------------------------------------
 
 dir.create("outputs", showWarnings = FALSE)                                                  # py: os.makedirs("outputs", exist_ok=True)
-if (!file.exists("outputs/sarima_cv.csv")) run_all()                                         # py: if not os.path.exists(...): run_all()
+run_all()                                                                                    # py: run_all()   # unconditional: caller should back up any old CSV first
 # Visualization lives in viz.R; run `Rscript viz.R` to regenerate figures.                   # py: # run `python viz.py` to regenerate figures

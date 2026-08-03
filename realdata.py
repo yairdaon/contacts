@@ -34,16 +34,6 @@ def main():
     pop_df['season'] = pop_df['date'].dt.year + 1  # July 1st, Y -> season Y+1
     pop_df = pop_df[['season', 'state', 'population']].set_index(['season', 'state'])
 
-    # National-driver: per-capita national infection rate per (season, week).
-    # Full US aggregate (all states). Used as the α-weighted exogenous FOI term.
-    nat_driver = load_national_driver(
-        mortality_path="data/pni_mortality/excess_deaths.csv",
-        pop_path="data/pni_mortality/populations.csv",
-        seasons=seasons,
-        rho=flu.rho,
-        n_weeks=flu.n_weeks,
-    )
-
     pairs = list(combinations(us.STATES, 2))
     random.shuffle(pairs)
 
@@ -97,7 +87,18 @@ def main():
         except KeyError:
             print(f"Missing population data for {s1_abbr}x{s2_abbr}, skipping")
             continue
-                
+
+        # National-driver: leave-two-out aggregate (excludes the current pair).
+        # Recomputed per pair so that the driver never contains information
+        # about the two states being fit.
+        nat_driver = load_national_driver(
+            mortality_path="data/pni_mortality/excess_deaths.csv",
+            pop_path="data/pni_mortality/populations.csv",
+            seasons=seasons,
+            rho=flu.rho,
+            n_weeks=flu.n_weeks,
+            exclude_regions=regions,
+        )
 
         rows = []
         # SARIMA-mirroring 2x2: alpha_upper in {0, 1} x theta_upper in {0, 1}.
