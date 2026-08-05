@@ -47,7 +47,7 @@ def compute_one_precision(theta, delta, gamma, beta0, rho, Ts, phase, S0_frac, I
     S0 = S0_frac * N
     I0 = I0_frac * N
 
-    precision = compute_precision(
+    R_g = compute_precision(
         S0=S0,
         I0=I0,
         gamma=gamma,
@@ -59,6 +59,11 @@ def compute_one_precision(theta, delta, gamma, beta0, rho, Ts, phase, S0_frac, I
         phase=phase,
         N=N,
     )
+    # Profile Fisher information for theta after profiling out all other
+    # parameters (including alpha, which is fixed at 0 in this simulation).
+    # R_g is the 2x2 upper-triangular (alpha, theta) block; R_g[-1,-1]^2
+    # is the theta-only precision.
+    precision = float(R_g[-1, -1] ** 2)
 
     return {
         "theta": theta,

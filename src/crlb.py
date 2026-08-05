@@ -25,7 +25,7 @@ def compute_precision(S0,
                       rho: float,
                       phase: np.ndarray,
                       N: np.ndarray,
-                      I_nat_pc,
+                      I_nat_pc=None,
                       alpha: float = 0.0,
                       k: float = 10.0
                       ):
