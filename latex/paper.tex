@@ -32,29 +32,27 @@
 \maketitle
 
 \begin{abstract}
-Distinguishing entrainment by a shared exogenous drive from genuine
-synchronization through inter-region coupling is a recurring problem
-in the nonlinear dynamics of living systems, from coupled genetic
-oscillators to the spread of infectious diseases. We argue that for
-seasonal epidemics the two mechanisms are typically not
-distinguishable from population-level observations alone. We apply the
-Schur complement to the Fisher information matrix of a coupled SIR
+Distinguishing entrainment by a shared driver from synchronization is
+a recurring problem in the nonlinear dynamics of living systems, from
+coupled genetic oscillators to the spread of infectious diseases. We
+argue that for seasonal epidemics the two mechanisms are typically
+indistinguishable from population-level observations alone. We apply
+the Schur complement to the Fisher information matrix of a coupled SIR
 model and show that under entrainment, the trajectory sensitivity to
 inter-region coupling is absorbed by fitting initial conditions and a
-shared national driver, rendering the coupling parameter practically
-unidentifiable. We then analyze 12 seasons of pneumonia and influenza
-mortality records from 47 US states. Somewhat surprisinglu, a
-model-free SARIMA fit shows improved prediction skill for 65\% of
-state pairs, while a mechanistic coupled SIR fit rejects a null of no
-coupling for 80\% of state pairs. However, once a national driver
-covariate is included in the analysis, these figures drop to
-50\% and 20\%, respectively. We conclude that inter-region coupling
-plays no detectable role for seasonally driven influenza and make a
-practical recommendation: pairwise coupling should be dropped from
-operational influenza forecast models in accordance with Occam's
-razor.  More broadly, we recommend the same Fisher-information
-diagnostic as an identifiability check for any entrained system where
-coupling is suspected.
+shared national driver. We then analyze 12 seasons of pneumonia and
+influenza mortality records from 47 US states. Surprisingly, a
+model-free SARIMA shows improved prediction skill for 65\% of
+state pairs, while a mechanistic coupled SIR fit identifies coupling
+for 80\% of state pairs. However, once a national driver covariate is
+included in the analysis, these figures drop to 50\% and 20\%,
+respectively. We conclude that inter-region coupling plays no
+detectable role for seasonally driven influenza and make a practical
+recommendation: pairwise coupling should be dropped from operational
+influenza forecast models in accordance with Occam's razor.  More
+broadly, we recommend the same Fisher information diagnostic as an
+identifiability check for any entrained system where coupling is
+suspected.
 \end{abstract}
 
 \noindent\textbf{Keywords:} entrainment $|$ synchronization $|$
@@ -93,7 +91,7 @@ established the coupled population approach with US commuting flows,
 and more recent influenza forecast systems have built on similar
 coupling~\citep{pei2018, osthus2021}.
 
-Independently, model-free time-series methods suggest that influenza-like-illness
+Independently, model-free time-series methods suggest that influenza-like-illness (ILI)
 forecasts in the US benefit from including other states as
 covariates~\citep{thivierge2025}, with a modest but consistent
 improvement in skill. We reproduce this finding for pneumonia and
@@ -151,10 +149,10 @@ operational forecast models. The same \textbf{design-stage} check applies well b
 influenza. Whenever coupled oscillators are driven by common forcing
 \citep{pikovsky2001}, e.g.~in neural circuits
 \citep{reid2019},
-ecological metapopulations,
+ecological metapopulations
 \citep{bjornstad1999, grenfell1998},
-and climate networks,
-\citep{tsonis2004architecture}
+and climate networks
+\citep{tsonis2004architecture},
 our approach can flag parameters that the planned data cannot
 support. A redundant parameter does not improve forecasts and should
 be removed from forecast models in accordance with Occam's razor.
@@ -199,13 +197,13 @@ be removed from forecast models in accordance with Occam's razor.
 % ---------------------------------------
 \section{Results}
 \subsection{Analysis via Schur complement}
-The overall behavior of any entrained coupled system could be
-understood via the Schur complement of the Fisher information
+The overall behavior of any entrained coupled system can be understood
+via the Schur complement of the Fisher information
 matrix\footnote{Readers less familiar with the Fisher information are
 advised to review the Methods (specifically Section \ref{subsec:crlb})
-for details}. Partition the $6\times 6$ Fisher information matrix of a
+for details.}. Partition the $6\times 6$ Fisher information matrix of a
 seasonally driven coupled SIR model into a $5\times 5$
-nuisance-parameter block and a $1\times 1$ couplinge block,
+nuisance-parameter block and a $1\times 1$ coupling block,
 \begin{equation*}
   \mathbf{J} =
   %
@@ -226,11 +224,11 @@ complement, the Fisher information for $\theta$ is
 
 A small Fisher information in Eq.~\eqref{eq:schur} arises for one of
 two reasons. Either (i) $J_{\theta\theta}$ is small, so $\theta$ has
-no effect on trajectories. Alternatively, (ii) the
-$\theta$-sensitivity $\partial\mu/\partial\theta$ is close to the span
-of the nuisance-parameter sensitivities $\{\partial\mu/\partial
-S_i(0), \partial\mu/\partial I_i(0), \partial\mu/\partial\gamma\}$
-(see SI Section~\ref{sec:si_schur} for details). We expect the
+no effect on trajectories, or (ii) the $\theta$-sensitivity
+$\partial\mu/\partial\theta$ is close to the span of the
+nuisance-parameter sensitivities $\{\partial\mu/\partial S_i(0),
+\partial\mu/\partial I_i(0), \partial\mu/\partial\gamma\}$ (see SI
+Section~\ref{sec:si_schur} for details). We expect the
 $\gamma$-sensitivity to matter less here, so under (ii), any effect of
 $\theta$ on the disease trajectory is absorbed by fitting initial
 conditions. For US influenza, states share strong seasonal forcing
@@ -247,11 +245,11 @@ coupling parameter $\theta$ is even in principle recoverable from
 observed incidence generated via a two-region SIR model. In
 Fig.~\ref{fig:power} we compare statistical power for identifying
 $\theta > 0$ across a grid of $\theta$ and seasonal forcing amplitudes
-$\varepsilon$, comparing in-phase entrainment ($\varphi_1 =
+$\varepsilon$, comparing in-phase forcing ($\varphi_1 =
 \varphi_2$) with reverse-phase forcing ($\varphi_1 - \varphi_2 =
 \pi$). Under reverse-phase forcing, power reaches $0.95$ over most of
 the grid. Thus, a two-region SIR system with distinct phases carries
-enough information about $\theta$ that makes the coupling parameter
+enough information about $\theta$ to make the coupling parameter
 identifiable, at least in principle. Under in-phase forcing, however,
 power does not exceed $0.55$ anywhere on the grid. At the red star,
 marking a strongly connected flu epidemic ($\theta = 0.05$,
@@ -264,8 +262,8 @@ section.
 \centering
 \includegraphics[width=\linewidth]{../pix/power.pdf}
 \caption{Statistical power for $H_1:\theta > 0$ at $\alpha = 0.05$,
-  with 12-season worth of simulated data. \textbf{Top:} in-phase
-  forcing ($\varphi_1 = \varphi_2$). \textbf{Bottom:} reverse-phase
+  with 12 seasons of simulated data. \textbf{Left:} in-phase
+  forcing ($\varphi_1 = \varphi_2$). \textbf{Right:} reverse-phase
   forcing ($\varphi_1 - \varphi_2 = \pi$). Initial conditions are
   drawn from the empirical distribution of per-season, per-state
   values (SI~Fig.~\ref{fig:si_ics}). Red star: a strongly driven flu
@@ -275,7 +273,7 @@ section.
 
 Results of the simulations suggest there should be very little benefit
 in including another state's lag-one mortality in a mechanistic SIR
-fit. But if directional coupling is not the underlying cause for
+fit. But if directional coupling is not the underlying cause for the
 reduction in in-sample SIR RMSE, then what is it? Two mechanisms can
 produce the apparent advantage of \textbf{coupled} over
 \textbf{univariate} we observed in Fig.~\ref{fig:sarima_heatmap} and
@@ -347,15 +345,15 @@ competing models (see Section~\ref{subsec:nested}): the
 against a \textbf{univariate} null, where no coupling is assumed
 ($H_0:\theta=0$). A hypothesis test (see Section \ref{subsec:hyp} for
 details) rejects the null $H_0: \theta = 0$ for $80.7\%$ of state
-pairs at $\alpha = 0.05$, see Fig.~\ref{fig:theta vs crlb coupled},
-(seemingly) affirming the ILI-forecast signal of~\citet{thivierge2025}
+pairs at $\alpha = 0.05$ (see Fig.~\ref{fig:theta vs crlb coupled}),
+seemingly affirming the ILI-forecast signal of~\citet{thivierge2025}
 on the P\&I mortality endpoint: pairwise coupling looks statistically
 significant.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.75\linewidth]{../pix/theta_vs_crlb_coupled.pdf}
-\caption{Scatter plot $\hat{\theta}$ (x-axis) and standard deviation
+\caption{Scatter plot of $\hat{\theta}$ (x-axis) and standard deviation
   (y-axis) across the 1081 US state pairs. The rejection threshold is
   dotted black. Above the rejection threshold $H_0:\theta=0$ is not
   rejected; below the rejection threshold $H_0:\theta=0$ is rejected
@@ -375,20 +373,20 @@ allowing $\gamma \in [0, 1]$, and conduct the comparison of the null
 alternative \textbf{both} ($\gamma>0$ and $\theta>0$). Our hypothesis
 test (see Section \ref{subsec:hyp} for details) rejects the null
 \textbf{national driver} for $18.6\%$ of state pairs in favor of
-\textbf{both} (compare to $80.7\%$ of rejecting
-\textbf{univariate} in favor of \textbf{coupled}), see
+\textbf{both} (compared to $80.7\%$ rejecting
+\textbf{univariate} in favor of \textbf{coupled}); see
 Fig.~\ref{fig:theta vs crlb both}.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.75\linewidth]{../pix/theta_vs_crlb_both.pdf}
-\caption{Scatter plot $\hat{\theta}$ (x-axis) and standard deviation
+\caption{Scatter plot of $\hat{\theta}$ (x-axis) and standard deviation
   (y-axis) across the 1081 US state pairs. The rejection threshold is
   dotted black. Above the rejection threshold $H_0:\theta=0$ is not
   rejected; below the rejection threshold $H_0:\theta=0$ is rejected
   in favor of the alternative $H_1:\theta > 0$ (see Section
   \ref{subsec:hyp}). The bulk of pairs sit above the rejection
   threshold ($18.6\%$ reject $H_0: \theta = 0$). Compare to
-  $80.7\%$ of Fig.~\ref{fig:theta vs crlb coupled}.}
+  $80.7\%$ in Fig.~\ref{fig:theta vs crlb coupled}.}
 \label{fig:theta vs crlb both}
 \end{figure}
 
@@ -431,7 +429,7 @@ been an important factor, $y_{B,t-1}$ would have carried information
 not contained in $\bar y_{t-1}$ and the joint model would beat the
 national driver-only model. We see no such effect. Conditional Granger
 causality then implies the data are consistent with a common-cause
-graphical structure $Y_B \leftarrow \bar Y \to Y_A$, in which
+graphical structure $Y_B \leftarrow \bar Y \to Y_A$, in which the
 national driver confounds the apparent directed-coupling
 structure $Y_B \to Y_A$.
 
@@ -450,7 +448,7 @@ structure.
 
 The naive coupled SIR fit rejects $H_0: \theta = 0$ for a large
 fraction of state pairs, in apparent contradiction with our Fisher
-information Schur-complement prediction that $\theta$ should be
+information Schur complement prediction that $\theta$ should be
 unidentifiable under shared seasonal forcing. The conditional Granger
 test on SARIMA locates the source: the state-covariate signal is a
 proxy for national driver, not a signature of directional
@@ -493,7 +491,7 @@ characterize this distinction.
 The identifiability-under-entrainment diagnostic we apply here is not
 specific to influenza or to inter-regional coupling. Contemporary spatial and structured
 epidemic models routinely carry coupling matrices, age-specific
-contact rates, and more. Because the Cram\'er-Rao Lower Bound bounds
+contact rates, and more. Because the Cram\'er-Rao lower bound bounds
 the variance of every unbiased estimator and is computable from the
 model and a hypothesized parameter value alone, the same design-stage
 check can be applied to any such model before any inference pipeline
@@ -629,8 +627,9 @@ $$
 $$
 %
 %
-where $t$ is measured in years. We let $I_{\text{nat}}$ the number of
-national infecteds, and $N_{\text{nat}}$ the national population. The
+where $t$ is measured in years. We let $I_{\text{nat}}$ and
+$N_{\text{nat}}$ denote the total number of nationally infected
+individuals and the national population, respectively. The
 force of infection in region $i$ is~\citep{edlund2011}
 \begin{equation}\label{eq:foi}
 \lambda_i(t) = \beta_i(t)\left[(1-\gamma)\frac{\sum_j C_{ij} I_j(t)}{\sum_j C_{ij} N_j}
@@ -687,7 +686,7 @@ however, surveillance counts exhibit overdispersion beyond the
 binomial baseline due to reporting heterogeneity and other noise
 sources not captured by the mean-field SIR dynamics. We model
 observations as having conditional mean $\rho\mu_i(t)$ and conditional
-variance matching a Negative-Binomial distribution with dispersion
+variance matching a negative-binomial distribution with dispersion
 parameter $k$:
 %
 %
@@ -787,18 +786,18 @@ in~\citep{mester2022}.
 \subsection{Fisher Information}\label{subsec:crlb}
 %% For a single epidemic season, the Cram\'er-Rao Lower Bound (CRLB)
 %% states that $\text{Var}(\hat\phi_k) \geq [\mathbf{J}^{-1}]_{kk}$,
-We would like to calculate the Fisher information for $I(\theta)$ for
-two reasons. First, under standard regularity conditions, the
+We would like to calculate the Fisher information $I(\theta)$ for two
+reasons. First, under standard regularity conditions, the
 maximum-likelihood estimator $\hat\theta_{\text{MLE}} \sim
 \mathcal{N}(\theta, I(\theta)^{-1})$
 (asymptotically)~\citep{wilke2020}. Second, the Fisher information
-gives rise to the Cramer-Rao lower bound which bounds the variance of
-any unbiased estimator from below
+gives rise to the Cram\'er-Rao lower bound which bounds the variance
+of any unbiased estimator from below
 \begin{equation}\label{eq:crlb}
   \text{Var}(\hat{\theta}) \geq I(\theta)^{-1}.%[\mathbf{J}^{-1}]_{\theta\theta}.
 \end{equation}
 
-We let $\mathbf{J}$ the $6 \times 6$ Fisher Information Matrix with
+We let $\mathbf{J}$ denote the $6 \times 6$ Fisher information matrix with
 entries $J_{kl} =
 \mathbb{E}[(\partial\ell/\partial\phi_k)(\partial\ell/\partial\phi_l)]$,
 indexed by $\boldsymbol{\phi} = (S_1(0), I_1(0), S_2(0), I_2(0),
@@ -1006,7 +1005,7 @@ We maximize the log-likelihood~\eqref{eq:loglik} using
 \texttt{SLSQP}~\citep{kraft1988} from
 \texttt{NLopt}~\citep{NLopt}. Analytical gradients were calculated
 via~\eqref{eq:grad}. Whenever an optimization resulted in
-$\hat{\theta} \in [0.5,1]$ which is not physical, we simply folded
+$\hat{\theta} \in [0.5,1]$, which is not physical, we simply folded
 $\hat{\theta}$ via $\hat{\theta} \leftarrow 1-\hat{\theta}$. To handle
 potential local minima, we use a multi-start strategy with 200 random
 initial points and retain the solution with the highest
@@ -1014,7 +1013,7 @@ likelihood. Pilot experiments show that 20 initial points suffice, so
 we take an order of magnitude more just to be safe.
 
 \subsection{AI usage disclosure}
-The authors used Anthropic's Claude (Claude Code, Opus-4.7) to assist
+The author used Anthropic's Claude (Claude Code, Opus-4.7) to assist
 with (i) drafting and refactoring analysis and simulation code (Python
 and R), including the sensitivity-equation implementation and cluster
 job scripts; (ii) drafting and copy-editing portions of the manuscript

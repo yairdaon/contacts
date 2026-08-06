@@ -24,7 +24,7 @@
 \begin{document}
 \maketitle
 
-\section{Initial conditions absorb the effect of coupling}\label{sec:si_schur}
+\section{Initial Conditions Absorb the Effect of Coupling}\label{sec:si_schur}
 Let
 %
 \[
@@ -48,7 +48,7 @@ I_1(0), S_2(0), I_2(0))$. The Fisher information matrix is
 %
 The projection operator onto the column space of $v_\eta$ is $P :=
 v_\eta(v_\eta^\top v_\eta)^{-1}v_\eta^\top$, hence the
-Schur-complement formula reads
+Schur complement formula reads
 %
 \begin{align}\label{eq:si_schur_term}
   \begin{split}
@@ -63,10 +63,11 @@ Case~(i) of the main text corresponds to $J_{\theta\theta} =
 v_\theta^\top v_\theta$ being small --- $\theta$ barely moves the
 trajectory, regardless of $\eta$.
 
-Thus a small CRLB requires $v_\theta^\top(I-P)v_\theta$ large,
-i.e.~$v_\theta$ close to orthogonal to $\mathrm{col}(v_\eta)$.
+From~\eqref{eq:si_schur_term}, a large Fisher information requires
+$v_\theta^\top(I-P)v_\theta$ to be large, i.e., $v_\theta$ is nearly
+orthogonal to $\mathrm{col}(v_\eta)$.
 Conversely, if $v_\theta$ lies close to $\mathrm{col}(v_\eta)$, the
-CRLB is large.
+Fisher information is small.
 
 The implications are immediate. The case when $v_\theta$ can be
 approximated well by a vector in the column space of $v_\eta$
@@ -93,7 +94,7 @@ it. The two sources agree closely in the overlap period.
 \includegraphics[width=\textwidth]{../pix/abs_hum.pdf}
 \caption{Weekly absolute humidity for Arizona (top) and New York
   (bottom). The Arizona series exhibits markedly different seasonality
-  than New York and other temperate states; the sinusoidal-forcing
+  from New York and other temperate states; the sinusoidal-forcing
   assumption used in our model is therefore poorly justified for
   Arizona, which we exclude from the empirical analysis.}
 \label{fig:si_humidity}
@@ -108,29 +109,29 @@ it. The two sources agree closely in the overlap period.
   all US state pairs and seasons. Left: susceptible fraction
   $S_i(0)/N_i$. Right: $\log_{10}$ of infected fraction $I_i(0)/N_i$.
   These empirical distributions are the sole source of initial
-  conditions for the simulated CRLB analysis of the main text; no
+  conditions for the simulated Fisher information analysis of the main text; no
   hand-specified IC regimes are used.}
 \label{fig:si_ics}
 \end{figure}
 
-\section{CRLB Ratio}\label{sec:si_crlb_ratio}
+\section{Fisher Information Ratio}\label{sec:si_crlb_ratio}
 
-The main-text power figure (Fig.~2) operationalizes the CRLB through
+The main-text power figure (Fig.~2) operationalizes the Fisher information through
 a hypothesis-test framework. As a complementary mechanistic view,
-Figure~\ref{fig:si_crlb_ratio} shows the ratio of median CRLB
+Figure~\ref{fig:si_crlb_ratio} shows the ratio of median Fisher information
 (in-phase / out-of-phase) directly, illustrating how much information
 is lost when phase asymmetry is removed.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.75\textwidth]{../pix/crlb_ratio.pdf}
-\caption{Ratio of median CRLB (in-phase / out-of-phase) as a function
+\caption{Ratio of median Fisher information (in-phase / out-of-phase) as a function
   of coupling $\theta$ and seasonal forcing amplitude $\varepsilon$.
   Initial conditions for each simulated season and region are drawn
   independently from the empirical distribution of per-season,
   per-state values fitted to the real data
   (Fig.~\ref{fig:si_ics}). Median ratio is $17.3$; ratio~$>1$ in
-  $98\%$ of cells; 95th-percentile ratio is $\sim 850$, maximum
+  $98\%$ of cells; 95th-percentile ratio is $\sim 850$; maximum
   exceeds $10^{5}$.}
 \label{fig:si_crlb_ratio}
 \end{figure}
@@ -229,21 +230,3 @@ $\rho \mu_i(t)$.
 \end{figure}
 
 \end{document}
-
-The SI contains the technical derivations, data-integration details, and validation figures that support the main-text claims:
-
-S1 — Schur-complement derivation.
-
-S2 — How CDC FluView (2010–2018) and HealthData.gov (2017–2025) are merged in the 2017–2018 overlap.
-
-S3 — Absolute humidity and the Arizona exclusion (Fig. S1). 
-
-S4 — Empirical IC distribution (Fig. S2)
-
-S5 — CRLB ratio heatmap (Fig. S3)
-
-S6 — Model reconstructions. Fitted-vs-observed excess P&I deaths for seven representative state pairs
-
-S7 — Phase differences (Fig. S12)
-
-S8 — Synthetic-data sanity checks (Figs. S13–S14). Maximum-likelihood recovery of coupling on noiseless and noisy two-region SIR data across in-phase and reverse-phase configurations.
